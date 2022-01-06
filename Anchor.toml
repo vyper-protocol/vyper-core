@@ -1,0 +1,13 @@
+[programs.localnet]
+vyper = "EgCnSZMSvrz6t8N4fB4tGesibVtNUJMMkS7t6VvyiiHV"
+test_port = "CYMaoxcFqPn5c9HcowsLRy1KaJ1iMkpCrt5MnXv9CxrA"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "localnet"
+wallet = "/Users/giacomocavicchioli/Dev/Crypto/wallets/main.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

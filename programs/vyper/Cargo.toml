@@ -1,0 +1,21 @@
+[package]
+name = "vyper"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "vyper"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.19.0"
+anchor-spl = "0.19.0"
+port-anchor-adaptor = "0.2.8"
