@@ -16,3 +16,13 @@ export async function findAssociatedTokenAddress(
 export function bn(v: number): anchor.BN {
   return new anchor.BN(v);
 }
+
+export function to_bps(v: number): number {
+  if (v > 1 || v < 0) throw Error("input needs to be between 0 and 1");
+  return v * 10000;
+}
+
+export function from_bps(v: number): number {
+  if (v > 10000 || v < 0) throw Error("input needs to be between 0 and 10000");
+  return v / 10000;
+}
