@@ -9,7 +9,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::{self, associated_token::AssociatedToken, token::{ self, Mint, TokenAccount, Token }};
 // use port_anchor_adaptor::*;
 use utils::*;
-use inputs::{ Input, CreateTrancheConfigInput, RedeemTrancheInput };
+use inputs::{ Input, CreateTrancheConfigInput };
 use state::{ TrancheConfig };
 use error::ErrorCode;
 
@@ -92,18 +92,9 @@ pub mod vyper {
         Ok(())
     }
 
-    pub fn redeem(ctx: Context<RedeemContext>, input_data: RedeemTrancheInput) -> ProgramResult  {
+    pub fn redeem(ctx: Context<RedeemContext>) -> ProgramResult  {
         msg!("redeem_tranche begin");
         
-        // * * * * * * * * * * * * * * * * * * * * * * * 
-        // check input
-        
-        msg!("check if input is valid");
-        if let Result::Err(err) = input_data.is_valid() {
-            msg!("input adta is not valid");
-            return Err(err.into());
-        }
-
         // check if before or after end date
 
         if ctx.accounts.tranche_config.end_date > ctx.accounts.clock.unix_timestamp as u64 {
@@ -293,7 +284,6 @@ pub struct CreateTranchesContext<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(input_data: RedeemTrancheInput)]
 pub struct RedeemContext<'info> {
 
     /**

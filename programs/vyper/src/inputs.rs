@@ -70,21 +70,3 @@ impl CreateTrancheConfigInput {
     }
 
 }
-
-// + + + + + + + + + + + + 
-
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
-pub struct RedeemTrancheInput {
-    pub quantity: u64,
-}
-
-impl Input for RedeemTrancheInput {
-    fn is_valid(&self) -> Result<(), ErrorCode> {
-        
-        if self.quantity == 0 {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
-
-        return Result::Ok(());
-    }
-}
