@@ -125,8 +125,8 @@ pub mod vyper {
         } else {
             [ctx.accounts.tranche_vault.amount, 0]
         };
-        msg!("capital_to_redeem: {}", capital_to_redeem);
-        msg!("interest_to_redeem: {}", interest_to_redeem);
+        msg!("+ capital_to_redeem: {}", capital_to_redeem);
+        msg!("+ interest_to_redeem: {}", interest_to_redeem);
 
         let capital_split_f: [f64;2] = [
             from_bps(ctx.accounts.tranche_config.capital_split[0]),
@@ -177,14 +177,22 @@ pub mod vyper {
         let user_junior_part = junior_total * ctx.accounts.tranche_config.mint_count[1] as f64 / ctx.accounts.junior_tranche_vault.amount as f64;
 
         let user_total = user_senior_part + user_junior_part;
-        msg!("user_total to transfer: {}", user_total);
+        msg!("user_total to redeem: {}", user_total);
 
-        let transfer_ctx = token::Transfer {
-            from: ctx.accounts.tranche_vault.to_account_info(),
-            to: ctx.accounts.deposit_to_account.to_account_info(),
-            authority: ctx.accounts.authority.to_account_info(),
-        };
-        token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), transfer_ctx), user_total as u64)?;
+        let seeds = &[
+            ctx.accounts.deposit_mint.to_account_info().key.as_ref(),
+            ctx.accounts.senior_tranche_mint.to_account_info().key.as_ref(),
+            ctx.accounts.junior_tranche_mint.to_account_info().key.as_ref(),
+             &[ctx.accounts.tranche_config.tranche_config_bump]];
+
+        token::transfer(CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            token::Transfer {
+                from: ctx.accounts.tranche_vault.to_account_info(),
+                to: ctx.accounts.deposit_to_account.to_account_info(),
+                authority: ctx.accounts.tranche_config.to_account_info(),
+            },
+            &[&seeds[..]]), user_total as u64)?;
 
         Ok(())
     }
