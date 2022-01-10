@@ -5,7 +5,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/sp
 import assert from "assert";
 import { Layout, f32, f64 } from "buffer-layout";
 import { Vyper } from "../target/types/vyper";
-import { bn, findAssociatedTokenAddress, to_bps } from "./utils";
+import { bn, createDepositConfiguration, createTranchesConfiguration, findAssociatedTokenAddress, to_bps } from "./utils";
 
 describe.only("vyper", () => {
   const program = anchor.workspace.Vyper as Program<Vyper>;
@@ -17,58 +17,16 @@ describe.only("vyper", () => {
   it("creates tranche", async () => {
     const inputData = getTrancheInputData();
 
-    const [depositMint, depositGod] = await createMintAndVault(
-      program.provider,
-      inputData.quantity,
-      program.provider.wallet.publicKey,
-      0
-    );
-    console.log("depositMint: " + depositMint);
+    const [depositMint, depositFromAccount] = await createDepositConfiguration(inputData.quantity.toNumber(), program);
 
-    const depositFromAccount = await findAssociatedTokenAddress(program.provider.wallet.publicKey, depositMint);
-
-    const createDepositFromAccountTx = new anchor.web3.Transaction();
-    createDepositFromAccountTx.add(
-      Token.createAssociatedTokenAccountInstruction(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        depositMint,
-        depositFromAccount,
-        program.provider.wallet.publicKey,
-        program.provider.wallet.publicKey
-      ),
-      Token.createTransferInstruction(
-        TOKEN_PROGRAM_ID,
-        depositGod,
-        depositFromAccount,
-        program.provider.wallet.publicKey,
-        [],
-        inputData.quantity.toNumber()
-      )
-    );
-    await program.provider.send(createDepositFromAccountTx);
-
-    console.log("depositFromAccount: " + depositFromAccount);
-
-    const depositFromAccountInfo = await getTokenAccount(program.provider, depositFromAccount);
-    console.log("depositFromAccountInfo.owner: " + depositFromAccountInfo.owner);
-    console.log("depositFromAccountInfo.mint: " + depositFromAccountInfo.mint);
-
-    const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("senior"), depositMint.toBuffer()],
-      program.programId
-    );
-    const seniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, seniorTrancheMint);
-    console.log("seniorTrancheMint: " + seniorTrancheMint);
-    console.log("seniorTrancheVault: " + seniorTrancheVault);
-
-    const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("junior"), depositMint.toBuffer()],
-      program.programId
-    );
-    const juniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, juniorTrancheMint);
-    console.log("juniorTrancheMint: " + juniorTrancheMint);
-    console.log("juniorTrancheVault: " + juniorTrancheVault);
+    const {
+      seniorTrancheMint,
+      seniorTrancheMintBump,
+      seniorTrancheVault,
+      juniorTrancheMint,
+      juniorTrancheMintBump,
+      juniorTrancheVault,
+    } = await createTranchesConfiguration(depositMint, program);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [depositMint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
@@ -148,51 +106,22 @@ describe.only("vyper", () => {
     assert.deepEqual(trancheVaultInfo.mint, depositMint);
   });
 
-  it("creates tranche and redeem after end date", async () => {
+  it("creates tranche and redeem everything", async () => {
     const createTrancheInputData = getTrancheInputData();
 
-    const [depositMint, depositGod] = await createMintAndVault(
-      program.provider,
-      createTrancheInputData.quantity,
-      program.provider.wallet.publicKey,
-      0
+    const [depositMint, depositFromAccount] = await createDepositConfiguration(
+      createTrancheInputData.quantity.toNumber(),
+      program
     );
-    const depositFromAccount = await findAssociatedTokenAddress(program.provider.wallet.publicKey, depositMint);
 
-    const createDepositFromAccountTx = new anchor.web3.Transaction();
-    createDepositFromAccountTx.add(
-      Token.createAssociatedTokenAccountInstruction(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        depositMint,
-        depositFromAccount,
-        program.provider.wallet.publicKey,
-        program.provider.wallet.publicKey
-      ),
-      Token.createTransferInstruction(
-        TOKEN_PROGRAM_ID,
-        depositGod,
-        depositFromAccount,
-        program.provider.wallet.publicKey,
-        [],
-        createTrancheInputData.quantity.toNumber()
-      )
-    );
-    await program.provider.send(createDepositFromAccountTx);
-
-    const depositFromAccountInfo = await getTokenAccount(program.provider, depositFromAccount);
-
-    const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("senior"), depositMint.toBuffer()],
-      program.programId
-    );
-    const seniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, seniorTrancheMint);
-
-    const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("junior"), depositMint.toBuffer()],
-      program.programId
-    );
-    const juniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, juniorTrancheMint);
+    const {
+      seniorTrancheMint,
+      seniorTrancheMintBump,
+      seniorTrancheVault,
+      juniorTrancheMint,
+      juniorTrancheMintBump,
+      juniorTrancheVault,
+    } = await createTranchesConfiguration(depositMint, program);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [depositMint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
@@ -226,13 +155,9 @@ describe.only("vyper", () => {
       },
     });
 
-    const redeemInputData = {
-      quantity: createTrancheInputData.quantity,
-    };
-
     const depositToAccount = depositFromAccount;
 
-    const tx = await program.rpc.redeem(redeemInputData, {
+    const tx = await program.rpc.redeem({
       accounts: {
         authority: program.provider.wallet.publicKey,
         trancheConfig,
@@ -255,7 +180,7 @@ describe.only("vyper", () => {
     console.log("tx", tx);
 
     const depositToAccountInfo = await getTokenAccount(program.provider, depositToAccount);
-    assert.equal(depositToAccountInfo.amount.toNumber(), redeemInputData.quantity.toNumber());
+    assert.equal(depositToAccountInfo.amount.toNumber(), createTrancheInputData.quantity.toNumber());
     assert.deepEqual(depositToAccountInfo.mint, depositMint);
 
     const seniorTokenAccountInfo = await getTokenAccount(program.provider, seniorTrancheVault);
