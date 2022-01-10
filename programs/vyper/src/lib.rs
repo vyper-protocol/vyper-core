@@ -179,7 +179,7 @@ pub mod vyper {
         let user_total = user_senior_part + user_junior_part;
         msg!("user_total to redeem: {}", user_total);
 
-        let seeds = &[
+        let transfer_seeds = &[
             ctx.accounts.deposit_mint.to_account_info().key.as_ref(),
             ctx.accounts.senior_tranche_mint.to_account_info().key.as_ref(),
             ctx.accounts.junior_tranche_mint.to_account_info().key.as_ref(),
@@ -192,7 +192,27 @@ pub mod vyper {
                 to: ctx.accounts.deposit_to_account.to_account_info(),
                 authority: ctx.accounts.tranche_config.to_account_info(),
             },
-            &[&seeds[..]]), user_total as u64)?;
+            &[&transfer_seeds[..]]), user_total as u64)?;
+        
+        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
+        token::burn(CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::Burn {
+                mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+                to: ctx.accounts.senior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info()
+            },
+        ), ctx.accounts.senior_tranche_vault.amount)?;
+
+        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
+        token::burn(CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::Burn {
+                mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+                to: ctx.accounts.junior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info()
+            },
+        ), ctx.accounts.junior_tranche_vault.amount)?;
 
         Ok(())
     }
@@ -310,23 +330,25 @@ pub struct RedeemContext<'info> {
 
     // Senior tranche mint
     #[account(
+        mut, 
         seeds = [b"senior".as_ref(), deposit_mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump,
         )]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(associated_token::mint = senior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut, associated_token::mint = senior_tranche_mint, associated_token::authority = authority)]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
     #[account(
+        mut, 
         seeds = [b"junior".as_ref(), deposit_mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * * 

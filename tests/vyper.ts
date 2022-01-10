@@ -230,13 +230,15 @@ describe.only("vyper", () => {
       quantity: createTrancheInputData.quantity,
     };
 
+    const depositToAccount = depositFromAccount;
+
     const tx = await program.rpc.redeem(redeemInputData, {
       accounts: {
         authority: program.provider.wallet.publicKey,
         trancheConfig,
         depositMint,
         trancheVault,
-        depositToAccount: depositFromAccount,
+        depositToAccount,
 
         seniorTrancheMint: seniorTrancheMint,
         seniorTrancheVault: seniorTrancheVault,
@@ -251,6 +253,20 @@ describe.only("vyper", () => {
       },
     });
     console.log("tx", tx);
+
+    const depositToAccountInfo = await getTokenAccount(program.provider, depositToAccount);
+    assert.equal(depositToAccountInfo.amount.toNumber(), redeemInputData.quantity.toNumber());
+    assert.deepEqual(depositToAccountInfo.mint, depositMint);
+
+    const seniorTokenAccountInfo = await getTokenAccount(program.provider, seniorTrancheVault);
+    assert.equal(seniorTokenAccountInfo.amount.toNumber(), 0);
+    assert.deepEqual(seniorTokenAccountInfo.mint, seniorTrancheMint);
+    assert.deepEqual(seniorTokenAccountInfo.owner, program.provider.wallet.publicKey);
+
+    const juniorTokenAccountInfo = await getTokenAccount(program.provider, juniorTrancheVault);
+    assert.equal(juniorTokenAccountInfo.amount.toNumber(), 0);
+    assert.deepEqual(juniorTokenAccountInfo.mint, juniorTrancheMint);
+    assert.deepEqual(juniorTokenAccountInfo.owner, program.provider.wallet.publicKey);
   });
 });
 function getTrancheInputData() {
