@@ -257,12 +257,6 @@ pub struct CreateTranchesContext<'info> {
 
     // * * * * * * * * * * * * * * * * * 
     
-    // serum dex program
-    #[account(address = anchor_spl::dex::ID)]
-    pub dex_program: AccountInfo<'info>,
-
-    // * * * * * * * * * * * * * * * * * 
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
