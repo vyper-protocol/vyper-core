@@ -5,7 +5,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/sp
 import assert from "assert";
 import { Layout, f32, f64 } from "buffer-layout";
 import { Vyper } from "../target/types/vyper";
-import { bn, findAssociatedTokenAddress } from "./utils";
+import { bn, findAssociatedTokenAddress, to_bps } from "./utils";
 
 describe.only("vyper", () => {
   const program = anchor.workspace.Vyper as Program<Vyper>;
@@ -227,7 +227,7 @@ describe.only("vyper", () => {
     });
 
     const redeemInputData = {
-      quantity: bn(1000),
+      quantity: createTrancheInputData.quantity,
     };
 
     const tx = await program.rpc.redeem(redeemInputData, {
@@ -256,8 +256,8 @@ describe.only("vyper", () => {
 function getTrancheInputData() {
   return {
     quantity: bn(1000),
-    capitalSplit: [50000, 100000],
-    interestSplit: [85000, 100000],
+    capitalSplit: [to_bps(0.5), to_bps(1)],
+    interestSplit: [to_bps(0.85), to_bps(1)],
     mintCount: [bn(4), bn(10)],
     startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
     endDate: bn(new Date("2022-01-31T10:00:00Z").getTime() / 1000),

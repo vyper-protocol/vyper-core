@@ -1,11 +1,8 @@
 use anchor_lang::prelude::*;
 use crate::{
-    error::{
-        ErrorCode,
-    },
-    state::{
-        TrancheConfig
-    }
+    error::ErrorCode,
+    state::TrancheConfig,
+    utils::{self}
 };
 use std::result::Result;
 
@@ -36,7 +33,7 @@ impl Input for CreateTrancheConfigInput {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
-        if self.capital_split[0] + self.capital_split[1] != 10000 {
+        if self.capital_split[1] != utils::to_bps(1.0) {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
@@ -44,7 +41,7 @@ impl Input for CreateTrancheConfigInput {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
-        if self.interest_split[1] != 100000 {
+        if self.interest_split[1] != utils::to_bps(1.0) {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
