@@ -2,3 +2,7 @@
 members = [
     "programs/*"
 ]
+
+exclude = [
+    "deps/serum-dex"
+]
