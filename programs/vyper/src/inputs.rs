@@ -1,23 +1,23 @@
-use anchor_lang::prelude::*;
 use crate::{
     error::ErrorCode,
     state::TrancheConfig,
-    utils::{self}
+    utils::{self},
 };
+use anchor_lang::prelude::*;
 use std::result::Result;
 
 pub trait Input {
     fn is_valid(&self) -> Result<(), ErrorCode>;
 }
 
-// + + + + + + + + + + + + 
+// + + + + + + + + + + + +
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
 pub struct CreateTrancheConfigInput {
     pub quantity: u64,
-    pub capital_split: [u32;2],
-    pub interest_split: [u32;2],
-    pub mint_count: [u64;2],
+    pub capital_split: [u32; 2],
+    pub interest_split: [u32; 2],
+    pub mint_count: [u64; 2],
     pub start_date: u64,
     pub end_date: u64,
     pub create_serum: bool,
@@ -26,7 +26,6 @@ pub struct CreateTrancheConfigInput {
 
 impl Input for CreateTrancheConfigInput {
     fn is_valid(&self) -> Result<(), ErrorCode> {
-        
         // TODO perform all checks
 
         if self.start_date > self.end_date {
@@ -51,7 +50,6 @@ impl Input for CreateTrancheConfigInput {
 
 impl CreateTrancheConfigInput {
     pub fn create_tranche_config(&self, data: &mut TrancheConfig) {
-
         // TODO can we possibly do something clever?
 
         data.quantity = self.quantity;
@@ -62,11 +60,10 @@ impl CreateTrancheConfigInput {
         data.end_date = self.end_date;
         data.create_serum = self.create_serum;
         data.can_mint_more = self.can_mint_more;
-        
+
         match Clock::get() {
             Ok(val) => data.created_at = val.unix_timestamp as u64,
             Err(_) => data.created_at = 0,
         };
     }
-
 }
