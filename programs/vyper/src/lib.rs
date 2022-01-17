@@ -1,6 +1,7 @@
 mod constants;
 mod error;
 mod inputs;
+mod serum;
 mod state;
 mod utils;
 
@@ -8,12 +9,14 @@ use anchor_lang::prelude::*;
 use anchor_spl::{
     self,
     associated_token::AssociatedToken,
+    dex,
     token::{self, Mint, Token, TokenAccount},
 };
 use std::cmp;
 // use port_anchor_adaptor::*;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
+use serum::*;
 use state::TrancheConfig;
 use utils::*;
 
@@ -107,6 +110,152 @@ pub mod vyper {
                 junior_mint_to_ctx,
             ),
             ctx.accounts.tranche_config.mint_count[1],
+        )?;
+
+        // * * * * * * * * * * * * * * * * * * * * * * *
+        // initialize market on serum
+        //
+        msg!("initialize market on serum");
+
+        allocate_serum_account(
+            48,
+            &ctx.accounts.market,
+            &[
+                ctx.accounts
+                    .junior_tranche_mint
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                ctx.accounts
+                    .junior_tranche_vault
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                b"market",
+            ],
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program,
+            &ctx.accounts.rent,
+            &ctx.program_id,
+        )?;
+        allocate_serum_account(
+            640,
+            &ctx.accounts.request_queue,
+            &[
+                ctx.accounts
+                    .junior_tranche_mint
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                ctx.accounts
+                    .junior_tranche_vault
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                b"request_queue",
+            ],
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program,
+            &ctx.accounts.rent,
+            &ctx.program_id,
+        )?;
+        allocate_serum_account(
+            65536,
+            &ctx.accounts.event_queue,
+            &[
+                ctx.accounts
+                    .junior_tranche_mint
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                ctx.accounts
+                    .junior_tranche_vault
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                b"event_queue",
+            ],
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program,
+            &ctx.accounts.rent,
+            &ctx.program_id,
+        )?;
+        allocate_serum_account(
+            1 << 16,
+            &ctx.accounts.asks,
+            &[
+                ctx.accounts
+                    .junior_tranche_mint
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                ctx.accounts
+                    .junior_tranche_vault
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                b"asks",
+            ],
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program,
+            &ctx.accounts.rent,
+            &ctx.program_id,
+        )?;
+        allocate_serum_account(
+            1 << 16,
+            &ctx.accounts.bids,
+            &[
+                ctx.accounts
+                    .junior_tranche_mint
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                ctx.accounts
+                    .junior_tranche_vault
+                    .to_account_info()
+                    .key
+                    .as_ref(),
+                b"bids",
+            ],
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program,
+            &ctx.accounts.rent,
+            &ctx.program_id,
+        )?;
+
+        let initialize_market_ctx = dex::InitializeMarket {
+            market: ctx.accounts.market.to_account_info().clone(),
+            coin_mint: ctx.accounts.junior_tranche_mint.to_account_info().clone(),
+            coin_vault: ctx.accounts.junior_tranche_vault.to_account_info().clone(),
+            bids: ctx.accounts.bids.to_account_info().clone(),
+            asks: ctx.accounts.asks.to_account_info().clone(),
+            req_q: ctx.accounts.request_queue.to_account_info().clone(),
+            event_q: ctx.accounts.event_queue.to_account_info().clone(),
+            rent: ctx.accounts.rent.to_account_info().clone(),
+            pc_mint: ctx.accounts.usdc_mint.to_account_info().clone(),
+            pc_vault: ctx.accounts.usdc_vault.to_account_info().clone(),
+        };
+
+        let mut vault_singer_nonce = 0;
+        for i in 1..100 {
+            if let Ok(_) = dex::serum_dex::state::gen_vault_signer_key(
+                i,
+                ctx.accounts.market.key,
+                ctx.program_id,
+            ) {
+                vault_singer_nonce = i;
+            }
+        }
+
+        dex::initialize_market(
+            CpiContext::new(
+                ctx.accounts.serum_dex.to_account_info().clone(),
+                initialize_market_ctx,
+            ),
+            100_000,
+            100,
+            vault_singer_nonce,
+            500,
         )?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
@@ -326,6 +475,25 @@ pub struct CreateTranchesContext<'info> {
     // Junior tranche token account
     #[account(init, payer = authority, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
+
+    // * * * * * * * * * * * * * * * * *
+
+    // serum accounts
+    #[account(mut)]
+    pub market: AccountInfo<'info>,
+    #[account(mut)]
+    pub request_queue: AccountInfo<'info>,
+    #[account(mut)]
+    pub event_queue: AccountInfo<'info>,
+    #[account(mut)]
+    pub asks: AccountInfo<'info>,
+    #[account(mut)]
+    pub bids: AccountInfo<'info>,
+    #[account(mut)]
+    pub usdc_vault: Box<Account<'info, TokenAccount>>,
+    pub usdc_mint: Box<Account<'info, Mint>>,
+
+    pub serum_dex: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
     pub system_program: Program<'info, System>,
