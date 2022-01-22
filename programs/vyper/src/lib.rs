@@ -136,7 +136,7 @@ pub mod vyper {
             &ctx.accounts.authority,
             &ctx.accounts.system_program,
             &ctx.accounts.rent,
-            &ctx.program_id,
+            &ctx.accounts.serum_dex.key(),
         )?;
         allocate_serum_account(
             640,
@@ -157,7 +157,7 @@ pub mod vyper {
             &ctx.accounts.authority,
             &ctx.accounts.system_program,
             &ctx.accounts.rent,
-            &ctx.program_id,
+            &ctx.accounts.serum_dex.key(),
         )?;
         allocate_serum_account(
             65536,
@@ -178,7 +178,7 @@ pub mod vyper {
             &ctx.accounts.authority,
             &ctx.accounts.system_program,
             &ctx.accounts.rent,
-            &ctx.program_id,
+            &ctx.accounts.serum_dex.key(),
         )?;
         allocate_serum_account(
             1 << 16,
@@ -199,7 +199,7 @@ pub mod vyper {
             &ctx.accounts.authority,
             &ctx.accounts.system_program,
             &ctx.accounts.rent,
-            &ctx.program_id,
+            &ctx.accounts.serum_dex.key(),
         )?;
         allocate_serum_account(
             1 << 16,
@@ -220,7 +220,7 @@ pub mod vyper {
             &ctx.accounts.authority,
             &ctx.accounts.system_program,
             &ctx.accounts.rent,
-            &ctx.program_id,
+            &ctx.accounts.serum_dex.key(),
         )?;
 
         let initialize_market_ctx = dex::InitializeMarket {
