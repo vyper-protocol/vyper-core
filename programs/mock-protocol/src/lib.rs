@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, TokenAccount};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("2heoT1tfJb5ayc8VA3WGrRgW9fiDtnjLuzRXpiYv1KXJ");
 
 #[program]
 pub mod mock_protocol {
@@ -11,19 +11,18 @@ pub mod mock_protocol {
         Ok(())
     }
 
-    pub fn simulate_interest(ctx: Context<SimulateInterest>, quantity: u64) -> ProgramResult {
-        
+    pub fn deposit(ctx: Context<Deposit>, quantity: u64, vault_bump: u8) -> ProgramResult {
         let cc = token::Transfer {
-            from: ctx.accounts.source_account.to_account_info(),
+            from: ctx.accounts.src_account.to_account_info(),
             to: ctx.accounts.vault.to_account_info(),
-            authority: ctx.accounts.source_account_authority.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
         };
         token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), cc), quantity)?;
 
         Ok(())
     }
 
-    pub fn simulate_hack(ctx: Context<SimulateHack>, quantity: u64) -> ProgramResult {
+    pub fn redeem(ctx: Context<Redeem>, quantity: u64, vault_bump: u8) -> ProgramResult {
 
         let cc = token::Transfer {
             from: ctx.accounts.vault.to_account_info(),
@@ -62,18 +61,19 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SimulateInterest<'info> {
+#[instruction(quantity: u64, vault_bump: u8)]
+pub struct Deposit<'info> {
     #[account()]
     pub mint: Account<'info, Mint>,
     
-    #[account(mut)]
+    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = vault_bump)]
     pub vault: Account<'info, TokenAccount>,
-    
+
     #[account(mut)]
-    pub source_account: Account<'info, TokenAccount>,
-    
-    #[account()]
-    pub source_account_authority: Signer<'info>,
+    pub src_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     pub rent: Sysvar<'info, Rent>,
     pub token_program: AccountInfo<'info>,
@@ -81,11 +81,12 @@ pub struct SimulateInterest<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SimulateHack<'info> {
+#[instruction(quantity: u64, vault_bump: u8)]
+pub struct Redeem<'info> {
     #[account()]
     pub mint: Account<'info, Mint>,
     
-    #[account(mut)]
+    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = vault_bump)]
     pub vault: Account<'info, TokenAccount>,
 
     #[account(mut)]

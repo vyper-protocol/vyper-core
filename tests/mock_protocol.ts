@@ -4,65 +4,15 @@ import { getMintInfo, getTokenAccount } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, MintLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { MockProtocol } from "../target/types/mock_protocol";
 import assert from "assert";
-import { bn, findAssociatedTokenAddress } from "./utils";
+import { bn, createMint, createMintAndDepositSource, createUserAndTokenAccount, findAssociatedTokenAddress } from "./utils";
 
-describe.only("mock_protocol", () => {
+describe("mock_protocol", () => {
   const program = anchor.workspace.MockProtocol as Program<MockProtocol>;
 
   anchor.setProvider(anchor.Provider.env());
 
-  async function createMint(): Promise<anchor.web3.PublicKey> {
-    const mintKP = anchor.web3.Keypair.generate();
-    const mint = mintKP.publicKey;
-
-    const tx = new anchor.web3.Transaction();
-    tx.add(
-      anchor.web3.SystemProgram.createAccount({
-        fromPubkey: program.provider.wallet.publicKey,
-        newAccountPubkey: mint,
-        space: MintLayout.span,
-        lamports: await Token.getMinBalanceRentForExemptMint(program.provider.connection),
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      Token.createInitMintInstruction(
-        TOKEN_PROGRAM_ID,
-        mint,
-        0,
-        program.provider.wallet.publicKey,
-        program.provider.wallet.publicKey
-      )
-    );
-    await program.provider.send(tx, [mintKP]);
-
-    return mint;
-  }
-
-  async function createUserAndTokenAccount(
-    mint: anchor.web3.PublicKey,
-    quantity: number
-  ): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey]> {
-    const userKP = anchor.web3.Keypair.generate();
-    const userTokenAccount = await findAssociatedTokenAddress(userKP.publicKey, mint);
-
-    const tx = new anchor.web3.Transaction();
-    tx.add(
-      Token.createAssociatedTokenAccountInstruction(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        mint,
-        userTokenAccount,
-        userKP.publicKey,
-        program.provider.wallet.publicKey
-      ),
-      Token.createMintToInstruction(TOKEN_PROGRAM_ID, mint, userTokenAccount, program.provider.wallet.publicKey, [], quantity)
-    );
-    await program.provider.send(tx);
-
-    return [userKP, userTokenAccount];
-  }
-
   it("can initialize vault", async () => {
-    const mint = await createMint();
+    const mint = await createMint(program.provider);
     const [vault, vaultBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(anchor.utils.bytes.utf8.encode("my-token-seed")), mint.toBuffer()],
       program.programId
@@ -90,7 +40,7 @@ describe.only("mock_protocol", () => {
   });
 
   it("authority can mint tokens to a new account", async () => {
-    const mint = await createMint();
+    const mint = await createMint(program.provider);
     const [vault, vaultBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(anchor.utils.bytes.utf8.encode("my-token-seed")), mint.toBuffer()],
       program.programId
@@ -133,8 +83,9 @@ describe.only("mock_protocol", () => {
     assert.ok(userVaultAccountInfo.amount.toNumber() == quantity);
   });
 
-  it("simulate interest", async () => {
-    const mint = await createMint();
+  it("deposits", async () => {
+    const quantity = 1000;
+    const [mint, srcAccount] = await createMintAndDepositSource(program.provider, quantity);
     const [vault, vaultBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(anchor.utils.bytes.utf8.encode("my-token-seed")), mint.toBuffer()],
       program.programId
@@ -151,25 +102,20 @@ describe.only("mock_protocol", () => {
       },
     });
 
-    const quantity = 1000;
-    const [userKP, userTokenAccount] = await createUserAndTokenAccount(mint, quantity);
-
-    await program.rpc.simulateInterest(bn(quantity), {
+    await program.rpc.deposit(bn(quantity), vaultBump, {
       accounts: {
         mint,
         vault,
-        sourceAccount: userTokenAccount,
-        sourceAccountAuthority: userKP.publicKey,
-        // authority: program.provider.wallet.publicKey,
+        srcAccount,
+        authority: program.provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
       },
-      signers: [userKP],
     });
 
     const mintInfo = await getMintInfo(program.provider, mint);
-    const userVaultAccountInfo = await getTokenAccount(program.provider, userTokenAccount);
+    const userVaultAccountInfo = await getTokenAccount(program.provider, srcAccount);
     const protocolVaultAccountInfo = await getTokenAccount(program.provider, vault);
 
     assert.ok(mintInfo.supply.toNumber() == quantity);
@@ -179,8 +125,10 @@ describe.only("mock_protocol", () => {
     assert.ok(protocolVaultAccountInfo.amount.toNumber() == quantity);
   });
 
-  it("simulate hack", async () => {
-    const mint = await createMint();
+  it("redeem", async () => {
+    const quantity = 1000;
+    const redeemQuantity = 200;
+    const [mint, srcAccount] = await createMintAndDepositSource(program.provider, quantity);
     const [vault, vaultBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(anchor.utils.bytes.utf8.encode("my-token-seed")), mint.toBuffer()],
       program.programId
@@ -197,29 +145,23 @@ describe.only("mock_protocol", () => {
       },
     });
 
-    const quantityInterest = 1000;
-    const quantityHack = 500;
-    const [userKP, userTokenAccount] = await createUserAndTokenAccount(mint, quantityInterest);
-
-    await program.rpc.simulateInterest(bn(quantityInterest), {
+    await program.rpc.deposit(bn(quantity), vaultBump, {
       accounts: {
         mint,
         vault,
-        sourceAccount: userTokenAccount,
-        sourceAccountAuthority: userKP.publicKey,
-        // authority: program.provider.wallet.publicKey,
+        srcAccount,
+        authority: program.provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
       },
-      signers: [userKP],
     });
 
-    await program.rpc.simulateHack(bn(quantityHack), {
+    await program.rpc.redeem(bn(redeemQuantity), vaultBump, {
       accounts: {
         mint,
         vault,
-        destAccount: userTokenAccount,
+        destAccount: srcAccount,
         authority: program.provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -228,13 +170,13 @@ describe.only("mock_protocol", () => {
     });
 
     const mintInfo = await getMintInfo(program.provider, mint);
-    const userVaultAccountInfo = await getTokenAccount(program.provider, userTokenAccount);
+    const userVaultAccountInfo = await getTokenAccount(program.provider, srcAccount);
     const protocolVaultAccountInfo = await getTokenAccount(program.provider, vault);
 
-    assert.ok(mintInfo.supply.toNumber() == quantityInterest);
+    assert.ok(mintInfo.supply.toNumber() == quantity);
     assert.ok(userVaultAccountInfo.mint.toBase58() == mint.toBase58());
-    assert.ok(userVaultAccountInfo.amount.toNumber() == quantityHack);
+    assert.ok(userVaultAccountInfo.amount.toNumber() == redeemQuantity);
     assert.ok(protocolVaultAccountInfo.mint.toBase58() == mint.toBase58());
-    assert.ok(protocolVaultAccountInfo.amount.toNumber() == quantityInterest - quantityHack);
+    assert.ok(protocolVaultAccountInfo.amount.toNumber() == quantity - redeemQuantity);
   });
 });
