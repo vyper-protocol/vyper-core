@@ -1,6 +1,6 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { createMintAndVault, getTokenAccount } from "@project-serum/common";
+import { createMintAndVault, getTokenAccount, createAccountRentExempt } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Vyper } from "../target/types/vyper";
 
@@ -95,7 +95,7 @@ export async function createTranchesConfiguration(
   console.log("juniorTrancheMint: " + juniorTrancheMint);
   console.log("juniorTrancheVault: " + juniorTrancheVault);
 
-  return {
+   return {
     seniorTrancheMint,
     seniorTrancheMintBump,
     seniorTrancheVault,

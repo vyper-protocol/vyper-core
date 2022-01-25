@@ -4,12 +4,11 @@ use anchor_lang::prelude::*;
 pub struct TrancheConfig {
     pub authority: Pubkey,
     pub quantity: u64,
-    pub capital_split: [u32;2],
-    pub interest_split: [u32;2],
-    pub mint_count: [u64;2],
+    pub capital_split: [u32; 2],
+    pub interest_split: [u32; 2],
+    pub mint_count: [u64; 2],
     pub junior_tranche_mint: Pubkey,
     pub senior_tranche_mint: Pubkey,
-
 
     pub created_at: u64,
     pub start_date: u64,
@@ -19,12 +18,11 @@ pub struct TrancheConfig {
 
     pub tranche_config_bump: u8,
     pub senior_tranche_mint_bump: u8,
-    pub junior_tranche_mint_bump: u8
+    pub junior_tranche_mint_bump: u8,
 }
 
 impl TrancheConfig {
-    pub const LEN: usize =
-    8 + // discriminator
+    pub const LEN: usize = 8 + // discriminator
     32 + // authority: Pubkey,
     8 + // quantity: f64,
     2 * 4 + // interest_split: [u32;2],
