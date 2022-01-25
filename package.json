@@ -3,6 +3,7 @@
         "@port.finance/port-sdk": "^0.2.21",
         "@project-serum/anchor": "^0.19.0",
         "@project-serum/common": "^0.0.1-beta.3",
+        "@project-serum/serum": "^0.13.61",
         "@solana/spl-token": "^0.1.8"
     },
     "devDependencies": {

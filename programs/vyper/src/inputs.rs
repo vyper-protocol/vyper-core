@@ -1,8 +1,4 @@
-use crate::{
-    error::ErrorCode,
-    state::TrancheConfig,
-    utils::{self},
-};
+use crate::{error::ErrorCode, state::TrancheConfig};
 use anchor_lang::prelude::*;
 use std::result::Result;
 
@@ -32,17 +28,17 @@ impl Input for CreateTrancheConfigInput {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
-        if self.capital_split[1] != utils::to_bps(1.0) {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.capital_split[0] + self.capital_split[1] != 10000 {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
-        if self.interest_split[0] > self.interest_split[1] {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.interest_split[0] > self.interest_split[1] {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
-        if self.interest_split[1] != utils::to_bps(1.0) {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.interest_split[1] != 100000 {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
         return Result::Ok(());
     }
@@ -65,5 +61,22 @@ impl CreateTrancheConfigInput {
             Ok(val) => data.created_at = val.unix_timestamp as u64,
             Err(_) => data.created_at = 0,
         };
+    }
+}
+
+// + + + + + + + + + + + +
+
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
+pub struct RedeemTrancheInput {
+    pub quantity: u64,
+}
+
+impl Input for RedeemTrancheInput {
+    fn is_valid(&self) -> Result<(), ErrorCode> {
+        if self.quantity == 0 {
+            return Result::Err(ErrorCode::InvalidInput);
+        }
+
+        return Result::Ok(());
     }
 }
