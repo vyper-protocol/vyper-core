@@ -2,17 +2,10 @@ import * as anchor from "@project-serum/anchor";
 import { BN } from "@project-serum/anchor";
 import { Vyper } from "../../target/types/vyper";
 import { Program } from "@project-serum/anchor";
-import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { findAssociatedTokenAddress } from "../utils";
-import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  Token,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
-export const DEX_PID = new PublicKey(
-  "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin"
-);
+export const DEX_PID = new anchor.web3.PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 
 export interface SerumAccounts {
   market: anchor.web3.Signer;
@@ -31,11 +24,11 @@ export async function createSerumAccounts(
   usdcMint: anchor.web3.PublicKey,
   program: Program<Vyper>
 ): Promise<SerumAccounts> {
-  const market = new Keypair();
-  const requestQueue = new Keypair();
-  const eventQueue = new Keypair();
-  const asks = new Keypair();
-  const bids = new Keypair();
+  const market = anchor.web3.Keypair.generate();
+  const requestQueue = anchor.web3.Keypair.generate();
+  const eventQueue = anchor.web3.Keypair.generate();
+  const asks = anchor.web3.Keypair.generate();
+  const bids = anchor.web3.Keypair.generate();
 
   await createSerumAccount(market, 376, program);
   await createSerumAccount(requestQueue, 640, program);
@@ -43,14 +36,9 @@ export async function createSerumAccounts(
   await createSerumAccount(asks, 65536, program);
   await createSerumAccount(bids, 65536, program);
 
-  const [vaultOwner, vaultOwnerNonce] = await getVaultOwnerAndNonce(
-    market.publicKey
-  );
+  const [vaultOwner, vaultOwnerNonce] = await getVaultOwnerAndNonce(market.publicKey);
   const usdcSerumVault = await findAssociatedTokenAddress(vaultOwner, usdcMint);
-  const trancheSerumVault = await findAssociatedTokenAddress(
-    vaultOwner,
-    trancheMint
-  );
+  const trancheSerumVault = await findAssociatedTokenAddress(vaultOwner, trancheMint);
 
   const createTrancheSerumVaultTx = new anchor.web3.Transaction();
   createTrancheSerumVaultTx.add(
@@ -92,13 +80,13 @@ export async function createSerumAccounts(
 }
 
 export async function getVaultOwnerAndNonce(
-  marketPublicKey: PublicKey,
-  dexProgramId: PublicKey = DEX_PID
+  marketPublicKey: anchor.web3.PublicKey,
+  dexProgramId: anchor.web3.PublicKey = DEX_PID
 ): Promise<[anchor.web3.PublicKey, number]> {
   const nonce = new BN(0);
   while (nonce.toNumber() < 255) {
     try {
-      const vaultOwner = await PublicKey.createProgramAddress(
+      const vaultOwner = await anchor.web3.PublicKey.createProgramAddress(
         [marketPublicKey.toBuffer(), nonce.toArrayLike(Buffer, "le", 8)],
         dexProgramId
       );
@@ -110,29 +98,20 @@ export async function getVaultOwnerAndNonce(
   throw new Error("Unable to find nonce");
 }
 
-async function createSerumAccount(
-  account: anchor.web3.Signer,
-  unpaddedLen: number,
-  program: Program<Vyper>
-) {
+async function createSerumAccount(account: anchor.web3.Signer, unpaddedLen: number, program: Program<Vyper>) {
   const space = 5 + unpaddedLen + 7;
   const createAccountTx = new anchor.web3.Transaction();
   createAccountTx.add(
-    SystemProgram.createAccount({
+    anchor.web3.SystemProgram.createAccount({
       fromPubkey: program.provider.wallet.publicKey,
       newAccountPubkey: account.publicKey,
-      lamports:
-        await program.provider.connection.getMinimumBalanceForRentExemption(
-         space 
-        ),
+      lamports: await program.provider.connection.getMinimumBalanceForRentExemption(space),
       space,
       programId: DEX_PID,
     })
   );
 
-  createAccountTx.recentBlockhash = (
-    await program.provider.connection.getRecentBlockhash()
-  ).blockhash;
+  createAccountTx.recentBlockhash = (await program.provider.connection.getRecentBlockhash()).blockhash;
 
   createAccountTx.feePayer = program.provider.wallet.publicKey;
   createAccountTx.addSignature(

@@ -15,6 +15,7 @@ import {
   from_bps,
   to_bps,
 } from "./utils";
+import { DEX_PID, createSerumAccounts } from "./serum/utils";
 
 describe("vyper", () => {
   const programMockProtocol = anchor.workspace.MockProtocol as Program<MockProtocol>;
@@ -117,11 +118,11 @@ describe("vyper", () => {
     console.log("tx", tx);
 
     const { market, requestQueue, eventQueue, asks, bids, vaultOwnerNonce, trancheSerumVault, usdcSerumVault } =
-      await createSerumAccounts(juniorTrancheMint, depositMint, program);
+      await createSerumAccounts(juniorTrancheMint, mint, programVyper);
 
-    const tx2 = await program.rpc.createSerumMarket(vaultOwnerNonce, {
+    const tx2 = await programVyper.rpc.createSerumMarket(vaultOwnerNonce, {
       accounts: {
-        authority: program.provider.wallet.publicKey,
+        authority: programVyper.provider.wallet.publicKey,
 
         seniorTrancheMint: seniorTrancheMint,
         seniorTrancheSerumVault: seniorTrancheVault,
@@ -134,7 +135,7 @@ describe("vyper", () => {
         asks: asks.publicKey,
         bids: bids.publicKey,
 
-        usdcMint: depositMint,
+        usdcMint: mint,
         usdcSerumVault,
         serumDex: DEX_PID,
 
