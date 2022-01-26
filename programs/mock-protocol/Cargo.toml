@@ -1,12 +1,12 @@
 [package]
-name = "vyper"
+name = "mock-protocol"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "vyper"
+name = "mock_protocol"
 
 [features]
 no-entrypoint = []
@@ -17,5 +17,4 @@ default = []
 
 [dependencies]
 anchor-lang = "0.19.0"
-anchor-spl = { version = "0.19.0", features = ["dex"] }
-mock-protocol = { path = "../mock-protocol", features = ["cpi"] }
+anchor-spl = "0.19.0"

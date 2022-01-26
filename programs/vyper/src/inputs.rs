@@ -18,6 +18,7 @@ pub struct CreateTrancheConfigInput {
     pub end_date: u64,
     pub create_serum: bool,
     pub can_mint_more: bool,
+    pub protocol_bump: u8,
 }
 
 impl Input for CreateTrancheConfigInput {
@@ -56,7 +57,8 @@ impl CreateTrancheConfigInput {
         data.end_date = self.end_date;
         data.create_serum = self.create_serum;
         data.can_mint_more = self.can_mint_more;
-
+        data.protocol_bump = self.protocol_bump;
+        
         match Clock::get() {
             Ok(val) => data.created_at = val.unix_timestamp as u64,
             Err(_) => data.created_at = 0,

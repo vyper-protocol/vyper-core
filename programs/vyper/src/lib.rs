@@ -5,20 +5,17 @@ mod state;
 mod utils;
 
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    self,
-    associated_token::AssociatedToken,
-    dex,
-    token::{self, Mint, Token, TokenAccount},
-};
-use std::cmp;
-// use port_anchor_adaptor::*;
+use anchor_spl::{self, associated_token::AssociatedToken, token::{ self, Mint, TokenAccount, Token }};
+use mock_protocol;
+use utils::*;
+use inputs::{ Input, CreateTrancheConfigInput };
+use state::{ TrancheConfig };
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
 use state::TrancheConfig;
 use utils::*;
 
-declare_id!("EgCnSZMSvrz6t8N4fB4tGesibVtNUJMMkS7t6VvyiiHV");
+declare_id!("CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa");
 
 #[program]
 pub mod vyper {
@@ -60,22 +57,29 @@ pub mod vyper {
         // * * * * * * * * * * * * * * * * * * * * * * *
         // execute the deposit
 
-        msg!("transfer tokens to program owned account");
+        msg!("deposit tokens to protocol");
+        // let deposit_transfer_ctx = token::Transfer {
+        //     from: ctx.accounts.deposit_source_account.to_account_info(),
+        //     to: ctx.accounts.protocol_vault.to_account_info(),
+        //     authority: ctx.accounts.authority.to_account_info(),
+        // };
+        // token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), deposit_transfer_ctx), input_data.quantity)?;
 
-        let deposit_transfer_ctx = token::Transfer {
-            from: ctx.accounts.deposit_from_account.to_account_info(),
-            to: ctx.accounts.tranche_vault.to_account_info(),
-            authority: ctx.accounts.authority.to_account_info(),
-        };
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                deposit_transfer_ctx,
-            ),
-            input_data.quantity,
+        mock_protocol::cpi::deposit(CpiContext::new(
+            ctx.accounts.protocol_program.to_account_info(), 
+            mock_protocol::cpi::accounts::Deposit {
+                mint: ctx.accounts.mint.to_account_info(),
+                vault: ctx.accounts.protocol_vault.to_account_info(),
+                src_account: ctx.accounts.deposit_source_account.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+                rent: ctx.accounts.rent.to_account_info(),
+                token_program: ctx.accounts.token_program.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+            }),
+            ctx.accounts.tranche_config.quantity, ctx.accounts.tranche_config.protocol_bump
         )?;
 
-        // * * * * * * * * * * * * * * * * * * * * * * *
+        // * * * * * * * * * * * * * * * * * * * * * * * 
         // mint senior tranche tokens
         msg!("mint senior tranche");
 
@@ -175,15 +179,11 @@ pub mod vyper {
 
         // calculate capital redeem and interest to redeem
 
-        let [capital_to_redeem, interest_to_redeem] =
-            if ctx.accounts.tranche_vault.amount >= ctx.accounts.tranche_config.quantity {
-                [
-                    ctx.accounts.tranche_config.quantity,
-                    ctx.accounts.tranche_vault.amount - ctx.accounts.tranche_config.quantity,
-                ]
-            } else {
-                [ctx.accounts.tranche_vault.amount, 0]
-            };
+        let [capital_to_redeem, interest_to_redeem] = if ctx.accounts.protocol_vault.amount >= ctx.accounts.tranche_config.quantity {
+            [ctx.accounts.tranche_config.quantity, ctx.accounts.protocol_vault.amount - ctx.accounts.tranche_config.quantity]
+        } else {
+            [ctx.accounts.protocol_vault.amount, 0]
+        };
         msg!("+ capital_to_redeem: {}", capital_to_redeem);
         msg!("+ interest_to_redeem: {}", interest_to_redeem);
 
@@ -200,14 +200,15 @@ pub mod vyper {
         let mut senior_total: f64 = 0.0;
         let mut junior_total: f64 = 0.0;
 
-        if interest_to_redeem > 0 {
-            // we have interest
+        // LOGIC 1, to fix
 
-            let senior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0];
-            let junior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[1];
+        // if interest_to_redeem > 0 {
+        //     // we have interest
+        //     let senior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0];
+        //     let junior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[1];
 
-            senior_total += senior_capital;
-            junior_total += junior_capital;
+        //     senior_total += senior_capital; 
+        //     junior_total += junior_capital;
 
             let senior_interest =
                 interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
@@ -215,13 +216,36 @@ pub mod vyper {
                 interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[1]
                     + interest_to_redeem as f64 * capital_split_f[1];
 
-            if junior_interest + senior_interest != interest_to_redeem as f64 {
-                msg!("error");
-                return Result::Err(ErrorCode::InvalidTrancheAmount.into());
-            }
+        //     let senior_interest = interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
+        //     // let junior_interest = interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[1] + interest_to_redeem as f64 * capital_split_f[1]; 
+        //     // if junior_interest + senior_interest != interest_to_redeem as f64 {
+        //     //     msg!("error");
+        //     //     return Result::Err(ErrorCode::InvalidTrancheAmount.into());
+        //     // }
+        //     let junior_interest = interest_to_redeem as f64 - senior_interest;
+            
+        //     senior_total += senior_interest;
+        //     junior_total += junior_interest;
 
+        // } else {
+
+        //     let senior_capital = from_bps(cmp::min(
+        //         to_bps(ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0]),
+        //         to_bps(capital_to_redeem as f64)));
+        //     let junior_capital = capital_to_redeem - senior_capital as u64;
+
+        //     senior_total += senior_capital;
+        //     junior_total += junior_capital as f64;
+        // }
+
+        // LOGIC 2
+
+        if interest_to_redeem > 0 {
+            let senior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0];
+            senior_total += senior_capital; 
+            let senior_interest = interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
             senior_total += senior_interest;
-            junior_total += junior_interest;
+            junior_total += ctx.accounts.tranche_config.quantity as f64 + interest_to_redeem as f64  - senior_total;
         } else {
             let senior_capital = from_bps(cmp::min(
                 to_bps(ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0]),
@@ -233,73 +257,53 @@ pub mod vyper {
             junior_total += junior_capital as f64;
         }
 
-        let user_senior_part = senior_total * ctx.accounts.tranche_config.mint_count[0] as f64
-            / ctx.accounts.senior_tranche_vault.amount as f64;
-        let user_junior_part = junior_total * ctx.accounts.tranche_config.mint_count[1] as f64
-            / ctx.accounts.junior_tranche_vault.amount as f64;
+        let user_senior_part = if ctx.accounts.senior_tranche_vault.amount > 0 {
+            senior_total * ctx.accounts.tranche_config.mint_count[0] as f64 / ctx.accounts.senior_tranche_vault.amount as f64
+        } else {
+            0 as f64
+        };
+
+        let user_junior_part = if ctx.accounts.junior_tranche_vault.amount > 0 {
+            junior_total * ctx.accounts.tranche_config.mint_count[1] as f64 / ctx.accounts.junior_tranche_vault.amount as f64
+        } else {
+            0 as f64
+        };
 
         let user_total = user_senior_part + user_junior_part;
         msg!("user_total to redeem: {}", user_total);
 
-        let transfer_seeds = &[
-            ctx.accounts.deposit_mint.to_account_info().key.as_ref(),
-            ctx.accounts
-                .senior_tranche_mint
-                .to_account_info()
-                .key
-                .as_ref(),
-            ctx.accounts
-                .junior_tranche_mint
-                .to_account_info()
-                .key
-                .as_ref(),
-            &[ctx.accounts.tranche_config.tranche_config_bump],
-        ];
+        mock_protocol::cpi::redeem(CpiContext::new(
+            ctx.accounts.protocol_program.to_account_info(), 
+            mock_protocol::cpi::accounts::Redeem {
+                mint: ctx.accounts.mint.to_account_info(),
+                vault: ctx.accounts.protocol_vault.to_account_info(),
+                dest_account: ctx.accounts.deposit_dest_account.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+                rent: ctx.accounts.rent.to_account_info(),
+                token_program: ctx.accounts.token_program.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+            }),
+            user_total as u64, ctx.accounts.tranche_config.protocol_bump)?;
 
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                token::Transfer {
-                    from: ctx.accounts.tranche_vault.to_account_info(),
-                    to: ctx.accounts.deposit_to_account.to_account_info(),
-                    authority: ctx.accounts.tranche_config.to_account_info(),
-                },
-                &[&transfer_seeds[..]],
-            ),
-            user_total as u64,
-        )?;
+        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
+        token::burn(CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::Burn {
+                mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+                to: ctx.accounts.senior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info()
+            },
+        ), ctx.accounts.senior_tranche_vault.amount)?;
 
-        msg!(
-            "burn senior tranche tokens: {}",
-            ctx.accounts.senior_tranche_vault.amount
-        );
-        token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                token::Burn {
-                    mint: ctx.accounts.senior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.senior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-            ),
-            ctx.accounts.senior_tranche_vault.amount,
-        )?;
-
-        msg!(
-            "burn junior tranche tokens: {}",
-            ctx.accounts.junior_tranche_vault.amount
-        );
-        token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                token::Burn {
-                    mint: ctx.accounts.junior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.junior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-            ),
-            ctx.accounts.junior_tranche_vault.amount,
-        )?;
+        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
+        token::burn(CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::Burn {
+                mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+                to: ctx.accounts.junior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info()
+            },
+        ), ctx.accounts.junior_tranche_vault.amount)?;
 
         Ok(())
     }
@@ -320,7 +324,7 @@ pub struct CreateTranchesContext<'info> {
     #[account(
         init,
         payer = authority,
-        seeds = [deposit_mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
+        seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
         bump = tranche_config_bump,
         space = TrancheConfig::LEN)]
     pub tranche_config: Account<'info, TrancheConfig>,
@@ -329,26 +333,26 @@ pub struct CreateTranchesContext<'info> {
      * mint token to deposit
      */
     #[account()]
-    pub deposit_mint: Box<Account<'info, Mint>>,
+    pub mint: Box<Account<'info, Mint>>,
 
     /**
      * deposit from
-     */
-    #[account(mut, associated_token::mint = deposit_mint, associated_token::authority = authority)]
-    pub deposit_from_account: Box<Account<'info, TokenAccount>>,
+     */ 
+    #[account(mut, associated_token::mint = mint, associated_token::authority = authority)]
+    pub deposit_source_account: Box<Account<'info, TokenAccount>>,
 
     /**
-     * deposit to
-     */
-    #[account(init, payer = authority, associated_token::mint = deposit_mint, associated_token::authority = tranche_config)]
-    pub tranche_vault: Box<Account<'info, TokenAccount>>,
+     * protocol vault
+     */ 
+    #[account(mut)]
+    pub protocol_vault: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
     #[account(
         init,
-        seeds = [b"senior".as_ref(), deposit_mint.key().as_ref()],
+        seeds = [b"senior".as_ref(), mint.key().as_ref()],
         bump = senior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
@@ -359,7 +363,7 @@ pub struct CreateTranchesContext<'info> {
 
     // Junior tranche mint
     #[account(init,
-        seeds = [b"junior".as_ref(), deposit_mint.key().as_ref()],
+        seeds = [b"junior".as_ref(), mint.key().as_ref()],
         bump = junior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
@@ -368,7 +372,9 @@ pub struct CreateTranchesContext<'info> {
     #[account(init, payer = authority, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
-    // * * * * * * * * * * * * * * * * *
+    // * * * * * * * * * * * * * * * * * 
+    
+    pub protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -438,33 +444,33 @@ pub struct RedeemContext<'info> {
     /**
      * Tranche config account, where all the parameters are saved
      */
-    #[account(seeds = [deposit_mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()], bump = tranche_config.tranche_config_bump)]
+    #[account(seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()], bump = tranche_config.tranche_config_bump)]
     pub tranche_config: Account<'info, TrancheConfig>,
 
     /**
      * mint token to deposit
      */
     #[account()]
-    pub deposit_mint: Box<Account<'info, Mint>>,
-
+    pub mint: Box<Account<'info, Mint>>,
+    
     /**
      * deposit to
-     */
-    #[account(mut, associated_token::mint = deposit_mint, associated_token::authority = tranche_config)]
-    pub tranche_vault: Box<Account<'info, TokenAccount>>,
+     */ 
+    #[account(mut)]
+    pub protocol_vault: Box<Account<'info, TokenAccount>>,
 
     /**
      * deposit from
-     */
-    #[account(mut, associated_token::mint = deposit_mint, associated_token::authority = authority)]
-    pub deposit_to_account: Box<Account<'info, TokenAccount>>,
+     */ 
+    #[account(mut, associated_token::mint = mint, associated_token::authority = authority)]
+    pub deposit_dest_account: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
     #[account(
-        mut,
-        seeds = [b"senior".as_ref(), deposit_mint.key().as_ref()],
+        mut, 
+        seeds = [b"senior".as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump,
         )]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
@@ -475,8 +481,8 @@ pub struct RedeemContext<'info> {
 
     // Junior tranche mint
     #[account(
-        mut,
-        seeds = [b"junior".as_ref(), deposit_mint.key().as_ref()],
+        mut, 
+        seeds = [b"junior".as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -484,7 +490,8 @@ pub struct RedeemContext<'info> {
     #[account(mut, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
-    // * * * * * * * * * * * * * * * * *
+    // * * * * * * * * * * * * * * * * * 
+    pub protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

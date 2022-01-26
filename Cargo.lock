@@ -762,12 +762,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hex"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
 name = "hmac"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -936,6 +930,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock-protocol"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl"]
+ 
 name = "memoffset"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1198,12 +1198,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
-name = "rustc-hex"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e75f6a532d0fd9f7f13144f392b6ad56a32696bfcd9c78f797f16bbb6f072d6"
-
-[[package]]
 name = "rustc_version"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1408,20 +1402,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "solana-maths"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a838196ed0bd1167442a6364b917aa3f49c39c69e36bb504e186d493d98ee715"
-dependencies = [
- "arrayref",
- "num-derive",
- "num-traits",
- "solana-program",
- "thiserror",
- "uint 0.9.1",
-]
-
-[[package]]
 name = "solana-program"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1500,12 +1480,6 @@ dependencies = [
  "solana-program",
  "thiserror",
 ]
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "subtle"
@@ -1622,7 +1596,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang 0.20.1",
  "anchor-spl",
- "port-anchor-adaptor",
+ "mock-protocol",
 ]
 
 [[package]]

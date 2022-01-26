@@ -19,6 +19,8 @@ pub struct TrancheConfig {
     pub tranche_config_bump: u8,
     pub senior_tranche_mint_bump: u8,
     pub junior_tranche_mint_bump: u8,
+
+    pub protocol_bump: u8
 }
 
 impl TrancheConfig {
@@ -37,5 +39,6 @@ impl TrancheConfig {
     1 + // can_mint_more: bool,
     1 + // trancheConfigBump: u8,
     1 + // seniorTrancheMintBump: u8,
-    1; // juniorTrancheMintBump: u8
+    1 + // juniorTrancheMintBump: u8
+    1; // protocol_bump: u8
 }
