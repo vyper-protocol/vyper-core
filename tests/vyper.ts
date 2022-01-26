@@ -80,6 +80,7 @@ describe("vyper", () => {
       programVyper.programId
     );
 
+    console.log("dexProgramId: " + DEX_PID);
     // * * * * * * * * * * * * * * * * * * * * * * *
     // VYPER: create tranche
 
@@ -114,6 +115,38 @@ describe("vyper", () => {
       }
     );
     console.log("tx", tx);
+
+    const { market, requestQueue, eventQueue, asks, bids, vaultOwnerNonce, trancheSerumVault, usdcSerumVault } =
+      await createSerumAccounts(juniorTrancheMint, depositMint, program);
+
+    const tx2 = await program.rpc.createSerumMarket(vaultOwnerNonce, {
+      accounts: {
+        authority: program.provider.wallet.publicKey,
+
+        seniorTrancheMint: seniorTrancheMint,
+        seniorTrancheSerumVault: seniorTrancheVault,
+        juniorTrancheMint: juniorTrancheMint,
+        juniorTrancheSerumVault: trancheSerumVault,
+
+        market: market.publicKey,
+        requestQueue: requestQueue.publicKey,
+        eventQueue: eventQueue.publicKey,
+        asks: asks.publicKey,
+        bids: bids.publicKey,
+
+        usdcMint: depositMint,
+        usdcSerumVault,
+        serumDex: DEX_PID,
+
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      },
+      signers: [market, requestQueue, eventQueue, asks, bids],
+    });
+    console.log("tx2", tx2);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // fetch tranche config

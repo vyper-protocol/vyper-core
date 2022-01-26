@@ -17,5 +17,5 @@ default = []
 
 [dependencies]
 anchor-lang = "0.19.0"
-anchor-spl = "0.19.0"
+anchor-spl = { version = "0.19.0", features = ["dex"] }
 mock-protocol = { path = "../mock-protocol", features = ["cpi"] }

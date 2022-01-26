@@ -1,23 +1,19 @@
+use crate::{error::ErrorCode, state::TrancheConfig};
 use anchor_lang::prelude::*;
-use crate::{
-    error::ErrorCode,
-    state::TrancheConfig,
-    utils::{self}
-};
 use std::result::Result;
 
 pub trait Input {
     fn is_valid(&self) -> Result<(), ErrorCode>;
 }
 
-// + + + + + + + + + + + + 
+// + + + + + + + + + + + +
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
 pub struct CreateTrancheConfigInput {
     pub quantity: u64,
-    pub capital_split: [u32;2],
-    pub interest_split: [u32;2],
-    pub mint_count: [u64;2],
+    pub capital_split: [u32; 2],
+    pub interest_split: [u32; 2],
+    pub mint_count: [u64; 2],
     pub start_date: u64,
     pub end_date: u64,
     pub create_serum: bool,
@@ -27,24 +23,23 @@ pub struct CreateTrancheConfigInput {
 
 impl Input for CreateTrancheConfigInput {
     fn is_valid(&self) -> Result<(), ErrorCode> {
-        
         // TODO perform all checks
 
         if self.start_date > self.end_date {
             return Result::Err(ErrorCode::InvalidInput);
         }
 
-        if self.capital_split[1] != utils::to_bps(1.0) {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.capital_split[0] + self.capital_split[1] != 10000 {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
-        if self.interest_split[0] > self.interest_split[1] {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.interest_split[0] > self.interest_split[1] {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
-        if self.interest_split[1] != utils::to_bps(1.0) {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
+        // if self.interest_split[1] != 100000 {
+        //     return Result::Err(ErrorCode::InvalidInput);
+        // }
 
         return Result::Ok(());
     }
@@ -52,7 +47,6 @@ impl Input for CreateTrancheConfigInput {
 
 impl CreateTrancheConfigInput {
     pub fn create_tranche_config(&self, data: &mut TrancheConfig) {
-
         // TODO can we possibly do something clever?
 
         data.quantity = self.quantity;
@@ -70,5 +64,21 @@ impl CreateTrancheConfigInput {
             Err(_) => data.created_at = 0,
         };
     }
+}
 
+// + + + + + + + + + + + +
+
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
+pub struct RedeemTrancheInput {
+    pub quantity: u64,
+}
+
+impl Input for RedeemTrancheInput {
+    fn is_valid(&self) -> Result<(), ErrorCode> {
+        if self.quantity == 0 {
+            return Result::Err(ErrorCode::InvalidInput);
+        }
+
+        return Result::Ok(());
+    }
 }
