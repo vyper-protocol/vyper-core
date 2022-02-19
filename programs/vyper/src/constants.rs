@@ -1,1 +1,8 @@
-// pub const MAX_TRANCHES: usize = 5;
+use anchor_lang::prelude::*;
+
+// tranches enum
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub enum TrancheID {
+    Senior,
+    Junior,
+}

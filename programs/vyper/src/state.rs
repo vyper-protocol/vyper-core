@@ -1,9 +1,11 @@
+
 use anchor_lang::prelude::*;
 
 #[account]
 pub struct TrancheConfig {
     pub authority: Pubkey,
-    pub quantity: u64,
+    pub protocol_program_id: Pubkey,
+    pub deposited_quantiy: u64,
     pub capital_split: [u32; 2],
     pub interest_split: [u32; 2],
     pub mint_count: [u64; 2],
@@ -26,7 +28,8 @@ pub struct TrancheConfig {
 impl TrancheConfig {
     pub const LEN: usize = 8 + // discriminator
     32 + // authority: Pubkey,
-    8 + // quantity: f64,
+    32 + // protocol_id: Pubkey
+    8 + // deposited_quantiy: u64
     2 * 4 + // interest_split: [u32;2],
     2 * 4 + // capital_split: [u32;2],
     2 * 8 + // mint_count: [u64;2],
