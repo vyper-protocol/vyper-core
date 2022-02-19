@@ -7,11 +7,11 @@ declare_id!("2heoT1tfJb5ayc8VA3WGrRgW9fiDtnjLuzRXpiYv1KXJ");
 pub mod mock_protocol {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, vault_bump: u8) -> ProgramResult {
+    pub fn initialize(_ctx: Context<Initialize>, _vault_bump: u8) -> ProgramResult {
         Ok(())
     }
 
-    pub fn deposit(ctx: Context<Deposit>, quantity: u64, vault_bump: u8) -> ProgramResult {
+    pub fn deposit(ctx: Context<Deposit>, quantity: u64, _vault_bump: u8) -> ProgramResult {
         let cc = token::Transfer {
             from: ctx.accounts.src_account.to_account_info(),
             to: ctx.accounts.vault.to_account_info(),
@@ -22,7 +22,7 @@ pub mod mock_protocol {
         Ok(())
     }
 
-    pub fn redeem(ctx: Context<Redeem>, quantity: u64, vault_bump: u8) -> ProgramResult {
+    pub fn redeem(ctx: Context<Redeem>, quantity: u64, _vault_bump: u8) -> ProgramResult {
 
         let cc = token::Transfer {
             from: ctx.accounts.vault.to_account_info(),
@@ -36,7 +36,7 @@ pub mod mock_protocol {
 }
 
 #[derive(Accounts)]
-#[instruction(vault_bump: u8)]
+#[instruction(_vault_bump: u8)]
 pub struct Initialize<'info> {
 
     #[account()]
@@ -45,7 +45,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()],
-        bump = vault_bump,
+        bump = _vault_bump,
         payer = authority,
         token::mint = mint,
         token::authority = authority,
@@ -61,12 +61,12 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(quantity: u64, vault_bump: u8)]
+#[instruction(quantity: u64, _vault_bump: u8)]
 pub struct Deposit<'info> {
     #[account()]
     pub mint: Account<'info, Mint>,
     
-    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = vault_bump)]
+    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = _vault_bump)]
     pub vault: Account<'info, TokenAccount>,
 
     #[account(mut)]
@@ -81,12 +81,12 @@ pub struct Deposit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(quantity: u64, vault_bump: u8)]
+#[instruction(quantity: u64, _vault_bump: u8)]
 pub struct Redeem<'info> {
     #[account()]
     pub mint: Account<'info, Mint>,
     
-    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = vault_bump)]
+    #[account(mut, seeds = [b"my-token-seed".as_ref(), mint.key().as_ref()], bump = _vault_bump)]
     pub vault: Account<'info, TokenAccount>,
 
     #[account(mut)]
