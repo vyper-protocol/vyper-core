@@ -15,7 +15,7 @@ pub mod proxy_solend {
             ctx: Context<DepositProxyContext>,
             vault_authority_bump: u8,
             amount: u64,
-        ) -> Result<()> {
+        ) -> ProgramResult {
             let ins = spl_token_lending::instruction::deposit_reserve_liquidity(
                 ctx.accounts.protocol_program.key(),
                 amount,
@@ -36,7 +36,7 @@ pub mod proxy_solend {
             ctx: Context<WithdrawProxyContext>,
             vault_authority_bump: u8,
             collateral_amount: u64,
-        ) -> Result<()> {
+        ) -> ProgramResult {
             let ins = spl_token_lending::instruction::redeem_reserve_collateral(
                 ctx.accounts.protocol_program.key(),
                 collateral_amount,

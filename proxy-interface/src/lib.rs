@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use vyper::ID as vyper_id;
 
 #[interface]
 pub trait VyperProxy<'info> {
@@ -9,13 +8,13 @@ pub trait VyperProxy<'info> {
         ctx: Context<DepositProxyContext<'info>>,
         vault_authority_bump: u8,
         amount: u64,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 
     fn withdraw_from_proxy(
         ctx: Context<WithdrawProxyContext<'info>>,
         vault_authority_bump: u8,
         collateral_amount: u64,
-    ) -> Result<()>;
+    ) -> ProgramResult;
 }
 
 #[derive(Accounts)]
@@ -27,10 +26,10 @@ pub struct DepositProxyContext<'info> {
 
     // Vyper Vault authority
     #[account(
-        seeds = [b"vault_authority"],
-        bump = vault_authority_bump,
-        seeds::program = vyper_id,
-    )]
+        // seeds = [b"vault_authority"],
+        // bump = vault_authority_bump,
+        // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
+   )]
     pub vault_authority: Signer<'info>,
 
     // Protocol Program
@@ -50,7 +49,8 @@ pub struct DepositProxyContext<'info> {
     pub deposit_mint: Box<Account<'info, Mint>>,
 
     // Token account for receiving collateral token (as proof of deposit)
-    #[account(init_if_needed, associated_token::mint = collateral_mint, associated_token::authority = vault_authority, payer = authority)]
+    // TODO: init_if_needed
+    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
@@ -84,9 +84,9 @@ pub struct WithdrawProxyContext<'info> {
 
     // Vyper Vault authority
     #[account(
-        seeds = [b"vault_authority"],
-        bump = vault_authority_bump,
-        seeds::program = vyper_id,
+        // seeds = [b"vault_authority"],
+        // bump = vault_authority_bump,
+        // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
     )]
     pub vault_authority: Signer<'info>,
 
