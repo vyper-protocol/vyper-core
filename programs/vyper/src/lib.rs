@@ -36,10 +36,7 @@ pub mod vyper {
         // check input
 
         msg!("check if input is valid");
-        if let Result::Err(err) = input_data.is_valid() {
-            msg!("input data is not valid");
-            return Err(err.into());
-        }
+        input_data.is_valid()?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // create tranche config account
@@ -82,36 +79,28 @@ pub mod vyper {
         // mint senior tranche tokens
         msg!("mint senior tranche");
 
-        let senior_mint_to_ctx = token::MintTo {
+        spl_token_mint(TokenMintParams {
             mint: ctx.accounts.senior_tranche_mint.to_account_info(),
             to: ctx.accounts.senior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.tranche_config.mint_count[0],
             authority: ctx.accounts.authority.to_account_info(),
-        };
-        token::mint_to(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                senior_mint_to_ctx,
-            ),
-            ctx.accounts.tranche_config.mint_count[0],
-        )?;
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // mint junior tranche tokens
 
         msg!("mint junior tranche");
 
-        let junior_mint_to_ctx = token::MintTo {
+        spl_token_mint(TokenMintParams {
             mint: ctx.accounts.junior_tranche_mint.to_account_info(),
             to: ctx.accounts.junior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.tranche_config.mint_count[1],
             authority: ctx.accounts.authority.to_account_info(),
-        };
-        token::mint_to(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                junior_mint_to_ctx,
-            ),
-            ctx.accounts.tranche_config.mint_count[1],
-        )?;
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -163,7 +152,7 @@ pub mod vyper {
 
         // check if before or after end date
 
-        if ctx.accounts.tranche_config.end_date > ctx.accounts.clock.unix_timestamp as u64 {
+        if ctx.accounts.tranche_config.end_date > Clock::get()?.unix_timestamp as u64 {
             // check if user has same ration of senior/junior tokens than origin
 
             let user_ratio = ctx.accounts.senior_tranche_vault.amount as f64
@@ -284,25 +273,31 @@ pub mod vyper {
             }),
             user_total as u64, ctx.accounts.tranche_config.protocol_bump)?;
 
+        // * * * * * * * * * * * * * * * * * * * * * * *
+        // burn senior tranche tokens
         msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
-        token::burn(CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            token::Burn {
-                mint: ctx.accounts.senior_tranche_mint.to_account_info(),
-                to: ctx.accounts.senior_tranche_vault.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info()
-            },
-        ), ctx.accounts.senior_tranche_vault.amount)?;
 
+        spl_token_burn(TokenBurnParams { 
+            mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+            to: ctx.accounts.senior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.senior_tranche_vault.amount,
+            authority: ctx.accounts.authority.to_account_info(),
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
+
+        // * * * * * * * * * * * * * * * * * * * * * * *
+        // burn junior tranche tokens
         msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
-        token::burn(CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            token::Burn {
-                mint: ctx.accounts.junior_tranche_mint.to_account_info(),
-                to: ctx.accounts.junior_tranche_vault.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info()
-            },
-        ), ctx.accounts.junior_tranche_vault.amount)?;
+
+        spl_token_burn(TokenBurnParams { 
+            mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+            to: ctx.accounts.junior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.junior_tranche_vault.amount,
+            authority: ctx.accounts.authority.to_account_info(),
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
 
         Ok(())
     }
@@ -351,7 +346,7 @@ pub struct CreateTranchesContext<'info> {
     // Senior tranche mint
     #[account(
         init,
-        seeds = [b"senior".as_ref(), mint.key().as_ref()],
+        seeds = [constants::SENIOR.as_ref(), mint.key().as_ref()],
         bump = senior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
@@ -362,7 +357,7 @@ pub struct CreateTranchesContext<'info> {
 
     // Junior tranche mint
     #[account(init,
-        seeds = [b"junior".as_ref(), mint.key().as_ref()],
+        seeds = [constants::JUNIOR.as_ref(), mint.key().as_ref()],
         bump = junior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
@@ -378,7 +373,6 @@ pub struct CreateTranchesContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -429,7 +423,6 @@ pub struct CreateSerumMarketContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -469,7 +462,7 @@ pub struct RedeemContext<'info> {
     // Senior tranche mint
     #[account(
         mut, 
-        seeds = [b"senior".as_ref(), mint.key().as_ref()],
+        seeds = [constants::SENIOR.as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump,
         )]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
@@ -481,7 +474,7 @@ pub struct RedeemContext<'info> {
     // Junior tranche mint
     #[account(
         mut, 
-        seeds = [b"junior".as_ref(), mint.key().as_ref()],
+        seeds = [constants::JUNIOR.as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -495,5 +488,4 @@ pub struct RedeemContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
