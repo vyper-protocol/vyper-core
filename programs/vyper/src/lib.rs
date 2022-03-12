@@ -14,7 +14,6 @@ use anchor_spl::{
 use constants::TrancheID;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
-use mock_protocol;
 use proxy_interface::*;
 use state::TrancheConfig;
 use std::cmp;
@@ -546,6 +545,7 @@ pub struct DepositContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -702,6 +702,7 @@ pub struct RedeemContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
 #[interface]
