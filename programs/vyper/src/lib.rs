@@ -43,10 +43,7 @@ pub mod vyper {
         // check input
 
         msg!("check if input is valid");
-        if let Result::Err(err) = input_data.is_valid() {
-            msg!("input data is not valid");
-            return Err(err.into());
-        }
+        input_data.is_valid()?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // create tranche config account
@@ -80,8 +77,6 @@ pub mod vyper {
 
         msg!("deposit tokens to protocol");
 
-        // @AdithyaNarayan will change to proxy pattern
-
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
             proxy_interface::DepositProxyContext {
@@ -111,27 +106,11 @@ pub mod vyper {
         );
 
         vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
-
-        // mock_protocol::cpi::deposit(
-        //     CpiContext::new(
-        //         ctx.accounts.protocol_program.to_account_info(),
-        //         mock_protocol::cpi::accounts::Deposit {
-        //             mint: ctx.accounts.mint.to_account_info(),
-        //             vault: ctx.accounts.protocol_vault.to_account_info(),
-        //             src_account: ctx.accounts.deposit_source_account.to_account_info(),
-        //             authority: ctx.accounts.authority.to_account_info(),
-        //             rent: ctx.accounts.rent.to_account_info(),
-        //             token_program: ctx.accounts.token_program.to_account_info(),
-        //             system_program: ctx.accounts.system_program.to_account_info(),
-        //         },
-        //     ),
-        //     quantity,
-        //     ctx.accounts.tranche_config.protocol_bump,
-        // )?;
-
+     
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // increase the deposited quantity
+
 
         ctx.accounts.tranche_config.deposited_quantiy += quantity;
 
@@ -238,7 +217,7 @@ pub mod vyper {
 
         // check if before or after end date
 
-        if ctx.accounts.tranche_config.end_date > ctx.accounts.clock.unix_timestamp as u64 {
+        if ctx.accounts.tranche_config.end_date > Clock::get()?.unix_timestamp as u64 {
             // check if user has same ration of senior/junior tokens than origin
 
             let user_ratio = ctx.accounts.senior_tranche_vault.amount as f64
@@ -387,54 +366,31 @@ pub mod vyper {
 
         vyper_proxy::withdraw_from_proxy(cpi_ctx, vault_authority_bump, capital_to_redeem)?;
 
-        // mock_protocol::cpi::redeem(
-        //     CpiContext::new(
-        //         ctx.accounts.protocol_program.to_account_info(),
-        //         mock_protocol::cpi::accounts::Redeem {
-        //             mint: ctx.accounts.mint.to_account_info(),
-        //             vault: ctx.accounts.protocol_vault.to_account_info(),
-        //             dest_account: ctx.accounts.deposit_dest_account.to_account_info(),
-        //             authority: ctx.accounts.authority.to_account_info(),
-        //             rent: ctx.accounts.rent.to_account_info(),
-        //             token_program: ctx.accounts.token_program.to_account_info(),
-        //             system_program: ctx.accounts.system_program.to_account_info(),
-        //         },
-        //     ),
-        //     user_total as u64,
-        //     ctx.accounts.tranche_config.protocol_bump,
-        // )?;
+        // * * * * * * * * * * * * * * * * * * * * * * *
+        // burn senior tranche tokens
+        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
 
-        msg!(
-            "burn senior tranche tokens: {}",
-            ctx.accounts.senior_tranche_vault.amount
-        );
-        token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                token::Burn {
-                    mint: ctx.accounts.senior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.senior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-            ),
-            ctx.accounts.senior_tranche_vault.amount,
-        )?;
+        spl_token_burn(TokenBurnParams { 
+            mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+            to: ctx.accounts.senior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.senior_tranche_vault.amount,
+            authority: ctx.accounts.authority.to_account_info(),
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
 
-        msg!(
-            "burn junior tranche tokens: {}",
-            ctx.accounts.junior_tranche_vault.amount
-        );
-        token::burn(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                token::Burn {
-                    mint: ctx.accounts.junior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.junior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-            ),
-            ctx.accounts.junior_tranche_vault.amount,
-        )?;
+        // * * * * * * * * * * * * * * * * * * * * * * *
+        // burn junior tranche tokens
+        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
+
+        spl_token_burn(TokenBurnParams { 
+            mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+            to: ctx.accounts.junior_tranche_vault.to_account_info(),
+            amount: ctx.accounts.junior_tranche_vault.amount,
+            authority: ctx.accounts.authority.to_account_info(),
+            authority_signer_seeds: &[],
+            token_program: ctx.accounts.token_program.to_account_info()
+        })?;
 
         Ok(())
     }
@@ -564,7 +520,7 @@ pub struct DepositContext<'info> {
 
     // Senior tranche mint
     #[account(
-        seeds = [b"senior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -574,7 +530,7 @@ pub struct DepositContext<'info> {
 
     // Junior tranche mint
     #[account(
-        seeds = [b"junior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -590,7 +546,6 @@ pub struct DepositContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -652,7 +607,6 @@ pub struct CreateSerumMarketContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -696,7 +650,7 @@ pub struct RedeemContext<'info> {
     // Senior tranche mint
     #[account(
         mut,
-        seeds = [b"senior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -707,7 +661,7 @@ pub struct RedeemContext<'info> {
     // Junior tranche mint
     #[account(
         mut,
-        seeds = [b"junior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -748,7 +702,6 @@ pub struct RedeemContext<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
-    pub clock: Sysvar<'info, Clock>,
 }
 
 #[interface]
