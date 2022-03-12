@@ -1,8 +1,10 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/*",
+    "proxy-interface/"
 ]
 
 exclude = [
-    "deps/serum-dex"
+    "deps/serum-dex",
+    "deps/lending-program"
 ]
