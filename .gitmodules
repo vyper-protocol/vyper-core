@@ -1,3 +1,6 @@
 [submodule "deps/serum-dex"]
 	path = deps/serum-dex
-	url = git@github.com:project-serum/serum-dex.git
+  url = git@github.com:project-serum/serum-dex.git
+[submodule "deps/lending-program"]
+	path = deps/lending-program
+	url = git@github.com:solendprotocol/solana-program-library.git

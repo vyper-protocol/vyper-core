@@ -625,6 +625,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "hmac"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -944,6 +950,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "proxy-interface"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+]
+
+[[package]]
+name = "proxy-solend"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "proxy-interface",
+ "spl-token-lending",
+]
+
+[[package]]
+name = "quick-protobuf"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ca6639207ac869e31cca06b8adbc7676278f22b321e51115766009b4f192dbb"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1018,6 +1050,27 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+
+[[package]]
+name = "rust_decimal"
+version = "1.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d37baa70cf8662d2ba1c1868c5983dda16ef32b105cce41fb5c47e72936a90b3"
+dependencies = [
+ "arrayvec",
+ "num-traits",
+ "serde",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "184abaf7b434800e1a5a8aad3ebc8cd7498df33af72d65371d797a264713a59b"
+dependencies = [
+ "quote",
+ "rust_decimal",
+]
 
 [[package]]
 name = "rustc_version"
@@ -1304,6 +1357,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-token-lending"
+version = "0.1.0"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-token",
+ "switchboard-program",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1314,6 +1382,51 @@ name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
+
+[[package]]
+name = "switchboard-program"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "667985cd609f73ea5d6c6b4b5564a816d74d1e8824a5f8ead7f24ecba6d28ae1"
+dependencies = [
+ "bincode",
+ "borsh",
+ "bytemuck",
+ "byteorder",
+ "quick-protobuf",
+ "solana-program",
+ "switchboard-protos",
+ "switchboard-utils-bm",
+]
+
+[[package]]
+name = "switchboard-protos"
+version = "0.1.60"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e2d89875ff72d12ea7918d6ccd82d1ac5eab54b3a9d1bd7356fa6905801aa72"
+dependencies = [
+ "bincode",
+ "borsh",
+ "byteorder",
+ "quick-protobuf",
+]
+
+[[package]]
+name = "switchboard-utils-bm"
+version = "0.1.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ff54ce7d51f595a4303fd56fb0c5fd82008a00c359f3eca7f6a4ed005a18a26"
+dependencies = [
+ "bincode",
+ "borsh",
+ "bytemuck",
+ "byteorder",
+ "quick-protobuf",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "solana-program",
+ "switchboard-protos",
+]
 
 [[package]]
 name = "syn"
@@ -1377,6 +1490,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56dee185309b50d1f11bfedef0fe6d036842e3fb77413abef29f8f8d1c5d4c1c"
 
 [[package]]
+name = "uint"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e11fe9a9348741cf134085ad57c249508345fe16411b3d7fb4ff2da2f1d6382e"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "hex",
+ "static_assertions",
+]
+
+[[package]]
 name = "unicode-segmentation"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1401,6 +1526,7 @@ dependencies = [
  "anchor-lang",
  "anchor-spl",
  "mock-protocol",
+ "proxy-interface",
 ]
 
 [[package]]
