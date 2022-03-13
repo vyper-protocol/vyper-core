@@ -16,6 +16,7 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.19.0"
+anchor-lang = "0.18.2"
 proxy-interface = { path = "../../proxy-interface" }
-# spl-token-lending = { path = "../../deps/lending-program/token-lending/program", features = ["no-entrypoint"] }
+spl-token-lending = { git = "https://github.com/vyper-protocol/solana-program-library", rev = "0c8b2707cae2df810c932dc9c470b54283e8406e", features = ["no-entrypoint"] }
+uint = "=0.9.1"

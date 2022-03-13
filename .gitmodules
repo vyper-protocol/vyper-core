@@ -1,6 +1,4 @@
 [submodule "deps/serum-dex"]
 	path = deps/serum-dex
 	url = https://github.com/project-serum/serum-dex
-[submodule "deps/lending-program"]
-	path = deps/lending-program
-	url = https://github.com/solendprotocol/solana-program-library
+
