@@ -1,8 +1,8 @@
-mod constants;
-mod error;
-mod inputs;
-mod state;
-mod utils;
+pub mod constants;
+pub mod error;
+pub mod inputs;
+pub mod state;
+pub mod utils;
 
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -11,14 +11,13 @@ use anchor_spl::{
     dex,
     token::{self, Mint, Token, TokenAccount},
 };
-use constants::TrancheID;
+use constants::*;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
 use proxy_interface::*;
 use state::TrancheConfig;
 use std::cmp;
-use utils::to_bps;
-use utils::*;
+use utils::{ from_bps, to_bps, spl_token_burn, TokenBurnParams, };
 
 declare_id!("CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa");
 
