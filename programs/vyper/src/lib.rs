@@ -431,7 +431,7 @@ pub struct CreateTranchesContext<'info> {
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(init, payer = authority, associated_token::mint = senior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
@@ -442,7 +442,7 @@ pub struct CreateTranchesContext<'info> {
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(init, payer = authority, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
@@ -523,7 +523,7 @@ pub struct DepositContext<'info> {
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(mut, associated_token::mint = senior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
@@ -533,7 +533,7 @@ pub struct DepositContext<'info> {
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(mut, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     #[account(constraint = tranche_config.protocol_program_id == *protocol_program.key)]
@@ -654,7 +654,7 @@ pub struct RedeemContext<'info> {
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(mut, associated_token::mint = senior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
@@ -665,7 +665,7 @@ pub struct RedeemContext<'info> {
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(mut, associated_token::mint = junior_tranche_mint, associated_token::authority = authority)]
+    #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // proxy stuff
