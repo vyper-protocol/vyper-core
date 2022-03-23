@@ -30,7 +30,7 @@ pub struct DepositProxyContext<'info> {
         // bump = vault_authority_bump,
         // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
    )]
-    pub vault_authority: Signer<'info>,
+    pub vault_authority: AccountInfo<'info>,
 
     // Protocol Program
     #[account(executable)]

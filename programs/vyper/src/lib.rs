@@ -412,7 +412,7 @@ pub struct CreateTranchesContext<'info> {
         seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
         bump = tranche_config_bump,
         space = TrancheConfig::LEN)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /**
      * mint token to deposit
@@ -467,7 +467,7 @@ pub struct DepositContext<'info> {
      * Tranche config account, where all the parameters are saved
      */
     #[account()]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /**
      * mint token to deposit
@@ -494,7 +494,7 @@ pub struct DepositContext<'info> {
         seeds = [b"vault_authority"],
         bump = vault_authority_bump,
    )]
-    pub vault_authority: Signer<'info>,
+    pub vault_authority: AccountInfo<'info>,
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
     #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
@@ -553,7 +553,7 @@ pub struct UpdateInterestSplitContext<'info> {
     pub authority: Signer<'info>,
 
     #[account(mut, constraint = tranche_config.authority == *authority.key)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -624,7 +624,7 @@ pub struct RedeemContext<'info> {
         seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
         bump = tranche_config.tranche_config_bump,
         constraint = tranche_config.authority == *authority.key)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /**
      * mint token to deposit
