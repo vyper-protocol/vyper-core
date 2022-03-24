@@ -76,11 +76,12 @@ export interface TranchesConfiguration {
 }
 
 export async function createTranchesConfiguration(
+  protocolProgram: anchor.web3.PublicKey,
   depositMint: anchor.web3.PublicKey,
   program: Program<Vyper>
 ): Promise<TranchesConfiguration> {
   const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("senior"), depositMint.toBuffer()],
+    [Buffer.from("senior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
   const seniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, seniorTrancheMint);
@@ -88,7 +89,7 @@ export async function createTranchesConfiguration(
   console.log("seniorTrancheVault: " + seniorTrancheVault);
 
   const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("junior"), depositMint.toBuffer()],
+    [Buffer.from("junior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
   const juniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, juniorTrancheMint);

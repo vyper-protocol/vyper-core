@@ -3,7 +3,7 @@ use proxy_interface::*;
 // use solana_program::program::invoke;
 // use spl_token_lending::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("2UhQAKJETDW51k4eLgzEoEc7NnRx5nRYyUx2stDoRbZf");
 
 #[program]
 pub mod proxy_solend {

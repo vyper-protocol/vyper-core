@@ -4,7 +4,7 @@ import { createMint, getMintInfo, getTokenAccount } from "@project-serum/common"
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
 import { Vyper } from "../target/types/vyper";
-import { MockProtocol } from "../target/types/mock_protocol";
+import { ProxySolend } from "../target/types/proxy_solend";
 import {
   bn,
   createDepositConfiguration,
@@ -15,16 +15,18 @@ import {
   from_bps,
   to_bps,
 } from "./utils";
-import { DEX_PID, createSerumAccounts } from "./serum/utils";
 
 describe("vyper", () => {
-  const programMockProtocol = anchor.workspace.MockProtocol as Program<MockProtocol>;
   const programVyper = anchor.workspace.Vyper as Program<Vyper>;
+  const programProxySolend = anchor.workspace.ProxySolend as Program<ProxySolend>;
+
+  console.log("program Vyper: " + programVyper.programId);
+  console.log("program ProxySolend: " + programProxySolend.programId);
 
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.Provider.env());
 
-  it("creates tranche", async () => {
+  it.only("creates tranche", async () => {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // define input data
 
@@ -43,27 +45,6 @@ describe("vyper", () => {
     const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, inputData.quantity.toNumber());
 
     // * * * * * * * * * * * * * * * * * * * * * * *
-    // initialize protocol
-
-    console.log("initialize mock protocol");
-    const [protocolVault, protocolVaultBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from(anchor.utils.bytes.utf8.encode("my-token-seed")), mint.toBuffer()],
-      programMockProtocol.programId
-    );
-    await programMockProtocol.rpc.initialize(protocolVaultBump, {
-      accounts: {
-        vault: protocolVault,
-        mint,
-        authority: programMockProtocol.provider.wallet.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      },
-    });
-    console.log("protocolVault: " + protocolVault);
-    inputData.protocolBump = protocolVaultBump;
-
-    // * * * * * * * * * * * * * * * * * * * * * * *
     // initialize tranche config
 
     console.log("creating tranche configs...");
@@ -74,14 +55,13 @@ describe("vyper", () => {
       juniorTrancheMint,
       juniorTrancheMintBump,
       juniorTrancheVault,
-    } = await createTranchesConfiguration(mint, programVyper);
+    } = await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
       programVyper.programId
     );
 
-    console.log("dexProgramId: " + DEX_PID);
     // * * * * * * * * * * * * * * * * * * * * * * *
     // VYPER: create tranche
 
@@ -94,65 +74,60 @@ describe("vyper", () => {
       {
         accounts: {
           authority: programVyper.provider.wallet.publicKey,
-
           trancheConfig,
-
           mint,
-          depositSourceAccount,
-          protocolVault,
-
           seniorTrancheMint: seniorTrancheMint,
           seniorTrancheVault: seniorTrancheVault,
           juniorTrancheMint: juniorTrancheMint,
           juniorTrancheVault: juniorTrancheVault,
-
-          protocolProgram: programMockProtocol.programId,
+          protocolProgram: programProxySolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         },
       }
     );
     console.log("tx", tx);
 
-    const { market, requestQueue, eventQueue, asks, bids, vaultOwnerNonce, trancheSerumVault, usdcSerumVault } =
-      await createSerumAccounts(juniorTrancheMint, mint, programVyper);
+    // const { market, requestQueue, eventQueue, asks, bids, vaultOwnerNonce, trancheSerumVault, usdcSerumVault } =
+    //   await createSerumAccounts(juniorTrancheMint, mint, programVyper);
 
-    const tx2 = await programVyper.rpc.createSerumMarket(vaultOwnerNonce, {
-      accounts: {
-        authority: programVyper.provider.wallet.publicKey,
+    // const tx2 = await programVyper.rpc.createSerumMarket(vaultOwnerNonce, {
+    //   accounts: {
+    //     authority: programVyper.provider.wallet.publicKey,
 
-        seniorTrancheMint: seniorTrancheMint,
-        seniorTrancheSerumVault: seniorTrancheVault,
-        juniorTrancheMint: juniorTrancheMint,
-        juniorTrancheSerumVault: trancheSerumVault,
+    //     seniorTrancheMint: seniorTrancheMint,
+    //     seniorTrancheSerumVault: seniorTrancheVault,
+    //     juniorTrancheMint: juniorTrancheMint,
+    //     juniorTrancheSerumVault: trancheSerumVault,
 
-        market: market.publicKey,
-        requestQueue: requestQueue.publicKey,
-        eventQueue: eventQueue.publicKey,
-        asks: asks.publicKey,
-        bids: bids.publicKey,
+    //     market: market.publicKey,
+    //     requestQueue: requestQueue.publicKey,
+    //     eventQueue: eventQueue.publicKey,
+    //     asks: asks.publicKey,
+    //     bids: bids.publicKey,
 
-        usdcMint: mint,
-        usdcSerumVault,
-        serumDex: DEX_PID,
+    //     usdcMint: mint,
+    //     usdcSerumVault,
+    //     serumDex: DEX_PID,
 
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      },
-      signers: [market, requestQueue, eventQueue, asks, bids],
-    });
-    console.log("tx2", tx2);
+    //     systemProgram: anchor.web3.SystemProgram.programId,
+    //     tokenProgram: TOKEN_PROGRAM_ID,
+    //     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+    //     rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+    //   },
+    //   signers: [market, requestQueue, eventQueue, asks, bids],
+    // });
+    // console.log("tx2", tx2);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // fetch tranche config
 
     const account = await programVyper.account.trancheConfig.fetch(trancheConfig);
 
-    assert.equal(account.quantity.toNumber(), inputData.quantity.toNumber());
+    assert.equal(account.depositedQuantiy.toNumber(), 0);
     assert.deepEqual(account.interestSplit, inputData.interestSplit);
     assert.deepEqual(account.capitalSplit, inputData.capitalSplit);
     assert.deepEqual(
