@@ -16,7 +16,6 @@ pub struct TrancheConfig {
     pub start_date: u64,
     pub end_date: u64,
     pub create_serum: bool,
-    pub can_mint_more: bool,
 
     pub tranche_config_bump: u8,
     pub senior_tranche_mint_bump: u8,
@@ -39,7 +38,6 @@ impl TrancheConfig {
     8 + // start_date: u64
     8 + // end_date: u64
     1 + // create_serum: bool,
-    1 + // can_mint_more: bool,
     1 + // trancheConfigBump: u8,
     1 + // seniorTrancheMintBump: u8,
     1 + // juniorTrancheMintBump: u8
