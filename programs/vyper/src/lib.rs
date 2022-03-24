@@ -430,20 +430,12 @@ pub struct CreateTranchesContext<'info> {
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
-    // Senior tranche token account
-    #[account(mut)]
-    pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
-
     // Junior tranche mint
     #[account(init,
         seeds = [b"junior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = junior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
-
-    // Junior tranche token account
-    #[account(mut)]
-    pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
     pub protocol_program: AccountInfo<'info>,
