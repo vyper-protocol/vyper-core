@@ -69,10 +69,8 @@ export async function createDepositConfiguration(
 export interface TranchesConfiguration {
   seniorTrancheMint: anchor.web3.PublicKey;
   seniorTrancheMintBump: number;
-  seniorTrancheVault: anchor.web3.PublicKey;
   juniorTrancheMint: anchor.web3.PublicKey;
   juniorTrancheMintBump: number;
-  juniorTrancheVault: anchor.web3.PublicKey;
 }
 
 export async function createTranchesConfiguration(
@@ -84,25 +82,20 @@ export async function createTranchesConfiguration(
     [Buffer.from("senior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
-  const seniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, seniorTrancheMint);
-  console.log("seniorTrancheMint: " + seniorTrancheMint);
-  console.log("seniorTrancheVault: " + seniorTrancheVault);
 
   const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from("junior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
-  const juniorTrancheVault = await findAssociatedTokenAddress(program.provider.wallet.publicKey, juniorTrancheMint);
+
+  console.log("seniorTrancheMint: " + seniorTrancheMint);
   console.log("juniorTrancheMint: " + juniorTrancheMint);
-  console.log("juniorTrancheVault: " + juniorTrancheVault);
 
   return {
     seniorTrancheMint,
     seniorTrancheMintBump,
-    seniorTrancheVault,
     juniorTrancheMint,
     juniorTrancheMintBump,
-    juniorTrancheVault,
   };
 }
 
