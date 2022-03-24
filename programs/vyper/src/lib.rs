@@ -166,7 +166,13 @@ pub mod vyper {
         interest_split: [u32; 2],
     ) -> ProgramResult {
         msg!("update_interest_split begin");
+        msg!("+ old_interest_split[0]: {}", ctx.accounts.tranche_config.interest_split[0]);
+        msg!("+ old_interest_split[1]: {}", ctx.accounts.tranche_config.interest_split[1]);
+        
         ctx.accounts.tranche_config.interest_split = interest_split;
+
+        msg!("+ new_interest_split[0]: {}", ctx.accounts.tranche_config.interest_split[0]);
+        msg!("+ new_interest_split[1]: {}", ctx.accounts.tranche_config.interest_split[1]);
         Ok(())
     }
 
