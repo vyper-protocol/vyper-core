@@ -653,20 +653,12 @@ pub struct RedeemContext<'info> {
         bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
-    // Senior tranche token account
-    #[account(mut)]
-    pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
-
     // Junior tranche mint
     #[account(
         mut,
         seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
-
-    // Junior tranche token account
-    #[account(mut)]
-    pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // proxy stuff
     // Vyper Vault authority
