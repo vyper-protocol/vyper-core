@@ -88,9 +88,6 @@ export async function createTranchesConfiguration(
     program.programId
   );
 
-  console.log("seniorTrancheMint: " + seniorTrancheMint);
-  console.log("juniorTrancheMint: " + juniorTrancheMint);
-
   return {
     seniorTrancheMint,
     seniorTrancheMintBump,
