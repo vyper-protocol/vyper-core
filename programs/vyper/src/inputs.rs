@@ -13,11 +13,9 @@ pub trait Input {
 pub struct CreateTrancheConfigInput {
     pub capital_split: [u32; 2],
     pub interest_split: [u32; 2],
-    pub mint_count: [u64; 2],
     pub start_date: u64,
     pub end_date: u64,
     pub create_serum: bool,
-    pub can_mint_more: bool,
     pub protocol_bump: u8,
 }
 
@@ -37,11 +35,10 @@ impl CreateTrancheConfigInput {
         data.deposited_quantiy = 0;
         data.capital_split = self.capital_split.clone();
         data.interest_split = self.interest_split.clone();
-        data.mint_count = self.mint_count.clone();
+        data.mint_count = [0,0];
         data.start_date = self.start_date;
         data.end_date = self.end_date;
         data.create_serum = self.create_serum;
-        data.can_mint_more = self.can_mint_more;
         data.protocol_bump = self.protocol_bump;
         
         match Clock::get() {
