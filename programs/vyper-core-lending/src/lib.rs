@@ -16,7 +16,13 @@ use inputs::{CreateTrancheConfigInput, Input};
 use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
-use vyper_utils::{ math::from_bps, token::{ spl_token_burn, TokenBurnParams } };
+use vyper_utils::{ 
+    math::from_bps,
+    token::{
+        spl_token_burn,
+        TokenBurnParams
+    } 
+};
 
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
 
@@ -500,7 +506,7 @@ pub struct DepositContext<'info> {
 
     // Senior tranche mint
     #[account(
-        seeds = [constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump
     )]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
@@ -515,7 +521,7 @@ pub struct DepositContext<'info> {
 
     // Junior tranche mint
     #[account(
-        seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump
     )]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
@@ -644,7 +650,7 @@ pub struct RedeemContext<'info> {
     // Senior tranche mint
     #[account(
         mut,
-        seeds = [constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
@@ -655,7 +661,7 @@ pub struct RedeemContext<'info> {
     // Junior tranche mint
     #[account(
         mut,
-        seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
