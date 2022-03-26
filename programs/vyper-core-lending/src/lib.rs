@@ -2,7 +2,6 @@ pub mod constants;
 pub mod error;
 pub mod inputs;
 pub mod state;
-pub mod utils;
 
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -17,7 +16,7 @@ use inputs::{CreateTrancheConfigInput, Input};
 use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
-use utils::{ from_bps, spl_token_burn, TokenBurnParams, };
+use vyper_utils::{ math::from_bps, token::{ spl_token_burn, TokenBurnParams } };
 
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
 

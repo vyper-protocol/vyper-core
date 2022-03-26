@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 use {
-    crate::*,
     anchor_lang::prelude::{AccountInfo, ProgramResult},
+    anchor_spl::{
+        self,
+        token,
+    }
 };
 
 /// TokenTransfer
@@ -101,12 +104,4 @@ pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
     )?;
 
     Ok(())
-}
-
-pub fn from_bps(input: u32) -> f64 {
-    input as f64 / 10000.0
-}
-
-pub fn to_bps(input: f64) -> u32 {
-    (input * 10000.0) as u32
 }
