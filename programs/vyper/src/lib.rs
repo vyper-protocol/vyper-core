@@ -17,7 +17,7 @@ use inputs::{CreateTrancheConfigInput, Input};
 use proxy_interface::*;
 use state::TrancheConfig;
 use std::cmp;
-use utils::{ from_bps, to_bps, spl_token_burn, TokenBurnParams, };
+use utils::{ from_bps, spl_token_burn, TokenBurnParams, };
 
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
 
@@ -65,15 +65,29 @@ pub mod vyper {
         ctx: Context<DepositContext>,
         vault_authority_bump: u8,
         quantity: u64,
-        tranche_idx: TrancheID,
+        mint_count: [u64; 2],
+        tranche_idx_u: u8,
     ) -> ProgramResult {
         msg!("deposit begin");
+
+        let tranche_idx = match tranche_idx_u {
+            0 => TrancheID::Senior,
+            _ => TrancheID::Junior
+        };
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // deposit on final protocol
 
         msg!("deposit tokens to protocol");
+
+        let tranche_config_key = ctx.accounts.tranche_config.key();
+        let seeds = &[
+            b"vault_authority".as_ref(),
+            tranche_config_key.as_ref(),
+            &[vault_authority_bump]
+        ];
+        let signer = &[&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
@@ -100,7 +114,7 @@ pub mod vyper {
                 rent: ctx.accounts.rent.clone(),
                 clock: ctx.accounts.clock.clone(),
             },
-            &[&[b"vault_authority"]],
+            signer
         );
 
         vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
@@ -132,7 +146,7 @@ pub mod vyper {
                         ctx.accounts.token_program.to_account_info(),
                         senior_mint_to_ctx,
                     ),
-                    ctx.accounts.tranche_config.mint_count[0],
+                    mint_count[0],
                 )?;
             }
 
@@ -151,7 +165,7 @@ pub mod vyper {
                         ctx.accounts.token_program.to_account_info(),
                         junior_mint_to_ctx,
                     ),
-                    ctx.accounts.tranche_config.mint_count[1],
+                    mint_count[1],
                 )?;
             }
         }
@@ -216,28 +230,20 @@ pub mod vyper {
         Ok(())
     }
 
-    pub fn redeem(ctx: Context<RedeemContext>, vault_authority_bump: u8) -> ProgramResult {
+    pub fn redeem(ctx: Context<RedeemContext>, vault_authority_bump: u8, redeem_quantity: [u64; 2]) -> ProgramResult {
         msg!("redeem_tranche begin");
 
-        // check if before or after end date
-
-        if ctx.accounts.tranche_config.end_date > Clock::get()?.unix_timestamp as u64 {
-            // check if user has same ration of senior/junior tokens than origin
-
-            let user_ratio = ctx.accounts.senior_tranche_vault.amount as f64
-                / ctx.accounts.junior_tranche_vault.amount as f64;
-            let origin_ratio = ctx.accounts.tranche_config.mint_count[0] as f64
-                / ctx.accounts.tranche_config.mint_count[1] as f64;
-
-            if user_ratio != origin_ratio {
-                return Result::Err(ErrorCode::InvalidTrancheAmount.into());
-            }
+        if redeem_quantity[0] > ctx.accounts.senior_tranche_vault.amount
+            || redeem_quantity[1] > ctx.accounts.junior_tranche_vault.amount
+        {
+            msg!("redeem quantity invalid");
+            return Err(ErrorCode::InvalidInput.into());
         }
 
         // calculate capital redeem and interest to redeem
 
         let [capital_to_redeem, interest_to_redeem] = if ctx.accounts.protocol_vault.amount
-            >= ctx.accounts.tranche_config.deposited_quantiy
+            > ctx.accounts.tranche_config.deposited_quantiy
         {
             [
                 ctx.accounts.tranche_config.deposited_quantiy,
@@ -262,83 +268,53 @@ pub mod vyper {
         let mut senior_total: f64 = 0.0;
         let mut junior_total: f64 = 0.0;
 
-        // LOGIC 1, to fix
-
-        // if interest_to_redeem > 0 {
-        //     // we have interest
-        //     let senior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0];
-        //     let junior_capital = ctx.accounts.tranche_config.quantity as f64 * capital_split_f[1];
-
-        //     senior_total += senior_capital;
-        //     junior_total += junior_capital;
-
-        // let senior_interest =
-        //     interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
-        // let junior_interest =
-        //     interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[1]
-        //         + interest_to_redeem as f64 * capital_split_f[1];
-
-        //     let senior_interest = interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
-        //     // let junior_interest = interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[1] + interest_to_redeem as f64 * capital_split_f[1];
-        //     // if junior_interest + senior_interest != interest_to_redeem as f64 {
-        //     //     msg!("error");
-        //     //     return Result::Err(ErrorCode::InvalidTrancheAmount.into());
-        //     // }
-        //     let junior_interest = interest_to_redeem as f64 - senior_interest;
-
-        //     senior_total += senior_interest;
-        //     junior_total += junior_interest;
-
-        // } else {
-
-        //     let senior_capital = from_bps(cmp::min(
-        //         to_bps(ctx.accounts.tranche_config.quantity as f64 * capital_split_f[0]),
-        //         to_bps(capital_to_redeem as f64)));
-        //     let junior_capital = capital_to_redeem - senior_capital as u64;
-
-        //     senior_total += senior_capital;
-        //     junior_total += junior_capital as f64;
-        // }
-
-        // LOGIC 2
-
         if interest_to_redeem > 0 {
+
             let senior_capital =
                 ctx.accounts.tranche_config.deposited_quantiy as f64 * capital_split_f[0];
-            senior_total += senior_capital;
-            let senior_interest =
-                interest_to_redeem as f64 * capital_split_f[0] * interest_split_f[0];
-            senior_total += senior_interest;
-            junior_total += ctx.accounts.tranche_config.deposited_quantiy as f64
-                + interest_to_redeem as f64
-                - senior_total;
-        } else {
-            let senior_capital = from_bps(cmp::min(
-                to_bps(ctx.accounts.tranche_config.deposited_quantiy as f64 * capital_split_f[0]),
-                to_bps(capital_to_redeem as f64),
-            ));
-            let junior_capital = capital_to_redeem - senior_capital as u64;
 
             senior_total += senior_capital;
+
+            let senior_interest =
+                interest_to_redeem as f64 * capital_split_f[0] * (1.0 as f64 - interest_split_f[0]);
+
+            senior_total += senior_interest;
+
+            junior_total += ctx.accounts.tranche_config.deposited_quantiy as f64 + interest_to_redeem as f64 - senior_total;
+
+        } else {
+            let senior_capital = cmp::min(
+                (ctx.accounts.tranche_config.deposited_quantiy as f64 * capital_split_f[0]) as u64,
+                capital_to_redeem,
+            );
+            let junior_capital = capital_to_redeem - senior_capital as u64;
+
+            senior_total += senior_capital as f64;
             junior_total += junior_capital as f64;
         }
 
         let user_senior_part = if ctx.accounts.senior_tranche_vault.amount > 0 {
-            senior_total * ctx.accounts.tranche_config.mint_count[0] as f64
-                / ctx.accounts.senior_tranche_vault.amount as f64
+            senior_total * redeem_quantity[0] as f64 / ctx.accounts.senior_tranche_mint.supply as f64
         } else {
             0 as f64
         };
 
         let user_junior_part = if ctx.accounts.junior_tranche_vault.amount > 0 {
-            junior_total * ctx.accounts.tranche_config.mint_count[1] as f64
-                / ctx.accounts.junior_tranche_vault.amount as f64
+            junior_total * redeem_quantity[1] as f64 / ctx.accounts.junior_tranche_mint.supply as f64
         } else {
             0 as f64
         };
 
         let user_total = user_senior_part + user_junior_part;
         msg!("user_total to redeem: {}", user_total);
+
+        let tranche_config_key = ctx.accounts.tranche_config.key();
+        let seeds = &[
+            b"vault_authority".as_ref(),
+            tranche_config_key.as_ref(),
+            &[vault_authority_bump]
+        ];
+        let signer = &[&seeds[..]];
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
@@ -365,19 +341,19 @@ pub mod vyper {
                 rent: ctx.accounts.rent.clone(),
                 clock: ctx.accounts.clock.clone(),
             },
-            &[&[b"vault_authority"]],
+            signer
         );
 
-        vyper_proxy::withdraw_from_proxy(cpi_ctx, vault_authority_bump, capital_to_redeem)?;
+        vyper_proxy::withdraw_from_proxy(cpi_ctx, vault_authority_bump, user_total as u64)?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // burn senior tranche tokens
-        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
 
+        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
         spl_token_burn(TokenBurnParams { 
             mint: ctx.accounts.senior_tranche_mint.to_account_info(),
             to: ctx.accounts.senior_tranche_vault.to_account_info(),
-            amount: ctx.accounts.senior_tranche_vault.amount,
+            amount: redeem_quantity[0],
             authority: ctx.accounts.authority.to_account_info(),
             authority_signer_seeds: &[],
             token_program: ctx.accounts.token_program.to_account_info()
@@ -385,12 +361,12 @@ pub mod vyper {
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // burn junior tranche tokens
-        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
 
+        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
         spl_token_burn(TokenBurnParams { 
             mint: ctx.accounts.junior_tranche_mint.to_account_info(),
             to: ctx.accounts.junior_tranche_vault.to_account_info(),
-            amount: ctx.accounts.junior_tranche_vault.amount,
+            amount: redeem_quantity[1],
             authority: ctx.accounts.authority.to_account_info(),
             authority_signer_seeds: &[],
             token_program: ctx.accounts.token_program.to_account_info()
@@ -476,11 +452,15 @@ pub struct DepositContext<'info> {
     /**
      * deposit from
      */
-    #[account(mut, associated_token::mint = mint, associated_token::authority = authority)]
+    #[account(
+        mut,
+        // associated_token::mint = mint,
+        // associated_token::authority = authority
+    )]
     pub deposit_source_account: Box<Account<'info, TokenAccount>>,
 
     /**
-     * protocol vault
+     * protocol vault (SOLEND RESERVE https://docs.solend.fi/developers/addresses/devnet#reserves )
      */
     #[account(mut)]
     pub protocol_vault: Box<Account<'info, TokenAccount>>,
@@ -489,24 +469,29 @@ pub struct DepositContext<'info> {
     // Vyper Vault authority
     #[account(
         mut,
-        seeds = [b"vault_authority"],
+        seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()],
         bump = vault_authority_bump,
    )]
     pub vault_authority: AccountInfo<'info>,
+
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
-    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
+    #[account(
+        mut,
+        associated_token::mint = collateral_mint,
+        associated_token::authority = vault_authority
+    )]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
     #[account(mut)]
     pub collateral_mint: Box<Account<'info, Mint>>,
 
-    // State account for protocol
+    // State account for protocol (reserve-state-account)
     #[account(mut)]
     pub protocol_state: AccountInfo<'info>,
 
-    // Lending market account
+    // Lending market account (https://docs.solend.fi/developers/addresses/devnet#devnet)
     pub lending_market_account: AccountInfo<'info>,
 
     // Lending market authority (PDA)
@@ -517,24 +502,37 @@ pub struct DepositContext<'info> {
     // Senior tranche mint
     #[account(
         seeds = [constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = tranche_config.senior_tranche_mint_bump)]
+        bump = tranche_config.senior_tranche_mint_bump
+    )]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(mut)]
+    #[account(
+        mut,
+        // associated_token::mint = senior_tranche_mint,
+        // associated_token::authority = authority
+    )]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
     #[account(
         seeds = [constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = tranche_config.junior_tranche_mint_bump)]
+        bump = tranche_config.junior_tranche_mint_bump
+    )]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(mut)]
+    #[account(
+        mut,
+        // associated_token::mint = junior_tranche_mint,
+        // associated_token::authority = authority
+    )]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
-    #[account(constraint = tranche_config.protocol_program_id == *protocol_program.key)]
+    // solend: ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx
+    #[account(
+        // constraint = tranche_config.protocol_program_id == *protocol_program.key
+    )]
     pub protocol_program: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
