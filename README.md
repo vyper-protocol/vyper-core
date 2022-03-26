@@ -1,5 +1,5 @@
 <div align="center">
-  <img height="170x" src="https://vyperprotocol.io/wp-content/uploads/2021/12/vyp.png" />
+  <img height="170x" src="https://github.com/vyper-protocol/branding/blob/main/medium-logo.png" />
 
   <h1>Vyper</h1>
 
