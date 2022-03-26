@@ -1,11 +1,11 @@
 [package]
-name = "proxy-interface"
+name = "proxy-lending-interface"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "proxy_interface"
+name = "proxy_lending_interface"
 
 [dependencies]
 anchor-lang = "0.18.2"

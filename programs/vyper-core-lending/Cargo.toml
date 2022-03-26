@@ -1,12 +1,12 @@
 [package]
-name = "vyper"
+name = "vyper-core-lending"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "vyper"
+name = "vyper_core_lending"
 
 [features]
 no-entrypoint = []
@@ -18,5 +18,5 @@ default = []
 [dependencies]
 anchor-lang = "0.18.2"
 anchor-spl = { version = "0.18.2", features = ["dex"]}
-proxy-interface = { path = "../../proxy-interface" }
+proxy-lending-interface = { path = "../../proxy-lending-interface" }
 

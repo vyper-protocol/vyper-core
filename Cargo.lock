@@ -929,7 +929,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy-interface"
+name = "proxy-lending-interface"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
@@ -937,11 +937,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy-solend"
+name = "proxy-lending-solend"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
- "proxy-interface",
+ "proxy-lending-interface",
  "spl-token-lending",
  "uint",
 ]
@@ -1526,12 +1526,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
-name = "vyper"
+name = "vyper-core-lending"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "proxy-interface",
+ "proxy-lending-interface",
 ]
 
 [[package]]

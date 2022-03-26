@@ -14,7 +14,7 @@ use anchor_spl::{
 use constants::*;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
-use proxy_interface::*;
+use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
 use utils::{ from_bps, spl_token_burn, TokenBurnParams, };
@@ -22,7 +22,7 @@ use utils::{ from_bps, spl_token_burn, TokenBurnParams, };
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
 
 #[program]
-pub mod vyper {
+pub mod vyper_core_lending {
     use super::*;
 
     /**
@@ -91,7 +91,7 @@ pub mod vyper {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
-            proxy_interface::DepositProxyContext {
+            proxy_lending_interface::DepositProxyLendingContext {
                 authority: ctx.accounts.authority.clone(),
                 vault_authority: ctx.accounts.vault_authority.clone(),
                 protocol_program: ctx.accounts.protocol_program.clone(),
@@ -318,7 +318,7 @@ pub mod vyper {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
-            proxy_interface::WithdrawProxyContext {
+            proxy_lending_interface::WithdrawProxyLendingContext {
                 authority: ctx.accounts.authority.clone(),
                 vault_authority: ctx.accounts.vault_authority.clone(),
                 protocol_program: ctx.accounts.protocol_program.clone(),
@@ -703,13 +703,13 @@ pub struct RedeemContext<'info> {
 #[interface]
 pub trait VyperProxy<'info> {
     fn deposit_to_proxy(
-        ctx: Context<DepositProxyContext<'info>>,
+        ctx: Context<DepositProxyLendingContext<'info>>,
         vault_authority_bump: u8,
         amount: u64,
     ) -> ProgramResult;
 
     fn withdraw_from_proxy(
-        ctx: Context<WithdrawProxyContext<'info>>,
+        ctx: Context<WithdrawProxyLendingContext<'info>>,
         vault_authority_bump: u8,
         collateral_amount: u64,
     ) -> ProgramResult;
