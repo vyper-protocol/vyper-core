@@ -9,8 +9,10 @@ import {
   bn,
   createDepositConfiguration,
   createMintAndDepositSource,
+  createMintAndDepositSourceWithOwner,
   createTranchesConfiguration,
   createUserAndTokenAccount,
+  findAndCreateAssociatedTokenAddress,
   findAssociatedTokenAddress,
   from_bps,
   to_bps,
@@ -250,12 +252,11 @@ describe("vyper", () => {
     }, Error);
   });
 
-  it("deposit on lending protocol", async () => {
+  it.only("deposit as senior on lending protocol", async () => {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // define input data
 
     const inputData = {
-      quantity: bn(1000),
       capitalSplit: [to_bps(0.5), to_bps(1)],
       interestSplit: [to_bps(0.85), to_bps(1)],
       startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
@@ -264,25 +265,17 @@ describe("vyper", () => {
       protocolBump: 0,
     };
 
-    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, inputData.quantity.toNumber());
-
-    // * * * * * * * * * * * * * * * * * * * * * * *
-    // initialize tranche config
-
-    console.log("creating tranche configs...");
+    const quantityToDeposit = 1000;
+    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, quantityToDeposit);
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
       await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
-
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
       programVyper.programId
     );
 
-    // * * * * * * * * * * * * * * * * * * * * * * *
-    // VYPER: create tranche
-
-    console.log("calling vyper createTranche...");
-    const tx = await programVyper.rpc.createTranche(
+    // create tranche
+    const tx1 = await programVyper.rpc.createTranche(
       inputData,
       trancheConfigBump,
       seniorTrancheMintBump,
@@ -303,36 +296,100 @@ describe("vyper", () => {
         },
       }
     );
-    console.log("tx", tx);
+    console.log("tx1:", tx1);
 
-    // * * * * * * * * * * * * * * * * * * * * * * *
-    // fetch tranche config
+    const seniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyper.provider, seniorTrancheMint);
+    const juniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyper.provider, juniorTrancheMint);
+    console.log("seniorTrancheVault:" + seniorTrancheVault);
+    console.log("juniorTrancheVault:" + juniorTrancheVault);
 
-    const account = await programVyper.account.trancheConfig.fetch(trancheConfig);
-
-    assert.equal(account.depositedQuantiy.toNumber(), 0);
-    assert.deepEqual(account.interestSplit, inputData.interestSplit);
-    assert.deepEqual(account.capitalSplit, inputData.capitalSplit);
-    assert.deepEqual(
-      account.mintCount.map((c) => c.toNumber()),
-      [0, 0]
+    const [vaultAuthority, vaultAuthorityBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("vault_authority"), trancheConfig.toBuffer()],
+      programVyper.programId
     );
-    assert.equal(account.startDate.toNumber(), inputData.startDate.toNumber());
-    assert.equal(account.endDate.toNumber(), inputData.endDate.toNumber());
-    assert.equal(account.createSerum, inputData.createSerum);
-    assert.ok(account.createdAt.toNumber() > 0);
 
-    const seniorTrancheMintInfo = await getMintInfo(programVyper.provider, seniorTrancheMint);
-    assert.equal(seniorTrancheMintInfo.decimals, 0);
-    assert.equal(seniorTrancheMintInfo.supply.toNumber(), 0);
+    // TODO init lending protocol
 
-    const juniorTrancheMintInfo = await getMintInfo(programVyper.provider, juniorTrancheMint);
-    assert.equal(juniorTrancheMintInfo.decimals, 0);
-    assert.equal(juniorTrancheMintInfo.supply.toNumber(), 0);
+    const collateralMint = await createMint(programVyper.provider);
+    const collateralTokenAccount = await findAssociatedTokenAddress(vaultAuthority, collateralMint);
+    const mintToTx = new anchor.web3.Transaction();
+    mintToTx.add(
+      Token.createAssociatedTokenAccountInstruction(
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        collateralMint,
+        collateralTokenAccount,
+        vaultAuthority,
+        programVyper.provider.wallet.publicKey
+      )
+    );
+    await programVyper.provider.send(mintToTx);
 
-    // const protocolVaultInfo = await getTokenAccount(programVyper.provider, protocolVault);
-    // assert.equal(protocolVaultInfo.amount.toNumber(), inputData.quantity.toNumber());
-    // assert.deepEqual(protocolVaultInfo.mint, mint);
+    const protocolState = anchor.web3.Keypair.generate().publicKey;
+    const lendingMarketAccount = anchor.web3.Keypair.generate().publicKey;
+    const lendingMarketAuthority = anchor.web3.Keypair.generate().publicKey;
+
+    // deposit on lending protocol
+
+    const tx2 = await programVyper.rpc.deposit(
+      vaultAuthorityBump,
+      bn(1000), // quantity
+      [bn(10), bn(5)], // mint_count
+      0, // senior
+      {
+        accounts: {
+          authority: programVyper.provider.wallet.publicKey,
+          trancheConfig,
+          mint,
+          depositSourceAccount,
+
+          protocolVault: depositSourceAccount,
+          vaultAuthority,
+
+          collateralTokenAccount,
+          collateralMint,
+          protocolState,
+          lendingMarketAccount,
+          lendingMarketAuthority,
+
+          seniorTrancheMint,
+          seniorTrancheVault,
+
+          juniorTrancheMint,
+          juniorTrancheVault,
+
+          protocolProgram: programProxySolend.programId,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+      }
+    );
+    console.log("tx2:", tx2);
+
+    // const account = await programVyper.account.trancheConfig.fetch(trancheConfig);
+
+    // assert.equal(account.depositedQuantiy.toNumber(), 0);
+    // assert.deepEqual(account.interestSplit, inputData.interestSplit);
+    // assert.deepEqual(account.capitalSplit, inputData.capitalSplit);
+    // assert.deepEqual(
+    //   account.mintCount.map((c) => c.toNumber()),
+    //   [0, 0]
+    // );
+    // assert.equal(account.startDate.toNumber(), inputData.startDate.toNumber());
+    // assert.equal(account.endDate.toNumber(), inputData.endDate.toNumber());
+    // assert.equal(account.createSerum, inputData.createSerum);
+    // assert.ok(account.createdAt.toNumber() > 0);
+
+    // const seniorTrancheMintInfo = await getMintInfo(programVyper.provider, seniorTrancheMint);
+    // assert.equal(seniorTrancheMintInfo.decimals, 0);
+    // assert.equal(seniorTrancheMintInfo.supply.toNumber(), 0);
+
+    // const juniorTrancheMintInfo = await getMintInfo(programVyper.provider, juniorTrancheMint);
+    // assert.equal(juniorTrancheMintInfo.decimals, 0);
+    // assert.equal(juniorTrancheMintInfo.supply.toNumber(), 0);
   });
 
   // it("redeem with no profit and no loss and all tranches", async () => {

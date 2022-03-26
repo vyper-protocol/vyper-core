@@ -35,9 +35,6 @@ impl CreateTrancheConfigInput {
         data.deposited_quantiy = 0;
         data.capital_split = self.capital_split.clone();
         data.interest_split = self.interest_split.clone();
-        data.mint_count = [0,0];
-        data.start_date = self.start_date;
-        data.end_date = self.end_date;
         data.create_serum = self.create_serum;
         data.protocol_bump = self.protocol_bump;
         

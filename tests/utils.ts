@@ -147,8 +147,16 @@ export async function createUserAndTokenAccount(
   return [userKP, userTokenAccount];
 }
 
-export async function createMintAndDepositSource(
+export function createMintAndDepositSource(
   provider: anchor.Provider,
+  quantity: number
+): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
+  return createMintAndDepositSourceWithOwner(provider, provider.wallet.publicKey, quantity);
+}
+
+export async function createMintAndDepositSourceWithOwner(
+  provider: anchor.Provider,
+  tokenAccountOwner: anchor.web3.PublicKey,
   quantity: number
 ): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
   // * * * * * * * * * * * * * * * * * * * * * * *
@@ -159,7 +167,7 @@ export async function createMintAndDepositSource(
   // * * * * * * * * * * * * * * * * * * * * * * *
   // define user and user's token account
 
-  const depositSourceAccount = await findAssociatedTokenAddress(provider.wallet.publicKey, mint);
+  const depositSourceAccount = await findAssociatedTokenAddress(tokenAccountOwner, mint);
 
   const mintToTx = new anchor.web3.Transaction();
   mintToTx.add(
@@ -176,4 +184,26 @@ export async function createMintAndDepositSource(
   await provider.send(mintToTx);
 
   return [mint, depositSourceAccount];
+}
+
+export async function findAndCreateAssociatedTokenAddress(
+  provider: anchor.Provider,
+  mint: anchor.web3.PublicKey
+): Promise<anchor.web3.PublicKey> {
+  const atokenAccount = await findAssociatedTokenAddress(provider.wallet.publicKey, mint);
+
+  const createATokenAccount = new anchor.web3.Transaction();
+  createATokenAccount.add(
+    Token.createAssociatedTokenAccountInstruction(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      mint,
+      atokenAccount,
+      provider.wallet.publicKey,
+      provider.wallet.publicKey
+    )
+  );
+  await provider.send(createATokenAccount);
+
+  return atokenAccount;
 }
