@@ -1,4 +1,3 @@
-pub mod constants;
 pub mod error;
 pub mod inputs;
 pub mod state;
@@ -10,14 +9,16 @@ use anchor_spl::{
     dex,
     token::{self, Mint, Token, TokenAccount},
 };
-use constants::*;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
 use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
 use vyper_utils::{ 
-    math::from_bps,
+    math::{
+        from_bps,
+        get_quantites_with_capital_split
+    },
     token::{
         spl_token_burn,
         TokenBurnParams
@@ -121,9 +122,10 @@ pub mod vyper_core_lending {
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // increase the deposited quantity
-
-
-        ctx.accounts.tranche_config.deposited_quantiy += quantity;
+        let split_quantities = get_quantites_with_capital_split(quantity, ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x)));
+        for i in 0..split_quantities.len() {
+            ctx.accounts.tranche_config.deposited_quantiy[i] += split_quantities[i];
+        }
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -169,32 +171,54 @@ pub mod vyper_core_lending {
     }
 
     pub fn update_interest_split(
-        ctx: Context<UpdateInterestSplitContext>,
+        ctx: Context<UpdateTrancheConfigContext>,
         interest_split: [u32; 2],
     ) -> ProgramResult {
         msg!("update_interest_split begin");
-        msg!("+ old_interest_split[0]: {}", ctx.accounts.tranche_config.interest_split[0]);
-        msg!("+ old_interest_split[1]: {}", ctx.accounts.tranche_config.interest_split[1]);
+
+        for (i, x) in ctx.accounts.tranche_config.interest_split.iter().enumerate() {
+            msg!("+ old_interest_split[{}]: {}", i, x);
+        }
         
         ctx.accounts.tranche_config.interest_split = interest_split;
 
-        msg!("+ new_interest_split[0]: {}", ctx.accounts.tranche_config.interest_split[0]);
-        msg!("+ new_interest_split[1]: {}", ctx.accounts.tranche_config.interest_split[1]);
+        for (i, x) in ctx.accounts.tranche_config.interest_split.iter().enumerate() {
+            msg!("+ new_interest_split[{}]: {}", i, x);
+        }
+
         Ok(())
     }
 
     pub fn update_capital_split(
-        ctx: Context<UpdateInterestSplitContext>,
+        ctx: Context<UpdateTrancheConfigContext>,
         capital_split: [u32; 2],
     ) -> ProgramResult {
         msg!("update_capital_split begin");
-        msg!("+ old_capital_split[0]: {}", ctx.accounts.tranche_config.capital_split[0]);
-        msg!("+ old_capital_split[1]: {}", ctx.accounts.tranche_config.capital_split[1]);
+
+        for (i, x) in ctx.accounts.tranche_config.capital_split.iter().enumerate() {
+            msg!("+ old_capital_split[{}]: {}", i, x);
+        }
         
         ctx.accounts.tranche_config.capital_split = capital_split;
 
-        msg!("+ new_capital_split[0]: {}", ctx.accounts.tranche_config.capital_split[0]);
-        msg!("+ new_capital_split[1]: {}", ctx.accounts.tranche_config.capital_split[1]);
+        for (i, x) in ctx.accounts.tranche_config.capital_split.iter().enumerate() {
+            msg!("+ new_capital_split[{}]: {}", i, x);
+        }
+
+        Ok(())
+    }
+
+    pub fn update_deposited_quantity(
+        ctx: Context<UpdateTrancheConfigContext>,
+    ) -> ProgramResult {
+        
+        // crystalize interested (sum all accrued interests in deposited_quantity)
+        let quantities = get_quantites_with_capital_split(ctx.accounts.protocol_vault.amount, ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x)));
+
+        for i in 0..quantities.len() {
+            ctx.accounts.tranche_config.deposited_quantiy[i] = quantities[i];
+        }
+
         Ok(())
     }
 
@@ -250,28 +274,23 @@ pub mod vyper_core_lending {
 
         // calculate capital redeem and interest to redeem
 
-        let [capital_to_redeem, interest_to_redeem] = if ctx.accounts.protocol_vault.amount
-            > ctx.accounts.tranche_config.deposited_quantiy
+        let [capital_to_redeem, interest_to_redeem] = if ctx.accounts.protocol_vault.amount > ctx.accounts.tranche_config.deposited_quantiy[0]
         {
             [
-                ctx.accounts.tranche_config.deposited_quantiy,
-                ctx.accounts.protocol_vault.amount - ctx.accounts.tranche_config.deposited_quantiy,
+                ctx.accounts.tranche_config.get_total_deposited_quantity(),
+                ctx.accounts.protocol_vault.amount - ctx.accounts.tranche_config.get_total_deposited_quantity(),
             ]
         } else {
-            [ctx.accounts.protocol_vault.amount, 0]
+            [
+                ctx.accounts.protocol_vault.amount,
+                0
+            ]
         };
         msg!("+ capital_to_redeem: {}", capital_to_redeem);
         msg!("+ interest_to_redeem: {}", interest_to_redeem);
 
-        let capital_split_f: [f64; 2] = [
-            from_bps(ctx.accounts.tranche_config.capital_split[0]),
-            from_bps(ctx.accounts.tranche_config.capital_split[1]),
-        ];
-
-        let interest_split_f: [f64; 2] = [
-            from_bps(ctx.accounts.tranche_config.interest_split[0]),
-            from_bps(ctx.accounts.tranche_config.interest_split[1]),
-        ];
+        let capital_split_f: [f64; 2] = ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x));
+        let interest_split_f: [f64; 2] = ctx.accounts.tranche_config.interest_split.map(|x| from_bps(x));
 
         let mut senior_total: f64 = 0.0;
         let mut junior_total: f64 = 0.0;
@@ -279,7 +298,7 @@ pub mod vyper_core_lending {
         if interest_to_redeem > 0 {
 
             let senior_capital =
-                ctx.accounts.tranche_config.deposited_quantiy as f64 * capital_split_f[0];
+                ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 * capital_split_f[0];
 
             senior_total += senior_capital;
 
@@ -288,11 +307,11 @@ pub mod vyper_core_lending {
 
             senior_total += senior_interest;
 
-            junior_total += ctx.accounts.tranche_config.deposited_quantiy as f64 + interest_to_redeem as f64 - senior_total;
+            junior_total += ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 + interest_to_redeem as f64 - senior_total;
 
         } else {
             let senior_capital = cmp::min(
-                (ctx.accounts.tranche_config.deposited_quantiy as f64 * capital_split_f[0]) as u64,
+                (ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 * capital_split_f[0]) as u64,
                 capital_to_redeem,
             );
             let junior_capital = capital_to_redeem - senior_capital as u64;
@@ -552,12 +571,15 @@ pub struct DepositContext<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateInterestSplitContext<'info> {
+pub struct UpdateTrancheConfigContext<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
     #[account(mut, constraint = tranche_config.authority == *authority.key)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
+
+    #[account(mut)]
+    pub protocol_vault: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
 }
