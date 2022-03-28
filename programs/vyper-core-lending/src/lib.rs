@@ -69,16 +69,10 @@ pub mod vyper_core_lending {
     pub fn deposit(
         ctx: Context<DepositContext>,
         vault_authority_bump: u8,
-        quantity: u64,
+        quantity: [u64; 2],
         mint_count: [u64; 2],
-        tranche_idx_u: u8,
     ) -> ProgramResult {
         msg!("deposit begin");
-
-        let tranche_idx = match tranche_idx_u {
-            0 => TrancheID::Senior,
-            _ => TrancheID::Junior
-        };
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -122,57 +116,51 @@ pub mod vyper_core_lending {
             signer
         );
 
-        vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
+        vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity[0] + quantity[1])?;
      
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // increase the deposited quantity
 
 
-        ctx.accounts.tranche_config.deposited_quantiy += quantity;
+        ctx.accounts.tranche_config.deposited_quantiy += quantity[0] + quantity[1];
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // mint tranche tokens to user
 
-        match tranche_idx {
-            TrancheID::Senior => {
-                // mint senior tranche tokens
+        if mint_count[0] > 0 {
+            msg!("mint senior tranche");
+    
+            let senior_mint_to_ctx = token::MintTo {
+                mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+                to: ctx.accounts.senior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            };
+            token::mint_to(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    senior_mint_to_ctx,
+                ),
+                mint_count[0],
+            )?;
+        }
 
-                msg!("mint senior tranche");
+        if mint_count[1] > 0 {
+            msg!("mint junior tranche");
 
-                let senior_mint_to_ctx = token::MintTo {
-                    mint: ctx.accounts.senior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.senior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                };
-                token::mint_to(
-                    CpiContext::new(
-                        ctx.accounts.token_program.to_account_info(),
-                        senior_mint_to_ctx,
-                    ),
-                    mint_count[0],
-                )?;
-            }
-
-            TrancheID::Junior => {
-                // mint junior tranche tokens
-
-                msg!("mint junior tranche");
-
-                let junior_mint_to_ctx = token::MintTo {
-                    mint: ctx.accounts.junior_tranche_mint.to_account_info(),
-                    to: ctx.accounts.junior_tranche_vault.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                };
-                token::mint_to(
-                    CpiContext::new(
-                        ctx.accounts.token_program.to_account_info(),
-                        junior_mint_to_ctx,
-                    ),
-                    mint_count[1],
-                )?;
-            }
+            let junior_mint_to_ctx = token::MintTo {
+                mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+                to: ctx.accounts.junior_tranche_vault.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            };
+            token::mint_to(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    junior_mint_to_ctx,
+                ),
+                mint_count[1],
+            )?;
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * *
