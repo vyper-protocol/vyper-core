@@ -6,8 +6,19 @@ pub struct TrancheConfig {
     pub authority: Pubkey,
     pub protocol_program_id: Pubkey,
     pub deposited_quantiy: u64,
+
+    /**
+     * Senior and junior capital split values in BPS
+     * SUM needs to be 10k
+     */
     pub capital_split: [u32; 2],
+
+    /**
+     * Senior and junior interest split values in BPS
+     * Last value (most junior) needs to be 10k
+     */
     pub interest_split: [u32; 2],
+
     pub junior_tranche_mint: Pubkey,
     pub senior_tranche_mint: Pubkey,
 
