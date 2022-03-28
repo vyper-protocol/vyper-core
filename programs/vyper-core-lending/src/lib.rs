@@ -376,28 +376,30 @@ pub mod vyper_core_lending {
         // * * * * * * * * * * * * * * * * * * * * * * *
         // burn senior tranche tokens
 
-        msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
-        spl_token_burn(TokenBurnParams { 
-            mint: ctx.accounts.senior_tranche_mint.to_account_info(),
-            to: ctx.accounts.senior_tranche_vault.to_account_info(),
-            amount: redeem_quantity[0],
-            authority: ctx.accounts.authority.to_account_info(),
-            authority_signer_seeds: &[],
-            token_program: ctx.accounts.token_program.to_account_info()
-        })?;
+        // TODO: burn on vault
+        // msg!("burn senior tranche tokens: {}", ctx.accounts.senior_tranche_vault.amount);
+        // spl_token_burn(TokenBurnParams { 
+        //     mint: ctx.accounts.senior_tranche_mint.to_account_info(),
+        //     to: ctx.accounts.senior_tranche_vault.to_account_info(),
+        //     amount: redeem_quantity[0],
+        //     authority: ctx.accounts.authority.to_account_info(),
+        //     authority_signer_seeds: &[],
+        //     token_program: ctx.accounts.token_program.to_account_info()
+        // })?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // burn junior tranche tokens
 
-        msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
-        spl_token_burn(TokenBurnParams { 
-            mint: ctx.accounts.junior_tranche_mint.to_account_info(),
-            to: ctx.accounts.junior_tranche_vault.to_account_info(),
-            amount: redeem_quantity[1],
-            authority: ctx.accounts.authority.to_account_info(),
-            authority_signer_seeds: &[],
-            token_program: ctx.accounts.token_program.to_account_info()
-        })?;
+        // TODO: burn on vault
+        // msg!("burn junior tranche tokens: {}", ctx.accounts.junior_tranche_vault.amount);
+        // spl_token_burn(TokenBurnParams { 
+        //     mint: ctx.accounts.junior_tranche_mint.to_account_info(),
+        //     to: ctx.accounts.junior_tranche_vault.to_account_info(),
+        //     amount: redeem_quantity[1],
+        //     authority: ctx.accounts.authority.to_account_info(),
+        //     authority_signer_seeds: &[],
+        //     token_program: ctx.accounts.token_program.to_account_info()
+        // })?;
 
         Ok(())
     }
@@ -667,7 +669,11 @@ pub struct RedeemContext<'info> {
     /**
      * deposit from
      */
-    #[account(mut, associated_token::mint = mint, associated_token::authority = authority)]
+    #[account(
+        mut, 
+        // associated_token::mint = mint,
+        // associated_token::authority = authority
+    )]
     pub deposit_dest_account: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
@@ -701,10 +707,15 @@ pub struct RedeemContext<'info> {
         seeds = [b"vault_authority"],
         bump = vault_authority_bump,
    )]
-    pub vault_authority: Signer<'info>,
+    pub vault_authority: AccountInfo<'info>,
+
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
-    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
+    #[account(
+        mut, 
+        // associated_token::mint = collateral_mint, 
+        // associated_token::authority = vault_authority
+    )]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
