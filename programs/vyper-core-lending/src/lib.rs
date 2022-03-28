@@ -10,18 +10,13 @@ use anchor_spl::{
     dex,
     token::{self, Mint, Token, TokenAccount},
 };
-use constants::*;
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
 use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
 use vyper_utils::{ 
-    math::from_bps,
-    token::{
-        spl_token_burn,
-        TokenBurnParams
-    } 
+    math::from_bps
 };
 
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
@@ -632,7 +627,11 @@ pub struct RedeemContext<'info> {
     /**
      * deposit from
      */
-    #[account(mut, associated_token::mint = mint, associated_token::authority = authority)]
+    #[account(
+        mut, 
+        // associated_token::mint = mint,
+        // associated_token::authority = authority
+    )]
     pub deposit_dest_account: Box<Account<'info, TokenAccount>>,
 
     // * * * * * * * * * * * * * * * * *
@@ -666,10 +665,15 @@ pub struct RedeemContext<'info> {
         seeds = [b"vault_authority"],
         bump = vault_authority_bump,
    )]
-    pub vault_authority: Signer<'info>,
+    pub vault_authority: AccountInfo<'info>,
+
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
-    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
+    #[account(
+        mut, 
+        // associated_token::mint = collateral_mint, 
+        // associated_token::authority = vault_authority
+    )]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
