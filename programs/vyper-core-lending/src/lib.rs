@@ -69,7 +69,7 @@ pub mod vyper_core_lending {
     pub fn deposit(
         ctx: Context<DepositContext>,
         vault_authority_bump: u8,
-        quantity: [u64; 2],
+        quantity: u64,
         mint_count: [u64; 2],
     ) -> ProgramResult {
         msg!("deposit begin");
@@ -116,14 +116,14 @@ pub mod vyper_core_lending {
             signer
         );
 
-        vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity[0] + quantity[1])?;
+        vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
      
         // * * * * * * * * * * * * * * * * * * * * * * *
 
         // increase the deposited quantity
 
 
-        ctx.accounts.tranche_config.deposited_quantiy += quantity[0] + quantity[1];
+        ctx.accounts.tranche_config.deposited_quantiy += quantity;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -180,6 +180,21 @@ pub mod vyper_core_lending {
 
         msg!("+ new_interest_split[0]: {}", ctx.accounts.tranche_config.interest_split[0]);
         msg!("+ new_interest_split[1]: {}", ctx.accounts.tranche_config.interest_split[1]);
+        Ok(())
+    }
+
+    pub fn update_capital_split(
+        ctx: Context<UpdateInterestSplitContext>,
+        capital_split: [u32; 2],
+    ) -> ProgramResult {
+        msg!("update_capital_split begin");
+        msg!("+ old_capital_split[0]: {}", ctx.accounts.tranche_config.capital_split[0]);
+        msg!("+ old_capital_split[1]: {}", ctx.accounts.tranche_config.capital_split[1]);
+        
+        ctx.accounts.tranche_config.capital_split = capital_split;
+
+        msg!("+ new_capital_split[0]: {}", ctx.accounts.tranche_config.capital_split[0]);
+        msg!("+ new_capital_split[1]: {}", ctx.accounts.tranche_config.capital_split[1]);
         Ok(())
     }
 
