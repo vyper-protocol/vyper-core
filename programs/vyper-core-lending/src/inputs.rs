@@ -13,19 +13,12 @@ pub trait Input {
 pub struct CreateTrancheConfigInput {
     pub capital_split: [u32; 2],
     pub interest_split: [u32; 2],
-    pub start_date: u64,
-    pub end_date: u64,
     pub create_serum: bool,
     pub protocol_bump: u8,
 }
 
 impl Input for CreateTrancheConfigInput {
     fn is_valid(&self) -> Result<(), ErrorCode> {
-
-        if self.start_date > self.end_date {
-            return Result::Err(ErrorCode::InvalidInput);
-        }
-
         return Result::Ok(());
     }
 }
