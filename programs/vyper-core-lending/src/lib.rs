@@ -19,10 +19,6 @@ use vyper_utils::{
         from_bps,
         get_quantites_with_capital_split
     },
-    token::{
-        spl_token_burn,
-        TokenBurnParams
-    } 
 };
 
 declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
