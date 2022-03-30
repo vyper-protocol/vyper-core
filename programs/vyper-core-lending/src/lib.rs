@@ -704,7 +704,7 @@ pub struct RedeemContext<'info> {
     // Vyper Vault authority
     #[account(
         mut,
-        seeds = [b"vault_authority"],
+        seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()],
         bump = vault_authority_bump,
    )]
     pub vault_authority: AccountInfo<'info>,
