@@ -28,20 +28,20 @@ pub struct DepositProxyLendingContext<'info> {
     pub protocol_program: AccountInfo<'info>,
 
     // Token account that is depositing the amount
-    #[account(mut, associated_token::mint = deposit_mint, associated_token::authority = vault_authority)]
+    #[account(mut)]
     pub deposit_from: Box<Account<'info, TokenAccount>>,
 
     // Token account that holds the reserves of the protocol
-    #[account(mut, associated_token::mint = deposit_mint, associated_token::authority = lending_market_authority)]
+    #[account(mut)]
     pub deposit_to_protocol_reserve: Box<Account<'info, TokenAccount>>,
 
     // Token mint for depositing token
-    #[account(mut)]
+    #[account()]
     pub deposit_mint: Box<Account<'info, Mint>>,
 
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
-    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
+    #[account(mut)]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
