@@ -1,19 +1,14 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { createMint, getMintInfo, getTokenAccount } from "@project-serum/common";
+import { createMint, createTokenAccount, getMintInfo, getTokenAccount } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
-import { ProxySolend } from "../target/types/proxy_solend";
 import {
   bn,
-  createDepositConfiguration,
   createMintAndDepositSource,
-  createMintAndDepositSourceWithOwner,
   createTranchesConfiguration,
-  createUserAndTokenAccount,
   findAndCreateAssociatedTokenAddress,
   findAssociatedTokenAddress,
-  from_bps,
   to_bps,
 } from "./utils";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
@@ -34,7 +29,7 @@ describe("vyper", () => {
     // define input data
 
     const inputData = {
-      capitalSplit: [to_bps(0.5), to_bps(1)],
+      capitalSplit: [to_bps(0.85), to_bps(0.15)],
       interestSplit: [to_bps(0.85), to_bps(1)],
       createSerum: false,
       protocolBump: 0,
@@ -69,7 +64,7 @@ describe("vyper", () => {
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxyLendingSolend.programId,
+          proxyProtocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -106,7 +101,7 @@ describe("vyper", () => {
     // define input data
 
     const inputData = {
-      capitalSplit: [to_bps(0.5), to_bps(1)],
+      capitalSplit: [to_bps(0.85), to_bps(0.15)],
       interestSplit: [to_bps(0.85), to_bps(1)],
       createSerum: false,
       protocolBump: 0,
@@ -140,7 +135,7 @@ describe("vyper", () => {
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxyLendingSolend.programId,
+          proxyProtocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -177,7 +172,7 @@ describe("vyper", () => {
     // define input data
 
     const inputData = {
-      capitalSplit: [to_bps(0.5), to_bps(1)],
+      capitalSplit: [to_bps(0.85), to_bps(0.15)],
       interestSplit: [to_bps(0.85), to_bps(1)],
       createSerum: false,
       protocolBump: 0,
@@ -211,7 +206,7 @@ describe("vyper", () => {
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxyLendingSolend.programId,
+          proxyProtocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -244,12 +239,12 @@ describe("vyper", () => {
     }, Error);
   });
 
-  it.only("deposit as senior on lending protocol", async () => {
+  it("deposit as senior on lending protocol", async () => {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // define input data
 
     const inputData = {
-      capitalSplit: [to_bps(0.5), to_bps(1)],
+      capitalSplit: [to_bps(0.85), to_bps(0.15)],
       interestSplit: [to_bps(0.85), to_bps(1)],
       createSerum: false,
       protocolBump: 0,
@@ -293,8 +288,6 @@ describe("vyper", () => {
 
     const seniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyperCoreLending.provider, seniorTrancheMint);
     const juniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyperCoreLending.provider, juniorTrancheMint);
-    console.log("seniorTrancheVault:" + seniorTrancheVault);
-    console.log("juniorTrancheVault:" + juniorTrancheVault);
 
     const [vaultAuthority, vaultAuthorityBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from("vault_authority"), trancheConfig.toBuffer()],
@@ -304,19 +297,7 @@ describe("vyper", () => {
     // TODO init lending protocol
 
     const collateralMint = await createMint(programVyperCoreLending.provider);
-    const collateralTokenAccount = await findAssociatedTokenAddress(vaultAuthority, collateralMint);
-    const mintToTx = new anchor.web3.Transaction();
-    mintToTx.add(
-      Token.createAssociatedTokenAccountInstruction(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        collateralMint,
-        collateralTokenAccount,
-        vaultAuthority,
-        programVyperCoreLending.provider.wallet.publicKey
-      )
-    );
-    await programVyperCoreLending.provider.send(mintToTx);
+    const collateralTokenAccount = await createTokenAccount(programVyperCoreLending.provider, collateralMint, vaultAuthority);
 
     const protocolState = anchor.web3.Keypair.generate().publicKey;
     const lendingMarketAccount = anchor.web3.Keypair.generate().publicKey;
@@ -392,7 +373,7 @@ describe("vyper", () => {
 
   //   const inputData = {
   //     quantity: bn(1000),
-  //     capitalSplit: [to_bps(0.5), to_bps(1)],
+  //     capitalSplit: [to_bps(0.85), to_bps(0.15)],
   //     interestSplit: [to_bps(0.85), to_bps(1)],
   //     mintCount: [bn(4), bn(10)],
   //     startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
@@ -517,7 +498,7 @@ describe("vyper", () => {
   //   const profitQuantity = 200;
   //   const inputData = {
   //     quantity: bn(1000),
-  //     capitalSplit: [to_bps(0.5), to_bps(1)],
+  //     capitalSplit: [to_bps(0.85), to_bps(0.15)],
   //     interestSplit: [to_bps(0.85), to_bps(1)],
   //     mintCount: [bn(4), bn(10)],
   //     startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
@@ -664,7 +645,7 @@ describe("vyper", () => {
   //   const lossQuantity = 200;
   //   const inputData = {
   //     quantity: bn(1000),
-  //     capitalSplit: [to_bps(0.5), to_bps(1)],
+  //     capitalSplit: [to_bps(0.85), to_bps(0.15)],
   //     interestSplit: [to_bps(0.85), to_bps(1)],
   //     mintCount: [bn(4), bn(10)],
   //     startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
@@ -827,7 +808,7 @@ describe("vyper", () => {
   //   const profitQuantity = 200;
   //   const inputData = {
   //     quantity: bn(1000),
-  //     capitalSplit: [to_bps(0.5), to_bps(1)],
+  //     capitalSplit: [to_bps(0.85), to_bps(0.15)],
   //     interestSplit: [to_bps(0.85), to_bps(1)],
   //     mintCount: [bn(4), bn(10)],
   //     startDate: bn(new Date("2021-01-01T10:00:00Z").getTime() / 1000),
@@ -1007,3 +988,6 @@ describe("vyper", () => {
   //   assert.equal(protocolVaultInfo.amount.toNumber(), inputData.quantity.toNumber() + profitQuantity - expectedRedeemQuantity);
   // });
 });
+function createMintAndTokenAccount() {
+  throw new Error("Function not implemented.");
+}

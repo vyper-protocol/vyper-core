@@ -75,17 +75,17 @@ export interface TranchesConfiguration {
 }
 
 export async function createTranchesConfiguration(
-  protocolProgram: anchor.web3.PublicKey,
+  proxyProtocolProgram: anchor.web3.PublicKey,
   depositMint: anchor.web3.PublicKey,
   program: Program<VyperCoreLending>
 ): Promise<TranchesConfiguration> {
   const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("senior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
+    [Buffer.from("senior"), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
 
   const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("junior"), protocolProgram.toBuffer(), depositMint.toBuffer()],
+    [Buffer.from("junior"), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
     program.programId
   );
 
