@@ -1,5 +1,6 @@
 pub mod error;
 pub mod inputs;
+pub mod interface_context;
 pub mod state;
 
 use anchor_lang::prelude::*;
@@ -11,7 +12,6 @@ use anchor_spl::{
 };
 use error::ErrorCode;
 use inputs::{CreateTrancheConfigInput, Input};
-use proxy_lending_interface::*;
 use state::TrancheConfig;
 use std::cmp;
 use vyper_utils::{ 
@@ -20,6 +20,7 @@ use vyper_utils::{
         get_quantites_with_capital_split
     },
 };
+use interface_context::{DepositProxyLendingContext, WithdrawProxyLendingContext};
 
 declare_id!("5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc");
 
@@ -87,7 +88,7 @@ pub mod vyper_core_lending {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
-            proxy_lending_interface::DepositProxyLendingContext {
+            DepositProxyLendingContext {
                 authority: ctx.accounts.authority.clone(),
                 vault_authority: ctx.accounts.vault_authority.clone(),
                 protocol_program: ctx.accounts.protocol_program.clone(),
@@ -112,8 +113,7 @@ pub mod vyper_core_lending {
             },
             signer
         );
-
-        vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
+        deposit_vyper_proxy_lending::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
      
         // * * * * * * * * * * * * * * * * * * * * * * *
         // increase the deposited quantity
@@ -340,7 +340,7 @@ pub mod vyper_core_lending {
 
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.protocol_program.to_account_info(),
-            proxy_lending_interface::WithdrawProxyLendingContext {
+            WithdrawProxyLendingContext {
                 authority: ctx.accounts.authority.clone(),
                 vault_authority: ctx.accounts.vault_authority.clone(),
                 protocol_program: ctx.accounts.protocol_program.clone(),
@@ -366,7 +366,7 @@ pub mod vyper_core_lending {
             signer
         );
 
-        vyper_proxy::withdraw_from_proxy(cpi_ctx, vault_authority_bump, user_total as u64)?;
+        withdraw_vyper_proxy_lending::withdraw_from_proxy(cpi_ctx, vault_authority_bump, user_total as u64)?;
 
         // * * * * * * * * * * * * * * * * * * * * * * *
         // burn senior tranche tokens
@@ -709,22 +709,12 @@ pub struct RedeemContext<'info> {
 }
 
 #[interface]
-pub trait VyperProxy<'info> {
-    fn deposit_to_proxy(
-        ctx: Context<DepositProxyLendingContext<'info>>,
-        vault_authority_bump: u8,
-        amount: u64,
-    ) -> ProgramResult;
-
-    fn withdraw_from_proxy(
-        ctx: Context<WithdrawProxyLendingContext<'info>>,
-        vault_authority_bump: u8,
-        collateral_amount: u64,
-    ) -> ProgramResult;
+pub trait DepositVyperProxyLending<'info, T: Accounts<'info>> {
+    fn deposit_to_proxy(ctx: Context<T>, vault_authority_bump: u8, amount: u64) -> ProgramResult;
 }
-
 
 #[interface]
-pub trait Auth<'info, T: Accounts<'info>> {
-    fn is_authorized(ctx: Context<T>, current: u64, new: u64) -> ProgramResult;
+pub trait WithdrawVyperProxyLending<'info, T: Accounts<'info>> {
+    fn withdraw_from_proxy(ctx: Context<T>, vault_authority_bump: u8, collateral_amount: u64) -> ProgramResult;
 }
+

@@ -1,24 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::*;
-
-#[interface]
-pub trait DepositVyperProxyLending<'info, T: Accounts<'info>> {
-    fn deposit_to_proxy(
-        ctx: Context<T>,
-        vault_authority_bump: u8,
-        amount: u64,
-    ) -> ProgramResult;
-}
-
-#[interface]
-pub trait WithdrawVyperProxyLending<'info, T: Accounts<'info>> {
-    fn withdraw_from_proxy(
-        ctx: Context<T>,
-        vault_authority_bump: u8,
-        collateral_amount: u64,
-    ) -> ProgramResult;
-}
+use anchor_spl::{
+    token::{
+        Token,
+        Mint,
+        TokenAccount
+    },
+    associated_token::AssociatedToken
+};
 
 #[derive(Accounts)]
 #[instruction(vault_authority_bump: u8)]

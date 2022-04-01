@@ -1,9 +1,12 @@
-use anchor_spl::token::Token;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::Mint;
-use anchor_spl::token::TokenAccount;
 use anchor_lang::prelude::*;
-use proxy_lending_interface::*;
+use vyper_core_lending::{
+    DepositVyperProxyLending,
+    WithdrawVyperProxyLending,
+    interface_context::{
+        DepositProxyLendingContext,
+        WithdrawProxyLendingContext
+    }
+};
 // use solana_program::program::invoke;
 // use spl_token_lending::*;
 
@@ -13,13 +16,14 @@ declare_id!("9R88Mc2NBfhaxozbdwSHajAT94UUwe2ExrALq3FZK11L");
 pub mod proxy_lending_solend {
     use super::*;
 
+    #[state]
     pub struct ProxyLendingSolend;
 
     impl<'info> DepositVyperProxyLending<'info, DepositProxyLendingContext<'info>> for ProxyLendingSolend {
         fn deposit_to_proxy(
-            ctx: Context<DepositProxyLendingContext>,
-            vault_authority_bump: u8,
-            amount: u64,
+            _ctx: Context<DepositProxyLendingContext>,
+            _vault_authority_bump: u8,
+            _amount: u64,
         ) -> ProgramResult {
             msg!("deposit_to_proxy begin");
 
@@ -45,9 +49,9 @@ pub mod proxy_lending_solend {
 
     impl<'info> WithdrawVyperProxyLending<'info, WithdrawProxyLendingContext<'info>> for ProxyLendingSolend {
         fn withdraw_from_proxy(
-            ctx: Context<WithdrawProxyLendingContext>,
-            vault_authority_bump: u8,
-            collateral_amount: u64,
+            _ctx: Context<WithdrawProxyLendingContext>,
+            _vault_authority_bump: u8,
+            _collateral_amount: u64,
         ) -> ProgramResult {
             msg!("withdraw_from_proxy begin");
             
