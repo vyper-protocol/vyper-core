@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use vyper_core_lending::{
-    DepositVyperProxyLending,
-    WithdrawVyperProxyLending,
+    instructions::deposit::DepositVyperProxyLending,
+    instructions::redeem::WithdrawVyperProxyLending,
     interface_context::{
         DepositProxyLendingContext,
         WithdrawProxyLendingContext
@@ -26,7 +26,8 @@ pub mod proxy_lending_solend {
             _amount: u64,
         ) -> ProgramResult {
             msg!("deposit_to_proxy begin");
-
+            
+            msg!("DEPOSIT TO SOLEND");
             // let ins = spl_token_lending::instruction::deposit_reserve_liquidity(
             //     ctx.accounts.protocol_program.key(),
             //     amount,
@@ -55,6 +56,7 @@ pub mod proxy_lending_solend {
         ) -> ProgramResult {
             msg!("withdraw_from_proxy begin");
             
+            msg!("WOTHDRAW FROM SOLEND");
             // let ins = spl_token_lending::instruction::redeem_reserve_collateral(
             //     ctx.accounts.protocol_program.key(),
             //     collateral_amount,

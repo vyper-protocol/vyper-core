@@ -13,7 +13,7 @@ pub fn panic_with_wrong_capital_split(capital_split_f: [f64; 2]) {
     }
 
     if sum != 1.0 {
-        panic!("wrong capital split, sum must be 1")
+        panic!("wrong capital split, sum must be 1, instead {}", sum)
     }
 }
 
