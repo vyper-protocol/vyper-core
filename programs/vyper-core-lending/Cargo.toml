@@ -18,6 +18,6 @@ default = []
 [dependencies]
 anchor-lang = "0.18.2"
 anchor-spl = { version = "0.18.2", features = ["dex"]}
-proxy-lending-interface = { path = "../../misc/proxy-lending-interface" }
+proxy-lending-interface = { path = "../proxy-lending-interface" }
 vyper-utils = { path = "../../misc/vyper-utils" }
 

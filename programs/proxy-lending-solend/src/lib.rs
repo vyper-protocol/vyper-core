@@ -1,16 +1,21 @@
+use anchor_spl::token::Token;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::Mint;
+use anchor_spl::token::TokenAccount;
 use anchor_lang::prelude::*;
 use proxy_lending_interface::*;
 // use solana_program::program::invoke;
 // use spl_token_lending::*;
 
-declare_id!("2UhQAKJETDW51k4eLgzEoEc7NnRx5nRYyUx2stDoRbZf");
+declare_id!("9R88Mc2NBfhaxozbdwSHajAT94UUwe2ExrALq3FZK11L");
 
 #[program]
 pub mod proxy_lending_solend {
     use super::*;
+
     pub struct ProxyLendingSolend;
 
-    impl<'info> VyperProxyLending<'info> for ProxyLendingSolend {
+    impl<'info> DepositVyperProxyLending<'info, DepositProxyLendingContext<'info>> for ProxyLendingSolend {
         fn deposit_to_proxy(
             ctx: Context<DepositProxyLendingContext>,
             vault_authority_bump: u8,
@@ -36,7 +41,9 @@ pub mod proxy_lending_solend {
 
             Ok(())
         }
+    }
 
+    impl<'info> WithdrawVyperProxyLending<'info, WithdrawProxyLendingContext<'info>> for ProxyLendingSolend {
         fn withdraw_from_proxy(
             ctx: Context<WithdrawProxyLendingContext>,
             vault_authority_bump: u8,

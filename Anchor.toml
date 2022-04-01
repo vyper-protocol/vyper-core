@@ -1,6 +1,6 @@
 [programs.localnet]
-vyper_core_lending = "9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv"
-proxy_lending_solend = "2UhQAKJETDW51k4eLgzEoEc7NnRx5nRYyUx2stDoRbZf"
+vyper_core_lending = "5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc"
+proxy_lending_solend = "9R88Mc2NBfhaxozbdwSHajAT94UUwe2ExrALq3FZK11L"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -9,9 +9,9 @@ url = "https://anchor.projectserum.com"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
-[[test.genesis]]
-address = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin"
-program = "./deps/serum-dex/dex/target/deploy/serum_dex.so"
+# [[test.genesis]]
+# address = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin"
+# program = "./deps/serum-dex/dex/target/deploy/serum_dex.so"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

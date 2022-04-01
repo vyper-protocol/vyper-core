@@ -3,7 +3,6 @@ import { Program } from "@project-serum/anchor";
 import { createMint, getMintInfo, getTokenAccount } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
-import { Vyper } from "../target/types/vyper";
 import { ProxySolend } from "../target/types/proxy_solend";
 import {
   bn,
@@ -17,13 +16,15 @@ import {
   from_bps,
   to_bps,
 } from "./utils";
+import { VyperCoreLending } from "../target/types/vyper_core_lending";
+import { ProxyLendingSolend } from "../target/types/proxy_lending_solend";
 
 describe("vyper", () => {
-  const programVyper = anchor.workspace.Vyper as Program<Vyper>;
-  const programProxySolend = anchor.workspace.ProxySolend as Program<ProxySolend>;
+  const programVyperCoreLending = anchor.workspace.VyperCoreLending as Program<VyperCoreLending>;
+  const programProxyLendingSolend = anchor.workspace.ProxyLendingSolend as Program<ProxyLendingSolend>;
 
-  console.log("program Vyper: " + programVyper.programId);
-  console.log("program ProxySolend: " + programProxySolend.programId);
+  console.log("program VyperCoreLending: " + programVyperCoreLending.programId);
+  console.log("program ProxySolend: " + programProxyLendingSolend.programId);
 
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.Provider.env());
@@ -35,41 +36,40 @@ describe("vyper", () => {
     const inputData = {
       capitalSplit: [to_bps(0.5), to_bps(1)],
       interestSplit: [to_bps(0.85), to_bps(1)],
-      startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
-      endDate: bn(new Date("2022-01-31T10:00:00Z").getTime() / 1000),
       createSerum: false,
       protocolBump: 0,
     };
 
-    const mint = await createMint(programVyper.provider);
+    const mint = await createMint(programVyperCoreLending.provider);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
+      await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
-      programVyper.programId
+      programVyperCoreLending.programId
     );
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // VYPER: create tranche
 
-    const tx = await programVyper.rpc.createTranche(
+    console.log("create tranche config");
+    const tx = await programVyperCoreLending.rpc.createTranche(
       inputData,
       trancheConfigBump,
       seniorTrancheMintBump,
       juniorTrancheMintBump,
       {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxySolend.programId,
+          protocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -78,29 +78,25 @@ describe("vyper", () => {
         },
       }
     );
+    console.log("tx: " + tx);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // fetch tranche config
 
-    const account = await programVyper.account.trancheConfig.fetch(trancheConfig);
+    const account = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
-    assert.equal(account.depositedQuantiy.toNumber(), 0);
+    assert.equal(account.depositedQuantiy[0].toNumber(), 0);
+    assert.equal(account.depositedQuantiy[1].toNumber(), 0);
     assert.deepEqual(account.interestSplit, inputData.interestSplit);
     assert.deepEqual(account.capitalSplit, inputData.capitalSplit);
-    assert.deepEqual(
-      account.mintCount.map((c) => c.toNumber()),
-      [0, 0]
-    );
-    assert.equal(account.startDate.toNumber(), inputData.startDate.toNumber());
-    assert.equal(account.endDate.toNumber(), inputData.endDate.toNumber());
     assert.equal(account.createSerum, inputData.createSerum);
     assert.ok(account.createdAt.toNumber() > 0);
 
-    const seniorTrancheMintInfo = await getMintInfo(programVyper.provider, seniorTrancheMint);
+    const seniorTrancheMintInfo = await getMintInfo(programVyperCoreLending.provider, seniorTrancheMint);
     assert.equal(seniorTrancheMintInfo.decimals, 0);
     assert.equal(seniorTrancheMintInfo.supply.toNumber(), 0);
 
-    const juniorTrancheMintInfo = await getMintInfo(programVyper.provider, juniorTrancheMint);
+    const juniorTrancheMintInfo = await getMintInfo(programVyperCoreLending.provider, juniorTrancheMint);
     assert.equal(juniorTrancheMintInfo.decimals, 0);
     assert.equal(juniorTrancheMintInfo.supply.toNumber(), 0);
   });
@@ -110,44 +106,41 @@ describe("vyper", () => {
     // define input data
 
     const inputData = {
-      quantity: bn(1000),
       capitalSplit: [to_bps(0.5), to_bps(1)],
       interestSplit: [to_bps(0.85), to_bps(1)],
-      startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
-      endDate: bn(new Date("2022-01-31T10:00:00Z").getTime() / 1000),
       createSerum: false,
       protocolBump: 0,
     };
 
-    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, inputData.quantity.toNumber());
+    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyperCoreLending.provider, 100);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
+      await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
-      programVyper.programId
+      programVyperCoreLending.programId
     );
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // VYPER: create tranche
 
-    const tx1 = await programVyper.rpc.createTranche(
+    const tx1 = await programVyperCoreLending.rpc.createTranche(
       inputData,
       trancheConfigBump,
       seniorTrancheMintBump,
       juniorTrancheMintBump,
       {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxySolend.programId,
+          protocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -160,21 +153,22 @@ describe("vyper", () => {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // fetch tranche config
 
-    var trancheConfigAccount = await programVyper.account.trancheConfig.fetch(trancheConfig);
+    var trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
     assert.deepEqual(trancheConfigAccount.interestSplit, inputData.interestSplit);
 
     // update interest split
     var newInterestSplit = [to_bps(0.5), to_bps(1)];
-    const tx2 = await programVyper.rpc.updateInterestSplit(newInterestSplit, {
+    const tx2 = await programVyperCoreLending.rpc.updateInterestSplit(newInterestSplit, {
       accounts: {
-        authority: programVyper.provider.wallet.publicKey,
+        authority: programVyperCoreLending.provider.wallet.publicKey,
         trancheConfig,
+        protocolVault: depositSourceAccount, // not used here
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
 
-    trancheConfigAccount = await programVyper.account.trancheConfig.fetch(trancheConfig);
+    trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
     assert.deepEqual(trancheConfigAccount.interestSplit, newInterestSplit);
   });
 
@@ -183,44 +177,41 @@ describe("vyper", () => {
     // define input data
 
     const inputData = {
-      quantity: bn(1000),
       capitalSplit: [to_bps(0.5), to_bps(1)],
       interestSplit: [to_bps(0.85), to_bps(1)],
-      startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
-      endDate: bn(new Date("2022-01-31T10:00:00Z").getTime() / 1000),
       createSerum: false,
       protocolBump: 0,
     };
 
-    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, inputData.quantity.toNumber());
+    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyperCoreLending.provider, 100);
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
+      await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
-      programVyper.programId
+      programVyperCoreLending.programId
     );
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // VYPER: create tranche
 
-    const tx1 = await programVyper.rpc.createTranche(
+    const tx1 = await programVyperCoreLending.rpc.createTranche(
       inputData,
       trancheConfigBump,
       seniorTrancheMintBump,
       juniorTrancheMintBump,
       {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxySolend.programId,
+          protocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -233,7 +224,7 @@ describe("vyper", () => {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // fetch tranche config
 
-    var trancheConfigAccount = await programVyper.account.trancheConfig.fetch(trancheConfig);
+    var trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
     assert.deepEqual(trancheConfigAccount.interestSplit, inputData.interestSplit);
 
@@ -241,10 +232,11 @@ describe("vyper", () => {
     var newInterestSplit = [to_bps(0.5), to_bps(1)];
 
     assert.rejects(async () => {
-      await programVyper.rpc.updateInterestSplit(newInterestSplit, {
+      await programVyperCoreLending.rpc.updateInterestSplit(newInterestSplit, {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
+          protocolVault: depositSourceAccount, // not used here
           systemProgram: anchor.web3.SystemProgram.programId,
         },
         signers: [anchor.web3.Keypair.generate()],
@@ -259,35 +251,36 @@ describe("vyper", () => {
     const inputData = {
       capitalSplit: [to_bps(0.5), to_bps(1)],
       interestSplit: [to_bps(0.85), to_bps(1)],
-      startDate: bn(new Date("2022-01-01T10:00:00Z").getTime() / 1000),
-      endDate: bn(new Date("2022-01-31T10:00:00Z").getTime() / 1000),
       createSerum: false,
       protocolBump: 0,
     };
 
     const quantityToDeposit = 1000;
-    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyper.provider, quantityToDeposit);
+    const [mint, depositSourceAccount] = await createMintAndDepositSource(programVyperCoreLending.provider, quantityToDeposit);
+
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxySolend.programId, mint, programVyper);
+      await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
+
     const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
       [mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
-      programVyper.programId
+      programVyperCoreLending.programId
     );
 
     // create tranche
-    const tx1 = await programVyper.rpc.createTranche(
+    console.log("create tranche on vyper-core");
+    const tx1 = await programVyperCoreLending.rpc.createTranche(
       inputData,
       trancheConfigBump,
       seniorTrancheMintBump,
       juniorTrancheMintBump,
       {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          protocolProgram: programProxySolend.programId,
+          proxyProtocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -298,19 +291,19 @@ describe("vyper", () => {
     );
     console.log("tx1:", tx1);
 
-    const seniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyper.provider, seniorTrancheMint);
-    const juniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyper.provider, juniorTrancheMint);
+    const seniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyperCoreLending.provider, seniorTrancheMint);
+    const juniorTrancheVault = await findAndCreateAssociatedTokenAddress(programVyperCoreLending.provider, juniorTrancheMint);
     console.log("seniorTrancheVault:" + seniorTrancheVault);
     console.log("juniorTrancheVault:" + juniorTrancheVault);
 
     const [vaultAuthority, vaultAuthorityBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from("vault_authority"), trancheConfig.toBuffer()],
-      programVyper.programId
+      programVyperCoreLending.programId
     );
 
     // TODO init lending protocol
 
-    const collateralMint = await createMint(programVyper.provider);
+    const collateralMint = await createMint(programVyperCoreLending.provider);
     const collateralTokenAccount = await findAssociatedTokenAddress(vaultAuthority, collateralMint);
     const mintToTx = new anchor.web3.Transaction();
     mintToTx.add(
@@ -320,10 +313,10 @@ describe("vyper", () => {
         collateralMint,
         collateralTokenAccount,
         vaultAuthority,
-        programVyper.provider.wallet.publicKey
+        programVyperCoreLending.provider.wallet.publicKey
       )
     );
-    await programVyper.provider.send(mintToTx);
+    await programVyperCoreLending.provider.send(mintToTx);
 
     const protocolState = anchor.web3.Keypair.generate().publicKey;
     const lendingMarketAccount = anchor.web3.Keypair.generate().publicKey;
@@ -331,26 +324,26 @@ describe("vyper", () => {
 
     // deposit on lending protocol
 
-    const tx2 = await programVyper.rpc.deposit(
+    console.log("deposit on vyper-core");
+    const tx2 = await programVyperCoreLending.rpc.deposit(
       vaultAuthorityBump,
       bn(1000), // quantity
       [bn(10), bn(5)], // mint_count
-      0, // senior
       {
         accounts: {
-          authority: programVyper.provider.wallet.publicKey,
+          authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
           mint,
           depositSourceAccount,
 
-          protocolVault: depositSourceAccount,
-          vaultAuthority,
+          protocolVault: depositSourceAccount, // SOLEND RESERVE https://docs.solend.fi/developers/addresses/devnet#reserves
+          vaultAuthority, // vyper-core PDA
 
-          collateralTokenAccount,
-          collateralMint,
-          protocolState,
-          lendingMarketAccount,
-          lendingMarketAuthority,
+          collateralTokenAccount, // Token account for receiving collateral token (as proof of deposit)
+          collateralMint, // SPL token mint for collateral token
+          protocolState, // State account for protocol (reserve-state-account)
+          lendingMarketAccount, // Lending market account (https://docs.solend.fi/developers/addresses/devnet#devnet)
+          lendingMarketAuthority, // Lending market authority (PDA)
 
           seniorTrancheMint,
           seniorTrancheVault,
@@ -358,7 +351,8 @@ describe("vyper", () => {
           juniorTrancheMint,
           juniorTrancheVault,
 
-          protocolProgram: programProxySolend.programId,
+          proxyProtocolProgram: programProxyLendingSolend.programId,
+          protocolProgram: programProxyLendingSolend.programId,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,

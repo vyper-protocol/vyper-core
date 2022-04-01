@@ -3,6 +3,7 @@ import { Program } from "@project-serum/anchor";
 import { createMintAndVault, getTokenAccount, sleep } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, MintLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Vyper } from "../target/types/vyper";
+import { VyperCoreLending } from "../target/types/vyper_core_lending";
 
 export async function findAssociatedTokenAddress(
   walletAddress: anchor.web3.PublicKey,
@@ -76,7 +77,7 @@ export interface TranchesConfiguration {
 export async function createTranchesConfiguration(
   protocolProgram: anchor.web3.PublicKey,
   depositMint: anchor.web3.PublicKey,
-  program: Program<Vyper>
+  program: Program<VyperCoreLending>
 ): Promise<TranchesConfiguration> {
   const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from("senior"), protocolProgram.toBuffer(), depositMint.toBuffer()],

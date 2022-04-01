@@ -3,15 +3,18 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 #[interface]
-pub trait VyperProxyLending<'info> {
+pub trait DepositVyperProxyLending<'info, T: Accounts<'info>> {
     fn deposit_to_proxy(
-        ctx: Context<DepositProxyLendingContext<'info>>,
+        ctx: Context<T>,
         vault_authority_bump: u8,
         amount: u64,
     ) -> ProgramResult;
+}
 
+#[interface]
+pub trait WithdrawVyperProxyLending<'info, T: Accounts<'info>> {
     fn withdraw_from_proxy(
-        ctx: Context<WithdrawProxyLendingContext<'info>>,
+        ctx: Context<T>,
         vault_authority_bump: u8,
         collateral_amount: u64,
     ) -> ProgramResult;

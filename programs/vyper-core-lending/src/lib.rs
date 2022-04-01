@@ -21,7 +21,7 @@ use vyper_utils::{
     },
 };
 
-declare_id!("9pnvhZfrKPKpM58b6oTxYrfgNLRDcvfbjtGRm57fwXiv");
+declare_id!("5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc");
 
 #[program]
 pub mod vyper_core_lending {
@@ -51,7 +51,7 @@ pub mod vyper_core_lending {
         msg!("create tranche config");
         input_data.create_tranche_config(&mut ctx.accounts.tranche_config);
         ctx.accounts.tranche_config.authority = ctx.accounts.authority.key();
-        ctx.accounts.tranche_config.protocol_program_id = ctx.accounts.protocol_program.key();
+        ctx.accounts.tranche_config.proxy_protocol_program_id = ctx.accounts.proxy_protocol_program.key();
         ctx.accounts.tranche_config.senior_tranche_mint = ctx.accounts.senior_tranche_mint.key();
         ctx.accounts.tranche_config.junior_tranche_mint = ctx.accounts.junior_tranche_mint.key();
         ctx.accounts.tranche_config.tranche_config_bump = tranche_config_bump;
@@ -116,15 +116,14 @@ pub mod vyper_core_lending {
         vyper_proxy::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
      
         // * * * * * * * * * * * * * * * * * * * * * * *
-
         // increase the deposited quantity
+
         let split_quantities = get_quantites_with_capital_split(quantity, ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x)));
         for i in 0..split_quantities.len() {
             ctx.accounts.tranche_config.deposited_quantiy[i] += split_quantities[i];
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * *
-
         // mint tranche tokens to user
 
         if mint_count[0] > 0 {
@@ -432,20 +431,20 @@ pub struct CreateTranchesContext<'info> {
     // Senior tranche mint
     #[account(
         init,
-        seeds = [b"senior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [b"senior".as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = senior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche mint
     #[account(init,
-        seeds = [b"junior".as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [b"junior".as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
         bump = junior_tranche_mint_bump,
         payer = authority, mint::decimals = 0, mint::authority = authority, mint::freeze_authority = authority)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // * * * * * * * * * * * * * * * * *
-    pub protocol_program: AccountInfo<'info>,
+    pub proxy_protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -462,21 +461,15 @@ pub struct DepositContext<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    /**
-     * Tranche config account, where all the parameters are saved
-     */
+    /// Tranche config account, where all the parameters are saved
     #[account()]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
-    /**
-     * mint token to deposit
-     */
+    /// mint token to deposit
     #[account()]
     pub mint: Box<Account<'info, Mint>>,
 
-    /**
-     * deposit from
-     */
+    /// deposit from
     #[account(
         mut,
         // associated_token::mint = mint,
@@ -484,28 +477,18 @@ pub struct DepositContext<'info> {
     )]
     pub deposit_source_account: Box<Account<'info, TokenAccount>>,
 
-    /**
-     * protocol vault (SOLEND RESERVE https://docs.solend.fi/developers/addresses/devnet#reserves )
-     */
+    /// protocol vault (SOLEND RESERVE https://docs.solend.fi/developers/addresses/devnet#reserves )
     #[account(mut)]
     pub protocol_vault: Box<Account<'info, TokenAccount>>,
 
     // proxy stuff
     // Vyper Vault authority
-    #[account(
-        mut,
-        seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()],
-        bump = vault_authority_bump,
-   )]
+    #[account(mut, seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()], bump = vault_authority_bump)]
     pub vault_authority: AccountInfo<'info>,
 
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
-    #[account(
-        mut,
-        associated_token::mint = collateral_mint,
-        associated_token::authority = vault_authority
-    )]
+    #[account(mut, associated_token::mint = collateral_mint, associated_token::authority = vault_authority)]
     pub collateral_token_account: Box<Account<'info, TokenAccount>>,
 
     // SPL token mint for collateral token
@@ -525,39 +508,27 @@ pub struct DepositContext<'info> {
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
-    #[account(
-        seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = tranche_config.senior_tranche_mint_bump
-    )]
+    #[account(seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
-    #[account(
-        mut,
-        // associated_token::mint = senior_tranche_mint,
-        // associated_token::authority = authority
-    )]
+    #[account(mut, /* associated_token::mint = senior_tranche_mint, associated_token::authority = authority */)]
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
-    #[account(
-        seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = tranche_config.junior_tranche_mint_bump
-    )]
+    #[account(seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
-    #[account(
-        mut,
-        // associated_token::mint = junior_tranche_mint,
-        // associated_token::authority = authority
-    )]
+    #[account(mut, /* associated_token::mint = junior_tranche_mint, associated_token::authority = authority */)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
-    // solend: ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx
-    #[account(
-        // constraint = tranche_config.protocol_program_id == *protocol_program.key
-    )]
+    
+    #[account(constraint = tranche_config.proxy_protocol_program_id == *protocol_program.key)]
+    pub proxy_protocol_program: AccountInfo<'info>,
+    
+    // pe solend: ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx
+    #[account()]
     pub protocol_program: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
@@ -750,4 +721,10 @@ pub trait VyperProxy<'info> {
         vault_authority_bump: u8,
         collateral_amount: u64,
     ) -> ProgramResult;
+}
+
+
+#[interface]
+pub trait Auth<'info, T: Accounts<'info>> {
+    fn is_authorized(ctx: Context<T>, current: u64, new: u64) -> ProgramResult;
 }

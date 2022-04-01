@@ -1109,6 +1109,7 @@ name = "proxy-lending-solend"
 version = "0.1.0"
 dependencies = [
  "anchor-lang 0.18.2",
+ "anchor-spl",
  "proxy-lending-interface",
  "spl-token-lending",
  "uint",

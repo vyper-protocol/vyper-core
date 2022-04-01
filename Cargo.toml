@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "programs/*",
-    "misc/proxy-lending-interface/"
 ]
 
 exclude = [
