@@ -1,12 +1,4 @@
-use vyper_utils::math::{
-    from_bps,
-    get_quantites_with_capital_split
-};
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    self,
-    token::{ TokenAccount },
-};
 use crate::{
     state::{
         TrancheConfig
