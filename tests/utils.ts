@@ -1,9 +1,13 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { createMintAndVault, getTokenAccount, sleep } from "@project-serum/common";
+import { createMintAndVault, createTokenAccount, getTokenAccount, sleep } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, MintLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { Vyper } from "../target/types/vyper";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
+import { JUNIOR, SENIOR } from "./constants";
+
+export function printProgramShortDetails(p: Program) {
+  console.log(p.idl.name + ": " + p.programId);
+}
 
 export async function findAssociatedTokenAddress(
   walletAddress: anchor.web3.PublicKey,
@@ -33,7 +37,7 @@ export function from_bps(v: number): number {
 
 export async function createDepositConfiguration(
   quantity: number,
-  program: Program<Vyper>
+  program: Program<VyperCoreLending>
 ): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
   const [depositMint, depositGod] = await createMintAndVault(
     program.provider,
@@ -65,36 +69,6 @@ export async function createDepositConfiguration(
   await program.provider.send(createDepositFromAccountTx);
 
   return [depositMint, depositFromAccount];
-}
-
-export interface TranchesConfiguration {
-  seniorTrancheMint: anchor.web3.PublicKey;
-  seniorTrancheMintBump: number;
-  juniorTrancheMint: anchor.web3.PublicKey;
-  juniorTrancheMintBump: number;
-}
-
-export async function createTranchesConfiguration(
-  proxyProtocolProgram: anchor.web3.PublicKey,
-  depositMint: anchor.web3.PublicKey,
-  program: Program<VyperCoreLending>
-): Promise<TranchesConfiguration> {
-  const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("senior"), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
-    program.programId
-  );
-
-  const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from("junior"), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
-    program.programId
-  );
-
-  return {
-    seniorTrancheMint,
-    seniorTrancheMintBump,
-    juniorTrancheMint,
-    juniorTrancheMintBump,
-  };
 }
 
 export async function createMint(provider: anchor.Provider): Promise<anchor.web3.PublicKey> {
@@ -148,63 +122,64 @@ export async function createUserAndTokenAccount(
   return [userKP, userTokenAccount];
 }
 
-export function createMintAndDepositSource(
-  provider: anchor.Provider,
-  quantity: number
-): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
-  return createMintAndDepositSourceWithOwner(provider, provider.wallet.publicKey, quantity);
-}
+// export function createMintAndDepositSource(
+//   provider: anchor.Provider,
+//   quantity: number
+// ): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
+//   return createMintAndDepositSourceWithOwner(provider, provider.wallet.publicKey, quantity);
+// }
 
-export async function createMintAndDepositSourceWithOwner(
-  provider: anchor.Provider,
-  tokenAccountOwner: anchor.web3.PublicKey,
-  quantity: number
-): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
-  // * * * * * * * * * * * * * * * * * * * * * * *
-  // create mint
+// export async function createMintAndDepositSourceWithOwner(
+//   provider: anchor.Provider,
+//   tokenAccountOwner: anchor.web3.PublicKey,
+//   quantity: number
+// ): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> {
+//   // * * * * * * * * * * * * * * * * * * * * * * *
+//   // create mint
 
-  const mint = await createMint(provider);
+//   const mint = await createMint(provider);
 
-  // * * * * * * * * * * * * * * * * * * * * * * *
-  // define user and user's token account
+//   // * * * * * * * * * * * * * * * * * * * * * * *
+//   // define user and user's token account
 
-  const depositSourceAccount = await findAssociatedTokenAddress(tokenAccountOwner, mint);
+//   // const depositSourceAccount = await findAssociatedTokenAddress(tokenAccountOwner, mint);
+//   // const mintToTx = new anchor.web3.Transaction();
+//   // mintToTx.add(
+//   //   Token.createAssociatedTokenAccountInstruction(
+//   //     ASSOCIATED_TOKEN_PROGRAM_ID,
+//   //     TOKEN_PROGRAM_ID,
+//   //     mint,
+//   //     depositSourceAccount,
+//   //     provider.wallet.publicKey,
+//   //     provider.wallet.publicKey
+//   //   ),
+//   //   Token.createMintToInstruction(TOKEN_PROGRAM_ID, mint, depositSourceAccount, provider.wallet.publicKey, [], quantity)
+//   // );
+//   // await provider.send(mintToTx);
 
-  const mintToTx = new anchor.web3.Transaction();
-  mintToTx.add(
-    Token.createAssociatedTokenAccountInstruction(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      mint,
-      depositSourceAccount,
-      provider.wallet.publicKey,
-      provider.wallet.publicKey
-    ),
-    Token.createMintToInstruction(TOKEN_PROGRAM_ID, mint, depositSourceAccount, provider.wallet.publicKey, [], quantity)
-  );
-  await provider.send(mintToTx);
+//   await createTokenAccount(provider, mint);
 
-  return [mint, depositSourceAccount];
-}
+//   return [mint, depositSourceAccount];
+// }
 
-export async function findAndCreateAssociatedTokenAddress(
-  provider: anchor.Provider,
-  mint: anchor.web3.PublicKey
-): Promise<anchor.web3.PublicKey> {
-  const atokenAccount = await findAssociatedTokenAddress(provider.wallet.publicKey, mint);
+// export async function findAndCreateAssociatedTokenAddress(
+//   provider: anchor.Provider,
+//   mint: anchor.web3.PublicKey
+// ): Promise<anchor.web3.PublicKey> {
+//   const atokenAccount = await findAssociatedTokenAddress(provider.wallet.publicKey, mint);
 
-  const createATokenAccount = new anchor.web3.Transaction();
-  createATokenAccount.add(
-    Token.createAssociatedTokenAccountInstruction(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      mint,
-      atokenAccount,
-      provider.wallet.publicKey,
-      provider.wallet.publicKey
-    )
-  );
-  await provider.send(createATokenAccount);
+//   const createATokenAccount = new anchor.web3.Transaction();
+//   createATokenAccount.add(
+//     Token.createAssociatedTokenAccountInstruction(
+//       ASSOCIATED_TOKEN_PROGRAM_ID,
+//       TOKEN_PROGRAM_ID,
+//       mint,
+//       atokenAccount,
+//       provider.wallet.publicKey,
+//       provider.wallet.publicKey
+//     )
+//   );
+//   await provider.send(createATokenAccount);
 
-  return atokenAccount;
-}
+//   return atokenAccount;
+// }
