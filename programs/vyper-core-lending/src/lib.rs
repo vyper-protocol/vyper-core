@@ -52,9 +52,9 @@ use super::*;
     }
 
     pub fn update_deposited_quantity(
-        ctx: Context<UpdateTrancheConfigContext>,
+        ctx: Context<UpdateDepositedQuantityContext>,
     ) -> ProgramResult {
-        instructions::update_tranche_config::handler_deposited_quantity(ctx)
+        instructions::update_deposited_quantity::handler(ctx)
     }
 
     pub fn create_serum_market(

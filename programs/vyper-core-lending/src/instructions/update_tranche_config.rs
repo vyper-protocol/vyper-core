@@ -21,9 +21,6 @@ pub struct UpdateTrancheConfigContext<'info> {
     #[account(mut, constraint = tranche_config.authority == *authority.key)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
-    #[account(mut)]
-    pub protocol_vault: Box<Account<'info, TokenAccount>>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -60,19 +57,6 @@ pub fn handler_update_capital_split(
 
     for (i, x) in ctx.accounts.tranche_config.capital_split.iter().enumerate() {
         msg!("+ new_capital_split[{}]: {}", i, x);
-    }
-
-    Ok(())
-}
-
-pub fn handler_deposited_quantity(
-    ctx: Context<UpdateTrancheConfigContext>,
-) -> ProgramResult {
-    // crystalize interested (sum all accrued interests in deposited_quantity)
-    let quantities = get_quantites_with_capital_split(ctx.accounts.protocol_vault.amount, ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x)));
-
-    for i in 0..quantities.len() {
-        ctx.accounts.tranche_config.deposited_quantiy[i] = quantities[i];
     }
 
     Ok(())
