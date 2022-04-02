@@ -27,7 +27,7 @@ pub struct DepositContext<'info> {
     pub authority: Signer<'info>,
 
     /// Tranche config account, where all the parameters are saved
-    #[account()]
+    #[account(mut)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// mint token to deposit
