@@ -15,9 +15,6 @@ pub mod vyper_core_lending {
 
 use super::*;
 
-    /**
-     * create a new tranche configuration and deposit
-     */
     pub fn create_tranche(
         ctx: Context<CreateTranchesContext>,
         input_data: CreateTrancheConfigInput,

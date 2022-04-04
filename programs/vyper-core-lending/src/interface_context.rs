@@ -16,14 +16,20 @@ pub struct DepositProxyLendingContext<'info> {
     pub authority: Signer<'info>,
 
     // Vyper Vault authority
+    /// CHECK: Safe
     #[account(
         // seeds = [b"vault_authority"],
         // bump = vault_authority_bump,
         // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
-   )]
+    )]
     pub vault_authority: AccountInfo<'info>,
+    
+    /// CHECK: Safe
+    #[account()]
+    pub tranche_config: AccountInfo<'info>,
 
     // Protocol Program
+    /// CHECK: Safe
     #[account(executable)]
     pub protocol_program: AccountInfo<'info>,
 
@@ -49,13 +55,16 @@ pub struct DepositProxyLendingContext<'info> {
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     // State account for protocol
+    /// CHECK: Safe
     #[account(mut)]
     pub protocol_state: AccountInfo<'info>,
 
     // Lending market account
+    /// CHECK: Safe
     pub lending_market_account: AccountInfo<'info>,
 
     // Lending market authority (PDA)
+    /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
@@ -74,6 +83,7 @@ pub struct WithdrawProxyLendingContext<'info> {
     pub authority: Signer<'info>,
 
     // Vyper Vault authority
+    /// CHECK: Safe
     #[account(
         // seeds = [b"vault_authority"],
         // bump = vault_authority_bump,
@@ -82,6 +92,7 @@ pub struct WithdrawProxyLendingContext<'info> {
     pub vault_authority: AccountInfo<'info>,
 
     // Protocol Program
+    /// CHECK: Safe
     #[account(executable)]
     pub protocol_program: AccountInfo<'info>,
 
@@ -106,12 +117,15 @@ pub struct WithdrawProxyLendingContext<'info> {
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     // Refreshed reserve account
+    /// CHECK: Safe
     pub refreshed_reserve_account: AccountInfo<'info>,
 
     // Lending market account
+    /// CHECK: Safe
     pub lending_market_account: AccountInfo<'info>,
 
     // Lending market authority (PDA)
+    /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *

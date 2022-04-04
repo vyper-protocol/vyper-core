@@ -20,4 +20,4 @@ anchor-lang = "0.18.2"
 anchor-spl = "0.18.2"
 vyper-core-lending = { path = "../vyper-core-lending", features = ["no-entrypoint"] }
 spl-token-lending = { git = "https://github.com/vyper-protocol/solana-program-library", rev = "0c8b2707cae2df810c932dc9c470b54283e8406e", features = ["no-entrypoint"] }
-uint = "=0.9.1"
+# uint = "=0.9.1"

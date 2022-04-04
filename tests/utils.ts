@@ -9,6 +9,15 @@ export function printProgramShortDetails(p: Program) {
   console.log(p.idl.name + ": " + p.programId);
 }
 
+export function printObjectKeys(title: string, obj: any) {
+  console.log(title);
+  var keys = Object.keys(obj);
+  keys.forEach((k) => {
+    console.log(k + ": " + (obj as any)[k]);
+  });
+  console.log();
+}
+
 export async function findAssociatedTokenAddress(
   walletAddress: anchor.web3.PublicKey,
   tokenMintAddress: anchor.web3.PublicKey

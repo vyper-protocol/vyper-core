@@ -84,6 +84,7 @@ pub struct RedeemContext<'info> {
 
     // proxy stuff
     // Vyper Vault authority
+    /// CHECK: Safe
     #[account(
         mut,
         seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()],
@@ -105,16 +106,20 @@ pub struct RedeemContext<'info> {
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     // Protocol reserve account
+    /// CHECK: Safe
     #[account(mut)]
     pub refreshed_reserve_account: AccountInfo<'info>,
 
     // Lending market account
+    /// CHECK: Safe
     pub lending_market_account: AccountInfo<'info>,
 
     // Lending market authority (PDA)
+    /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
+    /// CHECK: Safe
     pub protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,

@@ -9,10 +9,29 @@ url = "https://anchor.projectserum.com"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+[[test.validator.clone]] # SOL/USD pyth product
+address = "ALP8SdU9oARYVLgLR7LrqMNCYBnhtnQz1cj6bwgwQmgj"
+
+[[test.validator.clone]] # SOL/USD pyth price
+address = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"
+
+[[test.validator.clone]] # SOL/USD switchboard feed
+address = "AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL" # devnet
+
+[[test.validator.clone]] # Something to do with jet--serum?
+address = "CjqQ9kx9STBLtSUdypHTjNJsLE4t6uQossjdSzq9jdmY"
+
+[[test.genesis]]
+address = "ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx"
+program = "deps/solend_token_lending.so"
+# program = "deps/solend-lending-program/target/deploy/spl_token_lending.so"
+
 # [[test.genesis]]
 # address = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin"
 # program = "./deps/serum-dex/dex/target/deploy/serum_dex.so"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-

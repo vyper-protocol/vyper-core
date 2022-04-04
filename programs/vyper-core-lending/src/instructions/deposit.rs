@@ -48,6 +48,7 @@ pub struct DepositContext<'info> {
 
     // proxy stuff
     // Vyper Vault authority
+    /// CHECK: Safe
     #[account(mut, seeds = [b"vault_authority".as_ref(), tranche_config.key().as_ref()], bump = vault_authority_bump)]
     pub vault_authority: AccountInfo<'info>,
 
@@ -61,13 +62,16 @@ pub struct DepositContext<'info> {
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     // State account for protocol (reserve-state-account)
+    /// CHECK: Safe
     #[account(mut)]
     pub protocol_state: AccountInfo<'info>,
 
     // Lending market account (https://docs.solend.fi/developers/addresses/devnet#devnet)
+    /// CHECK: Safe
     pub lending_market_account: AccountInfo<'info>,
 
     // Lending market authority (PDA)
+    /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *
@@ -97,10 +101,12 @@ pub struct DepositContext<'info> {
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     
-    #[account(constraint = tranche_config.proxy_protocol_program_id == *protocol_program.key)]
+    /// CHECK: Safe
+    #[account(constraint = tranche_config.proxy_protocol_program_id == *proxy_protocol_program.key)]
     pub proxy_protocol_program: AccountInfo<'info>,
     
     // pe solend: ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx
+    /// CHECK: Safe
     #[account()]
     pub protocol_program: AccountInfo<'info>,
 
@@ -120,12 +126,15 @@ pub fn handler(
     mint_count: [u64; 2],
 ) -> ProgramResult {
     msg!("deposit begin");
+    for c in ctx.accounts.to_account_infos() {
+        msg!("+ ctx.accounts.to_account_infos(): {}", c.key());
+    }
+
+
     msg!("+ quantity: {}", quantity);
     for i in 0..mint_count.len() {
         msg!("+ mint_count[{}]: {}", i, mint_count[i]);
     }
-
-    // * * * * * * * * * * * * * * * * * * * * * * *
 
     // deposit on final protocol
 
@@ -140,10 +149,11 @@ pub fn handler(
     let signer = &[&seeds[..]];
 
     let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.protocol_program.to_account_info(),
+        ctx.accounts.proxy_protocol_program.to_account_info(),
         DepositProxyLendingContext {
             authority: ctx.accounts.authority.clone(),
             vault_authority: ctx.accounts.vault_authority.clone(),
+            tranche_config: ctx.accounts.tranche_config.to_account_info(),
             protocol_program: ctx.accounts.protocol_program.clone(),
 
             deposit_from: ctx.accounts.deposit_source_account.clone(),
@@ -166,6 +176,25 @@ pub fn handler(
         },
         signer
     );
+
+    msg!("authority: {}", ctx.accounts.authority.clone().key());
+    msg!("vault_authority: {}", ctx.accounts.vault_authority.clone().key());
+    msg!("tranche_config: {}", ctx.accounts.tranche_config.to_account_info().key());
+    msg!("protocol_program: {}", ctx.accounts.protocol_program.clone().key());
+    msg!("deposit_from: {}", ctx.accounts.deposit_source_account.clone().key());
+    msg!("deposit_to_protocol_reserve: {}", ctx.accounts.protocol_vault.clone().key());
+    msg!("deposit_mint: {}", ctx.accounts.mint.clone().key());
+    msg!("collateral_token_account: {}", ctx.accounts.collateral_token_account.clone().key());
+    msg!("collateral_mint: {}", ctx.accounts.collateral_mint.clone().key());
+    msg!("protocol_state: {}", ctx.accounts.protocol_state.clone().key());
+    msg!("lending_market_account: {}", ctx.accounts.lending_market_account.clone().key());
+    msg!("lending_market_authority: {}", ctx.accounts.lending_market_authority.clone().key());
+    msg!("system_program: {}", ctx.accounts.system_program.clone().key());
+    msg!("token_program: {}", ctx.accounts.token_program.clone().key());
+    msg!("associated_token_program: {}", ctx.accounts.associated_token_program.clone().key());
+    msg!("rent: {}", ctx.accounts.rent.clone().key());
+    msg!("clock: {}", ctx.accounts.clock.clone().key());
+
     deposit_vyper_proxy_lending::deposit_to_proxy(cpi_ctx, vault_authority_bump, quantity)?;
  
     // * * * * * * * * * * * * * * * * * * * * * * *

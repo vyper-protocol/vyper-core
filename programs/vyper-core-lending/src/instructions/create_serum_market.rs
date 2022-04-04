@@ -47,6 +47,7 @@ pub struct CreateSerumMarketContext<'info> {
     #[account(mut)]
     pub bids: Signer<'info>,
 
+    /// CHECK: Safe
     pub serum_dex: AccountInfo<'info>,
 
     // * * * * * * * * * * * * * * * * *

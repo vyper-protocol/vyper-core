@@ -30,7 +30,8 @@ pub struct CreateTranchesContext<'info> {
         init,
         payer = authority,
         seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
-        bump = tranche_config_bump,
+        // bump = tranche_config_bump,
+        bump,
         space = TrancheConfig::LEN)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
@@ -46,7 +47,8 @@ pub struct CreateTranchesContext<'info> {
     #[account(
         init,
         seeds = [vyper_utils::constants::SENIOR.as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = senior_tranche_mint_bump,
+        // bump = senior_tranche_mint_bump,
+        bump,
         payer = authority,
         mint::decimals = 0,
         mint::authority = tranche_config,
@@ -57,7 +59,8 @@ pub struct CreateTranchesContext<'info> {
     // Junior tranche mint
     #[account(init,
         seeds = [vyper_utils::constants::JUNIOR.as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
-        bump = junior_tranche_mint_bump,
+        // bump = junior_tranche_mint_bump,
+        bump,
         payer = authority,
         mint::decimals = 0,
         mint::authority = tranche_config,
@@ -66,6 +69,7 @@ pub struct CreateTranchesContext<'info> {
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // * * * * * * * * * * * * * * * * *
+    /// CHECK: Safe
     pub proxy_protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
