@@ -1,26 +1,11 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import {
-  createMint,
-  createMintAndVault,
-  createMintInstructions,
-  createTokenAccount,
-  getMintInfo,
-  getTokenAccount,
-  NodeWallet,
-} from "@project-serum/common";
+import { createMintAndVault, createTokenAccount, getMintInfo, getTokenAccount } from "@project-serum/common";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
-import * as solend from "@solendprotocol/solend-sdk";
-import { VAULT_AUTHORITY } from "./constants";
-import { bn, printObjectKeys, printProgramShortDetails } from "./utils";
+import { bn } from "./utils";
 import { createTrancheConfigInput, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
-import { mintTo } from "@project-serum/serum/lib/token-instructions";
-import { SolendReserveAsset } from "../cf-sdk/src";
-
-const DEVNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey("ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx");
-const pythPrice = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
-const switchboardFeed = new anchor.web3.PublicKey("AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL");
+import { SolendReserveAsset, DEVNET_SOLEND_PROGRAM_ID, pythPrice, switchboardFeed } from "./solend/solend";
 
 describe.only("vyper-core-lending-solend", () => {
   // Configure the client to use the local cluster.
