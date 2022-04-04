@@ -27,11 +27,10 @@ use super::*;
 
     pub fn deposit(
         ctx: Context<DepositContext>,
-        vault_authority_bump: u8,
         quantity: u64,
         mint_count: [u64; 2],
     ) -> ProgramResult {
-        instructions::deposit::handler(ctx, vault_authority_bump, quantity, mint_count)
+        instructions::deposit::handler(ctx, quantity, mint_count)
     }
 
     pub fn update_interest_split(

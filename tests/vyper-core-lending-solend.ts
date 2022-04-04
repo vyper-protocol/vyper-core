@@ -15,10 +15,12 @@ import * as solend from "@solendprotocol/solend-sdk";
 import { VAULT_AUTHORITY } from "./constants";
 import { bn, printObjectKeys, printProgramShortDetails } from "./utils";
 import { createTrancheConfigInput, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
-import { SolendReserveAsset } from "../cf-sdk/src/adapters/solend";
 import { mintTo } from "@project-serum/serum/lib/token-instructions";
+import { SolendReserveAsset } from "../cf-sdk/src";
 
 const DEVNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey("ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx");
+const pythPrice = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
+const switchboardFeed = new anchor.web3.PublicKey("AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL");
 
 describe.only("vyper-core-lending-solend", () => {
   // Configure the client to use the local cluster.
@@ -36,10 +38,6 @@ describe.only("vyper-core-lending-solend", () => {
 
     // init SOLEND
     const solendInit = await initLendingMarkets();
-    // printObjectKeys("solend reserve", solendInit.reserve.reserve.config);
-    // console.log("reserve token owner: " + solendInit.owner.publicKey);
-    // console.log("reserve token: " + solendInit.reserveToken);
-    // console.log("owner reserve token: " + solendInit.ownerReserveTokenAccount);
 
     // mint reserve token to user wallet
     var userReserveTokenAccount = await createTokenAccount(
@@ -111,15 +109,10 @@ describe.only("vyper-core-lending-solend", () => {
       programVyperCoreLending.provider.wallet.publicKey
     );
 
-    const [vaultAuthority, vaultAuthorityBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from(VAULT_AUTHORITY), trancheConfig.toBuffer()],
-      programVyperCoreLending.programId
-    );
-
-    const userCollateralTokenAccount = await createTokenAccount(
+    const vyperCollateralTokenAccount = await createTokenAccount(
       programVyperCoreLending.provider,
       new anchor.web3.PublicKey(solendInit.reserve.reserve.config.collateralMintAddress),
-      vaultAuthority
+      trancheConfig
     );
 
     // deposit on lending protocol
@@ -127,61 +120,24 @@ describe.only("vyper-core-lending-solend", () => {
     const seniorTrancheMintQuantity = 150;
     const juniorTrancheMintQuantity = 50;
 
-    // console.log("protocol program: " + DEVNET_SOLEND_PROGRAM_ID);
-    // console.log("trancheConfig: " + trancheConfig);
-    // console.log("userReserveTokenAccount: " + userReserveTokenAccount);
-    // console.log("vaultAuthority: " + vaultAuthority);
-    // console.log("userCollateralTokenAccount: " + userCollateralTokenAccount);
-    // console.log("seniorTrancheMint: " + seniorTrancheMint);
-    // console.log("seniorTrancheVault: " + seniorTrancheVault);
-    // console.log("juniorTrancheMint: " + juniorTrancheMint);
-    // console.log("juniorTrancheVault: " + juniorTrancheVault);
-    // printObjectKeys("solend reserve", solendInit.reserve.reserve.config);
-
-    // console.log("programVyperCoreLending.rpc.deposit account: " + programVyperCoreLending.provider.wallet.publicKey);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + trancheConfig);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + solendInit.reserveToken);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + userReserveTokenAccount);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + solendInit.ownerReserveTokenAccount);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + vaultAuthority);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + userCollateralTokenAccount);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + solendInit.reserve.reserve.config.collateralMintAddress);
-    // console.log(
-    //   "programVyperCoreLending.rpc.deposit account: " + new anchor.web3.PublicKey(solendInit.reserve.reserve.config.address)
-    // );
-    // console.log("programVyperCoreLending.rpc.deposit account: " + solendInit.marketKeypair.publicKey);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + solendInit.owner.publicKey);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + seniorTrancheMint);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + seniorTrancheVault);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + juniorTrancheMint);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + juniorTrancheVault);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + programProxyLendingSolend.programId);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + DEVNET_SOLEND_PROGRAM_ID);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + anchor.web3.SystemProgram.programId);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + TOKEN_PROGRAM_ID);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + ASSOCIATED_TOKEN_PROGRAM_ID);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + anchor.web3.SYSVAR_RENT_PUBKEY);
-    // console.log("programVyperCoreLending.rpc.deposit account: " + anchor.web3.SYSVAR_CLOCK_PUBKEY);
-
     const tx2 = await programVyperCoreLending.rpc.deposit(
-      vaultAuthorityBump,
-      bn(quantityToDeposit), // quantity
-      [bn(seniorTrancheMintQuantity), bn(juniorTrancheMintQuantity)], // mint_count
+      bn(quantityToDeposit),
+      [bn(seniorTrancheMintQuantity), bn(juniorTrancheMintQuantity)],
       {
         accounts: {
           authority: programVyperCoreLending.provider.wallet.publicKey,
           trancheConfig,
-          mint: solendInit.reserveToken,
-          depositSourceAccount: userReserveTokenAccount,
+          reserveToken: solendInit.reserveToken,
+          sourceLiquidity: userReserveTokenAccount,
 
-          protocolVault: solendInit.ownerReserveTokenAccount, // SOLEND RESERVE https://docs.solend.fi/developers/addresses/devnet#reserves
-          vaultAuthority: vaultAuthority, // vyper-core PDA
-
-          collateralTokenAccount: userCollateralTokenAccount, // Token account for receiving collateral token (as proof of deposit)
-          collateralMint: solendInit.reserve.reserve.config.collateralMintAddress, // SPL token mint for collateral token
-          protocolState: new anchor.web3.PublicKey(solendInit.reserve.reserve.config.address), // State account for protocol (reserve-state-account)
-          lendingMarketAccount: solendInit.marketKeypair.publicKey, // Lending market account (https://docs.solend.fi/developers/addresses/devnet#devnet)
-          lendingMarketAuthority: solendInit.owner.publicKey, // Lending market authority (PDA)
+          depositToProtocolReserve: solendInit.reserve.accounts.liquiditySupply,
+          collateralTokenAccount: vyperCollateralTokenAccount,
+          collateralMint: solendInit.reserve.reserve.config.collateralMintAddress,
+          protocolState: new anchor.web3.PublicKey(solendInit.reserve.reserve.config.address),
+          lendingMarketAccount: solendInit.marketKeypair.publicKey,
+          lendingMarketAuthority: solendInit.reserve.accounts.marketAuthority,
+          pythReserveLiquidityOracle: pythPrice,
+          switchboardReserveLiquidityOracle: switchboardFeed,
 
           seniorTrancheMint,
           seniorTrancheVault,
@@ -203,8 +159,6 @@ describe.only("vyper-core-lending-solend", () => {
 
     const account = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
-    console.log("account: " + JSON.stringify(account));
-    console.log("depositedQuantity: " + account.depositedQuantiy.map((c) => c.toNumber()));
     assert.equal(
       account.depositedQuantiy
         .map((c) => c.toNumber())
@@ -257,8 +211,6 @@ describe.only("vyper-core-lending-solend", () => {
     );
 
     const pythProduct = new anchor.web3.PublicKey("ALP8SdU9oARYVLgLR7LrqMNCYBnhtnQz1cj6bwgwQmgj");
-    const pythPrice = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
-    const switchboardFeed = new anchor.web3.PublicKey("AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL");
 
     const pythProgram = new anchor.web3.PublicKey("FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH");
     const switchboardProgram = new anchor.web3.PublicKey("DtmE9D2CSB4L5D6A15mraeEjrGMm6auWVzgaD8hK2tZM");
@@ -273,7 +225,7 @@ describe.only("vyper-core-lending-solend", () => {
     const [solendReserve, marketKeypair] = await SolendReserveAsset.initialize(
       programVyperCoreLending.provider,
       solendOwner,
-      //@ts-ignore
+      // @ts-ignore
       programVyperCoreLending.provider.wallet,
       reserveToken,
       pythProgram,

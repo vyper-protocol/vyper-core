@@ -11,22 +11,10 @@ use anchor_spl::{
 #[derive(Accounts)]
 #[instruction(vault_authority_bump: u8)]
 pub struct DepositProxyLendingContext<'info> {
+    
     // Signer account
     #[account(mut)]
     pub authority: Signer<'info>,
-
-    // Vyper Vault authority
-    /// CHECK: Safe
-    #[account(
-        // seeds = [b"vault_authority"],
-        // bump = vault_authority_bump,
-        // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
-    )]
-    pub vault_authority: AccountInfo<'info>,
-    
-    /// CHECK: Safe
-    #[account()]
-    pub tranche_config: AccountInfo<'info>,
 
     // Protocol Program
     /// CHECK: Safe
@@ -35,7 +23,7 @@ pub struct DepositProxyLendingContext<'info> {
 
     // Token account that is depositing the amount
     #[account(mut)]
-    pub deposit_from: Box<Account<'info, TokenAccount>>,
+    pub source_liquidity: Box<Account<'info, TokenAccount>>,
 
     // Token account that holds the reserves of the protocol
     #[account(mut)]
@@ -43,7 +31,7 @@ pub struct DepositProxyLendingContext<'info> {
 
     // Token mint for depositing token
     #[account()]
-    pub deposit_mint: Box<Account<'info, Mint>>,
+    pub reserve_token: Box<Account<'info, Mint>>,
 
     // Token account for receiving collateral token (as proof of deposit)
     // TODO: init_if_needed
@@ -67,6 +55,12 @@ pub struct DepositProxyLendingContext<'info> {
     /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
 
+    /// CHECK: Safe
+    pub pyth_reserve_liquidity_oracle: AccountInfo<'info>,
+
+    /// CHECK: Safe
+    pub switchboard_reserve_liquidity_oracle: AccountInfo<'info>,
+
     // * * * * * * * * * * * * * * * * *
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -84,11 +78,7 @@ pub struct WithdrawProxyLendingContext<'info> {
 
     // Vyper Vault authority
     /// CHECK: Safe
-    #[account(
-        // seeds = [b"vault_authority"],
-        // bump = vault_authority_bump,
-        // seeds::program = Pubkey::new(b"CQCoR6kTDMxbDFptsGLLhDirqL5tRTHbrLceQWkkjfsa"),
-    )]
+    #[account()]
     pub vault_authority: AccountInfo<'info>,
 
     // Protocol Program
