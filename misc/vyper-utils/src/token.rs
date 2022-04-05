@@ -74,7 +74,36 @@ pub fn spl_token_mint(params: TokenMintParams<'_, '_>) -> ProgramResult {
 }
 
 /// TokenBurn
-pub struct TokenBurnParams<'a: 'b, 'b> {
+
+pub struct TokenBurnParams<'a> {
+    pub mint: AccountInfo<'a>,
+    pub to: AccountInfo<'a>,
+    pub amount: u64,
+    pub authority: AccountInfo<'a>,
+    pub token_program: AccountInfo<'a>,
+}
+
+pub fn spl_token_burn(params: TokenBurnParams<'_>) -> ProgramResult {
+    let TokenBurnParams {
+        mint,
+        to,
+        amount,
+        authority,
+        token_program,
+    } = params;
+
+    let burn_ctx = token::Burn {
+        mint: mint,
+        to: to,
+        authority: authority,
+    };
+    token::burn(
+        CpiContext::new(token_program, burn_ctx),
+        amount,
+    )
+}
+
+pub struct TokenBurnWithSignerParams<'a: 'b, 'b> {
     pub mint: AccountInfo<'a>,
     pub to: AccountInfo<'a>,
     pub amount: u64,
@@ -83,8 +112,8 @@ pub struct TokenBurnParams<'a: 'b, 'b> {
     pub token_program: AccountInfo<'a>,
 }
 
-pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
-    let TokenBurnParams {
+pub fn spl_token_burn_with_signer(params: TokenBurnWithSignerParams<'_, '_>) -> ProgramResult {
+    let TokenBurnWithSignerParams {
         mint,
         to,
         amount,
@@ -101,7 +130,5 @@ pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
     token::burn(
         CpiContext::new_with_signer(token_program, burn_ctx, &[authority_signer_seeds]),
         amount,
-    )?;
-
-    Ok(())
+    )
 }

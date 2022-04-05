@@ -21,35 +21,37 @@ pub mod proxy_lending_solend {
     pub struct ProxyLendingSolend;
 
     impl<'info> DepositVyperProxyLending<'info, DepositProxyLendingContext<'info>> for ProxyLendingSolend {
-        fn deposit_to_proxy(
-            ctx: Context<DepositProxyLendingContext>,
-            amount: u64,
-        ) -> ProgramResult {
-            msg!("deposit_to_proxy begin");
-            
-            msg!("refresh the serve");
+
+        fn refresh_reserve_for_deposit(ctx: Context<DepositProxyLendingContext>) -> ProgramResult {
+            msg!("refresh the reserve");
             let refresh_context = CpiContext::new(
-                ctx.accounts.protocol_program.clone(),
+                ctx.accounts.lending_program.clone(),
                 RefreshReserve {
-                    lending_program: ctx.accounts.protocol_program.clone(),
+                    lending_program: ctx.accounts.lending_program.clone(),
                     reserve: ctx.accounts.protocol_state.to_account_info(),
                     pyth_reserve_liquidity_oracle: ctx.accounts.pyth_reserve_liquidity_oracle.clone(),
                     switchboard_reserve_liquidity_oracle: ctx.accounts.switchboard_reserve_liquidity_oracle.clone(),
                     clock: ctx.accounts.clock.to_account_info(),
                 },
             );
-            refresh_reserve(refresh_context)?;
+            internal_refresh_reserve(refresh_context)
+        }
 
-            msg!("deposit");
+        fn deposit_reserve_liquidity(
+            ctx: Context<DepositProxyLendingContext>,
+            amount: u64,
+        ) -> ProgramResult {
+            msg!("deposit_to_proxy begin");
+
             let deposit_context = CpiContext::new(
-                ctx.accounts.protocol_program.clone(),
+                ctx.accounts.lending_program.clone(),
                 DepositReserveLiquidity {
-                    lending_program: ctx.accounts.protocol_program.clone(),
+                    lending_program: ctx.accounts.lending_program.clone(),
                     source_liquidity: ctx.accounts.source_liquidity.to_account_info(),
-                    destination_collateral_account: ctx.accounts.collateral_token_account.to_account_info(),
+                    destination_collateral_account: ctx.accounts.destination_collateral_account.to_account_info(),
                     reserve: ctx.accounts.protocol_state.to_account_info(),
                     reserve_collateral_mint: ctx.accounts.collateral_mint.to_account_info(),
-                    reserve_liquidity_supply: ctx.accounts.deposit_to_protocol_reserve.to_account_info(),
+                    reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.to_account_info(),
                     lending_market: ctx.accounts.lending_market_account.clone(),
                     lending_market_authority: ctx.accounts.lending_market_authority.clone(),
                     transfer_authority: ctx.accounts.authority.to_account_info(),
@@ -59,44 +61,60 @@ pub mod proxy_lending_solend {
             );
             match amount {
                 0 => Ok(()),
-                _ => deposit_reserve_liquidity(
+                _ => internal_deposit_reserve_liquidity(
                     deposit_context,
                     amount,
                 ),
-            }?;
-
-            msg!("deposit_to_proxy end");
-
-            Ok(())
+            }
         }
     }
 
     impl<'info> WithdrawVyperProxyLending<'info, WithdrawProxyLendingContext<'info>> for ProxyLendingSolend {
-        fn withdraw_from_proxy(
+
+        fn refresh_reserve_for_withdraw(ctx: Context<WithdrawProxyLendingContext>) -> ProgramResult {
+            msg!("refresh the reserve");
+            let refresh_context = CpiContext::new(
+                ctx.accounts.lending_program.clone(),
+                RefreshReserve {
+                    lending_program: ctx.accounts.lending_program.clone(),
+                    reserve: ctx.accounts.protocol_state.to_account_info(),
+                    pyth_reserve_liquidity_oracle: ctx.accounts.pyth_reserve_liquidity_oracle.clone(),
+                    switchboard_reserve_liquidity_oracle: ctx.accounts.switchboard_reserve_liquidity_oracle.clone(),
+                    clock: ctx.accounts.clock.to_account_info(),
+                },
+            );
+            internal_refresh_reserve(refresh_context)
+        }
+
+        fn redeem_reserve_collateral(
             ctx: Context<WithdrawProxyLendingContext>,
-            vault_authority_bump: u8,
             collateral_amount: u64,
         ) -> ProgramResult {
             msg!("withdraw_from_proxy begin");
             
-            msg!("WITHDRAW FROM SOLEND");
-            let ins = spl_token_lending::instruction::redeem_reserve_collateral(
-                ctx.accounts.protocol_program.key(),
-                collateral_amount,
-                ctx.accounts.collateral_from.key(),
-                ctx.accounts.withdraw_to.key(),
-                ctx.accounts.refreshed_reserve_account.key(),
-                ctx.accounts.collateral_mint.key(),
-                ctx.accounts.withdraw_from_protocol_reserve.key(),
-                ctx.accounts.lending_market_account.key(),
-                ctx.accounts.lending_market_authority.key(),
+            let redeem_context = CpiContext::new(
+                ctx.accounts.lending_program.clone(),
+                RedeemReserveCollateral {
+                    lending_program: ctx.accounts.lending_program.clone(),
+                    source_collateral: ctx.accounts.source_collateral.clone(),
+                    destination_liquidity: ctx.accounts.destination_liquidity.clone(),
+                    reserve: ctx.accounts.protocol_state.to_account_info(),
+                    reserve_collateral_mint: ctx.accounts.collateral_mint.to_account_info(),
+                    reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.to_account_info(),
+                    lending_market: ctx.accounts.lending_market_account.clone(),
+                    lending_market_authority: ctx.accounts.lending_market_authority.clone(),
+                    transfer_authority: ctx.accounts.authority.to_account_info(),
+                    clock: ctx.accounts.clock.to_account_info(),
+                    token_program_id: ctx.accounts.token_program.to_account_info(),
+                },
             );
-
-            invoke(&ins, &ctx.accounts.to_account_infos())?;
-
-            msg!("withdraw_from_proxy end");
-            
-            Ok(())
+            match collateral_amount {
+                0 => Ok(()),
+                _ => internal_redeem_reserve_collateral(
+                    redeem_context,
+                    collateral_amount,
+                ),
+            }
         }
     }
 }
@@ -195,7 +213,7 @@ pub struct RefreshReserve<'info> {
     pub clock: AccountInfo<'info>,
 }
 
-pub fn refresh_reserve<'info>(
+fn internal_refresh_reserve<'info>(
     ctx: CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>,
 ) -> ProgramResult {
     let ix = spl_token_lending::instruction::refresh_reserve(
@@ -214,7 +232,7 @@ pub fn refresh_reserve<'info>(
     Ok(())
 }
 
-pub fn deposit_reserve_liquidity<'info>(
+fn internal_deposit_reserve_liquidity<'info>(
     ctx: CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>>,
     liquidity_amount: u64,
 ) -> ProgramResult {
@@ -239,7 +257,7 @@ pub fn deposit_reserve_liquidity<'info>(
     Ok(())
 }
 
-pub fn redeem_reserve_collateral<'info>(
+fn internal_redeem_reserve_collateral<'info>(
     ctx: CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>>,
     collateral_amount: u64,
 ) -> ProgramResult {
@@ -255,10 +273,9 @@ pub fn redeem_reserve_collateral<'info>(
         *ctx.accounts.transfer_authority.key,
     );
 
-    solana_program::program::invoke_signed(
+    solana_program::program::invoke(
         &ix,
         &ToAccountInfos::to_account_infos(&ctx),
-        ctx.signer_seeds,
     )?;
 
     Ok(())

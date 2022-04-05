@@ -25,14 +25,6 @@ use super::*;
         instructions::create_tranche::handler(ctx, input_data, tranche_config_bump, senior_tranche_mint_bump, junior_tranche_mint_bump)
     }
 
-    pub fn deposit(
-        ctx: Context<DepositContext>,
-        quantity: u64,
-        mint_count: [u64; 2],
-    ) -> ProgramResult {
-        instructions::deposit::handler(ctx, quantity, mint_count)
-    }
-
     pub fn update_interest_split(
         ctx: Context<UpdateTrancheConfigContext>,
         interest_split: [u32; 2],
@@ -60,8 +52,16 @@ use super::*;
         instructions::create_serum_market::handler(ctx, vault_signer_nonce)
     }
 
-    pub fn redeem(ctx: Context<RedeemContext>, vault_authority_bump: u8, redeem_quantity: [u64; 2]) -> ProgramResult {
-        instructions::redeem::handler(ctx, vault_authority_bump, redeem_quantity)
+    pub fn deposit(
+        ctx: Context<DepositContext>,
+        quantity: u64,
+        mint_count: [u64; 2],
+    ) -> ProgramResult {
+        instructions::deposit::handler(ctx, quantity, mint_count)
+    }
+
+    pub fn redeem(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> ProgramResult {
+        instructions::redeem::handler(ctx, redeem_quantity)
     }
 }
 
