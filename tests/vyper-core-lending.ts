@@ -5,9 +5,8 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/sp
 import assert from "assert";
 import { bn, printProgramShortDetails, to_bps } from "./utils";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
-import { ProxyLendingSolend } from "../target/types/proxy_lending_solend";
 import { createTrancheConfigInput, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
-import { VAULT_AUTHORITY } from "./constants";
+import { DEVNET_SOLEND_PROGRAM_ID } from "./solend/solend";
 
 describe("vyper-core-lending", () => {
   // Configure the client to use the local cluster.
@@ -15,12 +14,9 @@ describe("vyper-core-lending", () => {
 
   //@ts-ignore
   const programVyperCoreLending = anchor.workspace.VyperCoreLending as Program<VyperCoreLending>;
-  //@ts-ignore
-  const programProxyLendingSolend = anchor.workspace.ProxyLendingSolend as Program<ProxyLendingSolend>;
 
   console.log("########################");
   printProgramShortDetails(programVyperCoreLending as Program);
-  printProgramShortDetails(programProxyLendingSolend as Program);
   console.log("########################");
 
   it("creates tranche", async () => {
@@ -31,7 +27,7 @@ describe("vyper-core-lending", () => {
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
+      await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, mint, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
       mint,
@@ -54,7 +50,7 @@ describe("vyper-core-lending", () => {
           mint,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          proxyProtocolProgram: programProxyLendingSolend.programId,
+          protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -97,7 +93,7 @@ describe("vyper-core-lending", () => {
       // initialize tranche config
 
       const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-        await createTranchesConfiguration(programProxyLendingSolend.programId, mint, programVyperCoreLending);
+        await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, mint, programVyperCoreLending);
 
       [trancheConfig, trancheConfigBump] = await findTrancheConfig(
         mint,
@@ -120,7 +116,7 @@ describe("vyper-core-lending", () => {
             mint,
             seniorTrancheMint: seniorTrancheMint,
             juniorTrancheMint: juniorTrancheMint,
-            proxyProtocolProgram: programProxyLendingSolend.programId,
+            protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
             tokenProgram: TOKEN_PROGRAM_ID,
             associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,

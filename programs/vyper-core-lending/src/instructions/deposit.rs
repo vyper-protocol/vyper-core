@@ -12,7 +12,7 @@ use crate::{
     state::{
         TrancheConfig
     },
-    interface_context::*
+    adapters::common::*
 };
 
 #[derive(Accounts)]
@@ -67,7 +67,7 @@ pub struct DepositContext<'info> {
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::SENIOR.as_ref(), lending_proxy_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
+    #[account(mut, seeds = [vyper_utils::constants::SENIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
@@ -75,16 +75,12 @@ pub struct DepositContext<'info> {
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::JUNIOR.as_ref(), lending_proxy_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
+    #[account(mut, seeds = [vyper_utils::constants::JUNIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
     #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
-
-    /// CHECK: Safe
-    #[account(constraint = tranche_config.proxy_protocol_program_id == *lending_proxy_program.key)]
-    pub lending_proxy_program: AccountInfo<'info>,
     
     /// CHECK: Safe
     #[account()]
@@ -98,32 +94,35 @@ pub struct DepositContext<'info> {
 }
 
 impl<'info> DepositContext<'info> {
-    fn to_deposit_proxy_lending_context(&self) -> CpiContext<'_, '_, '_, 'info, DepositProxyLendingContext<'info>>  {
+
+    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>  {
         CpiContext::new(
-            self.lending_proxy_program.to_account_info(),
-            DepositProxyLendingContext {
-                authority: self.authority.clone(),
+            self.lending_program.to_account_info(),
+            RefreshReserve {
                 lending_program: self.lending_program.clone(),
-    
-                source_liquidity: self.source_liquidity.clone(),
-                reserve_liquidity_supply: self.reserve_liquidity_supply.clone(),
-                reserve_token: self.reserve_token.clone(),
-    
-                destination_collateral_account: self.destination_collateral_account.clone(),
-                collateral_mint: self.collateral_mint.clone(),
-    
-                protocol_state: self.protocol_state.clone(),
-    
-                lending_market_account: self.lending_market_account.clone(),
-                lending_market_authority: self.lending_market_authority.clone(),
+                reserve: self.protocol_state.clone(),
                 pyth_reserve_liquidity_oracle: self.pyth_reserve_liquidity_oracle.clone(),
                 switchboard_reserve_liquidity_oracle: self.switchboard_reserve_liquidity_oracle.clone(),
-    
-                system_program: self.system_program.clone(),
-                token_program: self.token_program.clone(),
-                associated_token_program: self.associated_token_program.clone(),
-                rent: self.rent.clone(),
-                clock: self.clock.clone(),
+                clock: self.clock.to_account_info(),
+            }
+        )
+    }
+
+    fn to_deposit_reserve_liquidity_context(&self) -> CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>>  {
+        CpiContext::new(
+            self.lending_program.to_account_info(),
+            DepositReserveLiquidity {
+                lending_program: self.lending_program.clone(),
+                source_liquidity: self.source_liquidity.to_account_info(),
+                destination_collateral_account: self.destination_collateral_account.to_account_info(),
+                reserve: self.protocol_state.clone(),
+                reserve_collateral_mint: self.collateral_mint.to_account_info(),
+                reserve_liquidity_supply: self.reserve_liquidity_supply.to_account_info(),
+                lending_market: self.lending_market_account.clone(),
+                lending_market_authority: self.lending_market_authority.clone(),
+                transfer_authority: self.authority.to_account_info(),
+                clock: self.clock.to_account_info(),
+                token_program_id: self.token_program.to_account_info(),
             }
         )
     }
@@ -145,8 +144,10 @@ pub fn handler(
 
     msg!("deposit tokens to protocol");
 
-    deposit_vyper_proxy_lending::refresh_reserve_for_deposit(ctx.accounts.to_deposit_proxy_lending_context())?;
-    deposit_vyper_proxy_lending::deposit_reserve_liquidity(ctx.accounts.to_deposit_proxy_lending_context(), quantity)?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().deposit_reserve_liquidity(ctx.accounts.to_deposit_reserve_liquidity_context(), quantity)?;
+    // deposit_vyper_proxy_lending::refresh_reserve_for_deposit(ctx.accounts.to_deposit_proxy_lending_context())?;
+    // deposit_vyper_proxy_lending::deposit_reserve_liquidity(ctx.accounts.to_deposit_proxy_lending_context(), quantity)?;
  
     // * * * * * * * * * * * * * * * * * * * * * * *
     // increase the deposited quantity
@@ -208,10 +209,4 @@ pub fn handler(
     }
 
     Ok(())
-}
-
-#[interface]
-pub trait DepositVyperProxyLending<'info, T: Accounts<'info>> {
-    fn refresh_reserve_for_deposit(ctx: Context<T>) -> ProgramResult;
-    fn deposit_reserve_liquidity(ctx: Context<T>, amount: u64) -> ProgramResult;
 }

@@ -1,6 +1,5 @@
 [programs.localnet]
 vyper_core_lending = "5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc"
-proxy_lending_solend = "9R88Mc2NBfhaxozbdwSHajAT94UUwe2ExrALq3FZK11L"
 
 [registry]
 url = "https://anchor.projectserum.com"

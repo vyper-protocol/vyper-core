@@ -929,16 +929,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy-lending-solend"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "spl-token-lending",
- "vyper-core-lending",
-]
-
-[[package]]
 name = "quick-protobuf"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

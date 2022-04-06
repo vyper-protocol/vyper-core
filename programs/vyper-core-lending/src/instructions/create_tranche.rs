@@ -46,7 +46,7 @@ pub struct CreateTranchesContext<'info> {
     // Senior tranche mint
     #[account(
         init,
-        seeds = [vyper_utils::constants::SENIOR.as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = senior_tranche_mint_bump,
         bump,
         payer = authority,
@@ -58,7 +58,7 @@ pub struct CreateTranchesContext<'info> {
 
     // Junior tranche mint
     #[account(init,
-        seeds = [vyper_utils::constants::JUNIOR.as_ref(), proxy_protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = junior_tranche_mint_bump,
         bump,
         payer = authority,
@@ -70,7 +70,7 @@ pub struct CreateTranchesContext<'info> {
 
     // * * * * * * * * * * * * * * * * *
     /// CHECK: Safe
-    pub proxy_protocol_program: AccountInfo<'info>,
+    pub protocol_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -99,7 +99,7 @@ pub fn handler(
     msg!("create tranche config");
     input_data.create_tranche_config(&mut ctx.accounts.tranche_config);
     ctx.accounts.tranche_config.authority = ctx.accounts.authority.key();
-    ctx.accounts.tranche_config.proxy_protocol_program_id = ctx.accounts.proxy_protocol_program.key();
+    ctx.accounts.tranche_config.protocol_program_id = ctx.accounts.protocol_program.key();
     ctx.accounts.tranche_config.senior_tranche_mint = ctx.accounts.senior_tranche_mint.key();
     ctx.accounts.tranche_config.junior_tranche_mint = ctx.accounts.junior_tranche_mint.key();
     ctx.accounts.tranche_config.tranche_config_bump = tranche_config_bump;

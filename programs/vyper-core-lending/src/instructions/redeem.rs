@@ -5,7 +5,7 @@ use vyper_utils::math::{
 };
 use std::ops::Deref;
 use anchor_lang::{prelude::*, solana_program};
-use std::{io::Write, ops::DerefMut};
+use std::{ io::Write };
 use anchor_spl::{
     self,
     associated_token::AssociatedToken,
@@ -16,10 +16,8 @@ use crate::{
     state::{
         TrancheConfig
     },
-error::ErrorCode,
-    interface_context::{
-        WithdrawProxyLendingContext
-    }
+    adapters::common::*,
+    error::ErrorCode,
 };
 use spl_token_lending::state::{Reserve, CollateralExchangeRate};
 
@@ -75,7 +73,7 @@ pub struct RedeemContext<'info> {
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::SENIOR.as_ref(), lending_proxy_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
+    #[account(mut, seeds = [vyper_utils::constants::SENIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
@@ -83,17 +81,13 @@ pub struct RedeemContext<'info> {
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::JUNIOR.as_ref(), lending_proxy_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
+    #[account(mut, seeds = [vyper_utils::constants::JUNIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
     #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
-    /// CHECK: Safe
-    #[account(constraint = tranche_config.proxy_protocol_program_id == *lending_proxy_program.key)]
-    pub lending_proxy_program: AccountInfo<'info>,
-    
     /// CHECK: Safe
     #[account()]
     pub lending_program: AccountInfo<'info>,
@@ -106,32 +100,35 @@ pub struct RedeemContext<'info> {
 }
 
 impl<'info> RedeemContext<'info> {
-    fn to_withdraw_proxy_lending_context(&self) -> CpiContext<'_, '_, '_, 'info, WithdrawProxyLendingContext<'info>>  {
+    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>  {
         CpiContext::new(
-            self.lending_proxy_program.to_account_info(),
-            WithdrawProxyLendingContext {
-                authority: self.authority.clone(),
+            self.lending_program.to_account_info(),
+            RefreshReserve {
                 lending_program: self.lending_program.clone(),
-                source_collateral: self.source_collateral_account.clone().to_account_info(),
-                destination_liquidity: self.destination_liquidity.clone().to_account_info(),
-                reserve_liquidity_supply: self.reserve_liquidity_supply.clone(),
-                reserve_token: self.reserve_token.clone(),
-    
-                source_collateral_account: self.source_collateral_account.clone(),
-                collateral_mint: self.collateral_mint.clone(),
-    
-                protocol_state: self.protocol_state.clone(),
-    
-                lending_market_account: self.lending_market_account.clone(),
-                lending_market_authority: self.lending_market_authority.clone(),
+                reserve: self.protocol_state.clone(),
                 pyth_reserve_liquidity_oracle: self.pyth_reserve_liquidity_oracle.clone(),
                 switchboard_reserve_liquidity_oracle: self.switchboard_reserve_liquidity_oracle.clone(),
-    
-                system_program: self.system_program.clone(),
-                token_program: self.token_program.clone(),
-                associated_token_program: self.associated_token_program.clone(),
-                rent: self.rent.clone(),
-                clock: self.clock.clone(),
+                clock: self.clock.to_account_info(),
+            }
+        )
+    }
+
+    fn to_withdraw_proxy_lending_context(&self) -> CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>>  {
+        CpiContext::new(
+            self.lending_program.to_account_info(),
+            RedeemReserveCollateral {
+
+                lending_program: self.lending_program.clone(),
+                source_collateral: self.source_collateral_account.to_account_info(),
+                destination_liquidity: self.destination_liquidity.to_account_info(),
+                reserve: self.protocol_state.clone(),
+                reserve_collateral_mint: self.collateral_mint.to_account_info(),
+                reserve_liquidity_supply: self.reserve_liquidity_supply.to_account_info(),
+                lending_market: self.lending_market_account.clone(),
+                lending_market_authority: self.lending_market_authority.clone(),
+                transfer_authority: self.authority.to_account_info(),
+                clock: self.clock.to_account_info(),
+                token_program_id: self.token_program.to_account_info(),
             }
         )
     }
@@ -156,9 +153,7 @@ pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> Progra
     }
 
     msg!("CPI: refesh reserve for redeem");
-    withdraw_vyper_proxy_lending::refresh_reserve_for_withdraw(ctx.accounts.to_withdraw_proxy_lending_context())?;
-    
-    
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
     
     let collateral_exchange_rate = ctx.accounts.get_collateral_exchange_rate()?;
     let reserve_token_in_reserve = collateral_exchange_rate.collateral_to_liquidity(ctx.accounts.source_collateral_account.amount)?;
@@ -232,7 +227,7 @@ pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> Progra
     msg!("collateral_to_redeem: {}", collateral_to_redeem);
 
     msg!("CPI: redeem reserve collateral");
-    withdraw_vyper_proxy_lending::redeem_reserve_collateral(ctx.accounts.to_withdraw_proxy_lending_context(), collateral_to_redeem)?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().redeem_reserve_collateral(ctx.accounts.to_withdraw_proxy_lending_context(), collateral_to_redeem)?;
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // burn senior tranche tokens
@@ -261,19 +256,8 @@ pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> Progra
     Ok(())
 }
 
-#[interface]
-pub trait WithdrawVyperProxyLending<'info, T: Accounts<'info>> {
-    fn refresh_reserve_for_withdraw(ctx: Context<T>) -> ProgramResult;
-    fn redeem_reserve_collateral(ctx: Context<T>, collateral_amount: u64) -> ProgramResult;
-}
-
-// fn deserialize_solend_reserve(data: &mut [u8]) -> Result<spl_token_lending::state::Reserve, ProgramError> {
-//     // anchor_lang::AnchorDeserialize::deserialize(&mut data)
-//     SolendReserve::try_deserialize(&data)
-// }
-
 #[derive(Clone)]
-pub struct SolendReserve(spl_token_lending::state::Reserve);
+pub struct SolendReserve(Reserve);
 
 impl anchor_lang::AccountDeserialize for SolendReserve {
     fn try_deserialize(buf: &mut &[u8]) -> Result<Self, ProgramError> {

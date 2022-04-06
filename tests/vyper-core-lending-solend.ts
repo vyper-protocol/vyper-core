@@ -13,8 +13,6 @@ describe("vyper-core-lending-solend", () => {
 
   //@ts-ignore
   const programVyperCoreLending = anchor.workspace.VyperCoreLending as Program<VyperCoreLending>;
-  //@ts-ignore
-  const programProxyLendingSolend = anchor.workspace.ProxyLendingSolend as Program<ProxyLendingSolend>;
 
   it("deposit on solend", async () => {
     // define input data
@@ -50,7 +48,7 @@ describe("vyper-core-lending-solend", () => {
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxyLendingSolend.programId, solendInit.reserveToken, programVyperCoreLending);
+      await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, solendInit.reserveToken, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
       solendInit.reserveToken,
@@ -73,7 +71,7 @@ describe("vyper-core-lending-solend", () => {
           mint: solendInit.reserveToken,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          proxyProtocolProgram: programProxyLendingSolend.programId,
+          protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -130,7 +128,7 @@ describe("vyper-core-lending-solend", () => {
           juniorTrancheMint,
           juniorTrancheVault,
 
-          lendingProxyProgram: programProxyLendingSolend.programId,
+          protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
           lendingProgram: DEVNET_SOLEND_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -140,6 +138,7 @@ describe("vyper-core-lending-solend", () => {
         },
       }
     );
+    console.log("deposit tx: " + tx2);
 
     const account = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
@@ -217,7 +216,7 @@ describe("vyper-core-lending-solend", () => {
     // initialize tranche config
 
     const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-      await createTranchesConfiguration(programProxyLendingSolend.programId, solendInit.reserveToken, programVyperCoreLending);
+      await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, solendInit.reserveToken, programVyperCoreLending);
 
     const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
       solendInit.reserveToken,
@@ -240,7 +239,7 @@ describe("vyper-core-lending-solend", () => {
           mint: solendInit.reserveToken,
           seniorTrancheMint: seniorTrancheMint,
           juniorTrancheMint: juniorTrancheMint,
-          proxyProtocolProgram: programProxyLendingSolend.programId,
+          protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -249,7 +248,7 @@ describe("vyper-core-lending-solend", () => {
         },
       }
     );
-    console.log("tx1: " + tx1);
+    console.log("create tranche tx: " + tx1);
 
     const seniorTrancheVault = await createTokenAccount(
       programVyperCoreLending.provider,
@@ -298,7 +297,7 @@ describe("vyper-core-lending-solend", () => {
           juniorTrancheMint,
           juniorTrancheVault,
 
-          lendingProxyProgram: programProxyLendingSolend.programId,
+          protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
           lendingProgram: DEVNET_SOLEND_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -308,7 +307,7 @@ describe("vyper-core-lending-solend", () => {
         },
       }
     );
-    console.log("tx2: " + tx2);
+    console.log("deposit tx: " + tx2);
 
     // vyper-core rpc:
 
@@ -334,7 +333,7 @@ describe("vyper-core-lending-solend", () => {
         juniorTrancheMint,
         juniorTrancheVault,
 
-        lendingProxyProgram: programProxyLendingSolend.programId,
+        protocolProgram: DEVNET_SOLEND_PROGRAM_ID,
         lendingProgram: DEVNET_SOLEND_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -343,7 +342,7 @@ describe("vyper-core-lending-solend", () => {
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
     });
-    console.log("tx3: " + tx3);
+    console.log("redeem tx: " + tx3);
 
     const account = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
@@ -393,13 +392,6 @@ describe("vyper-core-lending-solend", () => {
   }
 
   async function initLendingMarkets(): Promise<InitLendingMarketResult> {
-    // console.log("init lending markets (castle-finance)");
-
-    // const sig = await programVyperCoreLending.provider.connection.requestAirdrop(solendOwner.publicKey, 1000000000);
-    // const supplSig = await programVyperCoreLending.provider.connection.requestAirdrop(referralFeeOwner, 1000000000);
-    // await programVyperCoreLending.provider.connection.confirmTransaction(sig, "singleGossip");
-    // await programVyperCoreLending.provider.connection.confirmTransaction(supplSig, "singleGossip");
-
     const initialReserveAmount = 100;
     const solendOwner = anchor.web3.Keypair.generate();
     const [reserveToken, ownerReserveTokenAccount] = await createMintAndVault(
@@ -413,13 +405,6 @@ describe("vyper-core-lending-solend", () => {
 
     const pythProgram = new anchor.web3.PublicKey("FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH");
     const switchboardProgram = new anchor.web3.PublicKey("DtmE9D2CSB4L5D6A15mraeEjrGMm6auWVzgaD8hK2tZM");
-
-    // console.log("init lending markets:");
-    // console.log("pyth product: " + pythProduct);
-    // console.log("pyth price: " + pythPrice);
-    // console.log("switchboard feed: " + switchboardFeed);
-    // console.log("pyth program: " + pythProgram);
-    // console.log("switchboard program: " + switchboardProgram);
 
     const [solendReserve, marketKeypair] = await SolendReserveAsset.initialize(
       programVyperCoreLending.provider,

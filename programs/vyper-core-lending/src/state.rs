@@ -12,7 +12,7 @@ pub struct TrancheConfig {
     /**
      * Protocol program_id
      */
-    pub proxy_protocol_program_id: Pubkey,
+    pub protocol_program_id: Pubkey,
 
     /**
      * Current deposited quantities, for senior and junior

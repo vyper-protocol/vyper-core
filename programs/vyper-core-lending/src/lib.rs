@@ -1,8 +1,8 @@
 pub mod error;
 pub mod inputs;
-pub mod interface_context;
 pub mod state;
 pub mod instructions;
+pub mod adapters;
 
 use anchor_lang::prelude::*;
 use inputs::{CreateTrancheConfigInput};
