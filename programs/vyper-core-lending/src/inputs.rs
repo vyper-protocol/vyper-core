@@ -13,7 +13,6 @@ pub struct CreateTrancheConfigInput {
     pub capital_split: [u32; 2],
     pub interest_split: [u32; 2],
     pub create_serum: bool,
-    pub protocol_bump: u8,
 }
 
 impl Input for CreateTrancheConfigInput {
@@ -28,7 +27,6 @@ impl CreateTrancheConfigInput {
         data.capital_split = self.capital_split.clone();
         data.interest_split = self.interest_split.clone();
         data.create_serum = self.create_serum;
-        data.protocol_bump = self.protocol_bump;
 
         match Clock::get() {
             Ok(val) => data.created_at = val.unix_timestamp as u64,
