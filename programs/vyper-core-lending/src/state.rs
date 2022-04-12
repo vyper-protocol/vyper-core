@@ -12,7 +12,7 @@ pub struct TrancheConfig {
 
     /// Current deposited quantities, for senior and junior
     ///
-    pub deposited_quantiy: [u64; 2],
+    pub deposited_quantity: [u64; 2],
 
     /// Senior and junior capital split values in BPS
     /// pe [3000, 7000]
@@ -47,13 +47,13 @@ pub struct TrancheConfig {
 
 impl TrancheConfig {
     pub fn get_total_deposited_quantity(&self) -> u64 {
-        self.deposited_quantiy.iter().sum()
+        self.deposited_quantity.iter().sum()
     }
 
     pub const LEN: usize = 8 + // discriminator
     32 + // authority: Pubkey,
     32 + // protocol_id: Pubkey
-    8 + 8 + // deposited_quantiy: [u64;2]
+    8 + 8 + // deposited_quantity: [u64;2]
     2 * 4 + // interest_split: [u32;2],
     2 * 4 + // capital_split: [u32;2],
     32 + // junior_tranche_mint: Pubkey,

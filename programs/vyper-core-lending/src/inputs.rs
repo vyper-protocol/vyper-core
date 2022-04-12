@@ -24,7 +24,7 @@ impl Input for CreateTrancheConfigInput {
 
 impl CreateTrancheConfigInput {
     pub fn create_tranche_config(&self, data: &mut TrancheConfig) {
-        data.deposited_quantiy = [0, 0];
+        data.deposited_quantity = [0, 0];
         data.capital_split = self.capital_split.clone();
         data.interest_split = self.interest_split.clone();
         data.create_serum = self.create_serum;

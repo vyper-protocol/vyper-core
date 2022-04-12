@@ -163,15 +163,15 @@ pub fn handler(ctx: Context<DepositContext>, quantity: u64, mint_count: [u64; 2]
         msg!(
             "old deposited quantity [{}] = {}",
             i,
-            ctx.accounts.tranche_config.deposited_quantiy[i]
+            ctx.accounts.tranche_config.deposited_quantity[i]
         );
 
-        ctx.accounts.tranche_config.deposited_quantiy[i] += split_quantities[i];
+        ctx.accounts.tranche_config.deposited_quantity[i] += split_quantities[i];
 
         msg!(
             "new deposited quantity [{}] = {}",
             i,
-            ctx.accounts.tranche_config.deposited_quantiy[i]
+            ctx.accounts.tranche_config.deposited_quantity[i]
         );
     }
 

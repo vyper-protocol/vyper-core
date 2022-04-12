@@ -88,8 +88,8 @@ pub fn handler(ctx: Context<UpdateDepositedQuantityContext>) -> ProgramResult {
         [s_tot, capital_to_redeem - s_tot]
     };
 
-    ctx.accounts.tranche_config.deposited_quantiy[0] = senior_total;
-    ctx.accounts.tranche_config.deposited_quantiy[1] = junior_total;
+    ctx.accounts.tranche_config.deposited_quantity[0] = senior_total;
+    ctx.accounts.tranche_config.deposited_quantity[1] = junior_total;
 
     ctx.accounts.tranche_config.capital_split[0] =
         to_bps(senior_total as f64 / (senior_total as f64 + junior_total as f64));
