@@ -15,9 +15,6 @@ pub struct UpdateDepositedQuantityContext<'info> {
     #[account(mut, constraint = tranche_config.authority == *authority.key)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
-    #[account(mut)]
-    pub protocol_vault: Box<Account<'info, TokenAccount>>,
-
     /// CHECK: Safe
     #[account(mut)]
     pub protocol_state: AccountInfo<'info>,
