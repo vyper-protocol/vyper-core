@@ -1,29 +1,22 @@
-use vyper_utils::token::TokenBurnParams;
-use vyper_utils::token::spl_token_burn;
-use vyper_utils::math::{
-    from_bps,
+use crate::{
+    adapters::{common::*, solend::*},
+    error::ErrorCode,
+    state::TrancheConfig,
 };
-use std::ops::Deref;
-use anchor_lang::{prelude::*, solana_program};
-use std::{ io::Write };
+use anchor_lang::prelude::*;
 use anchor_spl::{
     self,
     associated_token::AssociatedToken,
-    token::{ Mint, Token, TokenAccount },
+    token::{Mint, Token, TokenAccount},
 };
+use spl_token_lending::state::CollateralExchangeRate;
 use std::cmp;
-use crate::{
-    state::{
-        TrancheConfig
-    },
-    adapters::common::*,
-    error::ErrorCode,
-};
-use spl_token_lending::state::{Reserve, CollateralExchangeRate};
+use vyper_utils::math::from_bps;
+use vyper_utils::token::spl_token_burn;
+use vyper_utils::token::TokenBurnParams;
 
 #[derive(Accounts)]
 pub struct RedeemContext<'info> {
-    
     /// Signer account
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -63,7 +56,7 @@ pub struct RedeemContext<'info> {
     // Lending market authority (PDA)
     /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
-    
+
     /// CHECK: Safe
     pub pyth_reserve_liquidity_oracle: AccountInfo<'info>,
 
@@ -100,24 +93,27 @@ pub struct RedeemContext<'info> {
 }
 
 impl<'info> RedeemContext<'info> {
-    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>  {
+    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>> {
         CpiContext::new(
             self.lending_program.to_account_info(),
             RefreshReserve {
                 lending_program: self.lending_program.clone(),
                 reserve: self.protocol_state.clone(),
                 pyth_reserve_liquidity_oracle: self.pyth_reserve_liquidity_oracle.clone(),
-                switchboard_reserve_liquidity_oracle: self.switchboard_reserve_liquidity_oracle.clone(),
+                switchboard_reserve_liquidity_oracle: self
+                    .switchboard_reserve_liquidity_oracle
+                    .clone(),
                 clock: self.clock.to_account_info(),
-            }
+            },
         )
     }
 
-    fn to_withdraw_proxy_lending_context(&self) -> CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>>  {
+    fn to_withdraw_proxy_lending_context(
+        &self,
+    ) -> CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>> {
         CpiContext::new(
             self.lending_program.to_account_info(),
             RedeemReserveCollateral {
-
                 lending_program: self.lending_program.clone(),
                 source_collateral: self.source_collateral_account.to_account_info(),
                 destination_liquidity: self.destination_liquidity.to_account_info(),
@@ -129,7 +125,7 @@ impl<'info> RedeemContext<'info> {
                 transfer_authority: self.authority.to_account_info(),
                 clock: self.clock.to_account_info(),
                 token_program_id: self.token_program.to_account_info(),
-            }
+            },
         )
     }
 
@@ -146,45 +142,54 @@ impl<'info> RedeemContext<'info> {
 pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> ProgramResult {
     msg!("redeem_tranche begin");
 
-    if redeem_quantity[0] > ctx.accounts.senior_tranche_vault.amount || redeem_quantity[1] > ctx.accounts.junior_tranche_vault.amount
+    if redeem_quantity[0] > ctx.accounts.senior_tranche_vault.amount
+        || redeem_quantity[1] > ctx.accounts.junior_tranche_vault.amount
     {
         msg!("redeem quantity invalid");
         return Err(ErrorCode::InvalidInput.into());
     }
 
     msg!("CPI: refesh reserve for redeem");
-    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
-    
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend)
+        .unwrap()
+        .refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
+
     let collateral_exchange_rate = ctx.accounts.get_collateral_exchange_rate()?;
-    let reserve_token_in_reserve = collateral_exchange_rate.collateral_to_liquidity(ctx.accounts.source_collateral_account.amount)?;
-    
+    let reserve_token_in_reserve = collateral_exchange_rate
+        .collateral_to_liquidity(ctx.accounts.source_collateral_account.amount)?;
+
     msg!("reserve_token_in_reserve: {}", reserve_token_in_reserve);
 
     // calculate capital redeem and interest to redeem
 
-    let [capital_to_redeem, interest_to_redeem] = if reserve_token_in_reserve > ctx.accounts.tranche_config.get_total_deposited_quantity()
+    let [capital_to_redeem, interest_to_redeem] = if reserve_token_in_reserve
+        > ctx.accounts.tranche_config.get_total_deposited_quantity()
     {
         [
             ctx.accounts.tranche_config.get_total_deposited_quantity(),
             reserve_token_in_reserve - ctx.accounts.tranche_config.get_total_deposited_quantity(),
         ]
     } else {
-        [
-            reserve_token_in_reserve,
-            0
-        ]
+        [reserve_token_in_reserve, 0]
     };
     msg!("+ capital_to_redeem: {}", capital_to_redeem);
     msg!("+ interest_to_redeem: {}", interest_to_redeem);
 
-    let capital_split_f: [f64; 2] = ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x));
-    let interest_split_f: [f64; 2] = ctx.accounts.tranche_config.interest_split.map(|x| from_bps(x));
+    let capital_split_f: [f64; 2] = ctx
+        .accounts
+        .tranche_config
+        .capital_split
+        .map(|x| from_bps(x));
+    let interest_split_f: [f64; 2] = ctx
+        .accounts
+        .tranche_config
+        .interest_split
+        .map(|x| from_bps(x));
 
     let mut senior_total: f64 = 0.0;
     let mut junior_total: f64 = 0.0;
 
     if interest_to_redeem > 0 {
-
         let senior_capital =
             ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 * capital_split_f[0];
 
@@ -195,11 +200,13 @@ pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> Progra
 
         senior_total += senior_interest;
 
-        junior_total += ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 + interest_to_redeem as f64 - senior_total;
-
+        junior_total += ctx.accounts.tranche_config.get_total_deposited_quantity() as f64
+            + interest_to_redeem as f64
+            - senior_total;
     } else {
         let senior_capital = cmp::min(
-            (ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 * capital_split_f[0]) as u64,
+            (ctx.accounts.tranche_config.get_total_deposited_quantity() as f64 * capital_split_f[0])
+                as u64,
             capital_to_redeem,
         );
         let junior_capital = capital_to_redeem - senior_capital as u64;
@@ -223,69 +230,41 @@ pub fn handler(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> Progra
     let user_total_to_redeem = (user_senior_part + user_junior_part) as u64;
     msg!("user_total_to_redeem: {}", user_total_to_redeem);
 
-    let collateral_to_redeem = collateral_exchange_rate.liquidity_to_collateral(user_total_to_redeem)?;
+    let collateral_to_redeem =
+        collateral_exchange_rate.liquidity_to_collateral(user_total_to_redeem)?;
     msg!("collateral_to_redeem: {}", collateral_to_redeem);
 
     msg!("CPI: redeem reserve collateral");
-    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().redeem_reserve_collateral(ctx.accounts.to_withdraw_proxy_lending_context(), collateral_to_redeem)?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend)
+        .unwrap()
+        .redeem_reserve_collateral(
+            ctx.accounts.to_withdraw_proxy_lending_context(),
+            collateral_to_redeem,
+        )?;
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // burn senior tranche tokens
 
     msg!("burn senior tranche tokens: {}", redeem_quantity[0]);
-    spl_token_burn(TokenBurnParams { 
+    spl_token_burn(TokenBurnParams {
         mint: ctx.accounts.senior_tranche_mint.to_account_info(),
         to: ctx.accounts.senior_tranche_vault.to_account_info(),
         amount: redeem_quantity[0],
         authority: ctx.accounts.authority.to_account_info(),
-        token_program: ctx.accounts.token_program.to_account_info()
+        token_program: ctx.accounts.token_program.to_account_info(),
     })?;
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // burn junior tranche tokens
 
     msg!("burn junior tranche tokens: {}", redeem_quantity[1]);
-    spl_token_burn(TokenBurnParams { 
+    spl_token_burn(TokenBurnParams {
         mint: ctx.accounts.junior_tranche_mint.to_account_info(),
         to: ctx.accounts.junior_tranche_vault.to_account_info(),
         amount: redeem_quantity[1],
         authority: ctx.accounts.authority.to_account_info(),
-        token_program: ctx.accounts.token_program.to_account_info()
+        token_program: ctx.accounts.token_program.to_account_info(),
     })?;
 
     Ok(())
-}
-
-#[derive(Clone)]
-pub struct SolendReserve(Reserve);
-
-impl anchor_lang::AccountDeserialize for SolendReserve {
-    fn try_deserialize(buf: &mut &[u8]) -> Result<Self, ProgramError> {
-        SolendReserve::try_deserialize_unchecked(buf)
-    }
-
-    fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self, ProgramError> {
-        <spl_token_lending::state::Reserve as solana_program::program_pack::Pack>::unpack(buf).map(SolendReserve)
-    }
-}
-
-impl anchor_lang::AccountSerialize for SolendReserve {
-    fn try_serialize<W: Write>(&self, _writer: &mut W) -> Result<(), ProgramError> {
-        // no-op
-        Ok(())
-    }
-}
-
-impl anchor_lang::Owner for SolendReserve {
-    fn owner() -> Pubkey {
-        spl_token_lending::id()
-    }
-}
-
-impl Deref for SolendReserve {
-    type Target = spl_token_lending::state::Reserve;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
 }
