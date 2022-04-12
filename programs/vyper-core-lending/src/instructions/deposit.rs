@@ -1,23 +1,14 @@
-use vyper_utils::math::{
-    from_bps,
-    get_quantites_with_capital_split
-};
+use crate::{adapters::common::*, state::TrancheConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     self,
     associated_token::AssociatedToken,
-    token::{ self, Mint, Token, TokenAccount },
+    token::{self, Mint, Token, TokenAccount},
 };
-use crate::{
-    state::{
-        TrancheConfig
-    },
-    adapters::common::*
-};
+use vyper_utils::math::{from_bps, get_quantites_with_capital_split};
 
 #[derive(Accounts)]
 pub struct DepositContext<'info> {
-    
     /// Signer account
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -57,7 +48,7 @@ pub struct DepositContext<'info> {
     // Lending market authority (PDA)
     /// CHECK: Safe
     pub lending_market_authority: AccountInfo<'info>,
-    
+
     /// CHECK: Safe
     pub pyth_reserve_liquidity_oracle: AccountInfo<'info>,
 
@@ -81,7 +72,7 @@ pub struct DepositContext<'info> {
     // Junior tranche token account
     #[account(mut)]
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
-    
+
     /// CHECK: Safe
     #[account()]
     pub lending_program: AccountInfo<'info>,
@@ -94,27 +85,32 @@ pub struct DepositContext<'info> {
 }
 
 impl<'info> DepositContext<'info> {
-
-    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>  {
+    fn to_refresh_reserve_context(&self) -> CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>> {
         CpiContext::new(
             self.lending_program.to_account_info(),
             RefreshReserve {
                 lending_program: self.lending_program.clone(),
                 reserve: self.protocol_state.clone(),
                 pyth_reserve_liquidity_oracle: self.pyth_reserve_liquidity_oracle.clone(),
-                switchboard_reserve_liquidity_oracle: self.switchboard_reserve_liquidity_oracle.clone(),
+                switchboard_reserve_liquidity_oracle: self
+                    .switchboard_reserve_liquidity_oracle
+                    .clone(),
                 clock: self.clock.to_account_info(),
-            }
+            },
         )
     }
 
-    fn to_deposit_reserve_liquidity_context(&self) -> CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>>  {
+    fn to_deposit_reserve_liquidity_context(
+        &self,
+    ) -> CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>> {
         CpiContext::new(
             self.lending_program.to_account_info(),
             DepositReserveLiquidity {
                 lending_program: self.lending_program.clone(),
                 source_liquidity: self.source_liquidity.to_account_info(),
-                destination_collateral_account: self.destination_collateral_account.to_account_info(),
+                destination_collateral_account: self
+                    .destination_collateral_account
+                    .to_account_info(),
                 reserve: self.protocol_state.clone(),
                 reserve_collateral_mint: self.collateral_mint.to_account_info(),
                 reserve_liquidity_supply: self.reserve_liquidity_supply.to_account_info(),
@@ -123,16 +119,12 @@ impl<'info> DepositContext<'info> {
                 transfer_authority: self.authority.to_account_info(),
                 clock: self.clock.to_account_info(),
                 token_program_id: self.token_program.to_account_info(),
-            }
+            },
         )
     }
 }
 
-pub fn handler(
-    ctx: Context<DepositContext>,
-    quantity: u64,
-    mint_count: [u64; 2],
-) -> ProgramResult {
+pub fn handler(ctx: Context<DepositContext>, quantity: u64, mint_count: [u64; 2]) -> ProgramResult {
     msg!("deposit begin");
 
     msg!("+ quantity: {}", quantity);
@@ -144,22 +136,43 @@ pub fn handler(
 
     msg!("deposit tokens to protocol");
 
-    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
-    crate::adapters::common::adpater_factory(LendingMarketID::Solend).unwrap().deposit_reserve_liquidity(ctx.accounts.to_deposit_reserve_liquidity_context(), quantity)?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend)
+        .unwrap()
+        .refresh_reserve(ctx.accounts.to_refresh_reserve_context())?;
+    crate::adapters::common::adpater_factory(LendingMarketID::Solend)
+        .unwrap()
+        .deposit_reserve_liquidity(
+            ctx.accounts.to_deposit_reserve_liquidity_context(),
+            quantity,
+        )?;
     // deposit_vyper_proxy_lending::refresh_reserve_for_deposit(ctx.accounts.to_deposit_proxy_lending_context())?;
     // deposit_vyper_proxy_lending::deposit_reserve_liquidity(ctx.accounts.to_deposit_proxy_lending_context(), quantity)?;
- 
+
     // * * * * * * * * * * * * * * * * * * * * * * *
     // increase the deposited quantity
 
-    let split_quantities = get_quantites_with_capital_split(quantity, ctx.accounts.tranche_config.capital_split.map(|x| from_bps(x)));
+    let split_quantities = get_quantites_with_capital_split(
+        quantity,
+        ctx.accounts
+            .tranche_config
+            .capital_split
+            .map(|x| from_bps(x)),
+    );
     for i in 0..split_quantities.len() {
         msg!("split_quantities[{}] = {}", i, split_quantities[i]);
-        msg!("old deposited quantity [{}] = {}", i, ctx.accounts.tranche_config.deposited_quantiy[i]);
-        
+        msg!(
+            "old deposited quantity [{}] = {}",
+            i,
+            ctx.accounts.tranche_config.deposited_quantiy[i]
+        );
+
         ctx.accounts.tranche_config.deposited_quantiy[i] += split_quantities[i];
 
-        msg!("new deposited quantity [{}] = {}", i, ctx.accounts.tranche_config.deposited_quantiy[i]);
+        msg!(
+            "new deposited quantity [{}] = {}",
+            i,
+            ctx.accounts.tranche_config.deposited_quantiy[i]
+        );
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * *
@@ -172,7 +185,7 @@ pub fn handler(
         mint_key.as_ref(),
         senior_tranche_mint_key.as_ref(),
         junior_tranche_mint_key.as_ref(),
-        &[ctx.accounts.tranche_config.tranche_config_bump]
+        &[ctx.accounts.tranche_config.tranche_config_bump],
     ];
     let tranche_config_signer = &[&tranche_config_seeds[..]];
 
@@ -186,7 +199,7 @@ pub fn handler(
                     to: ctx.accounts.senior_tranche_vault.to_account_info(),
                     authority: ctx.accounts.tranche_config.to_account_info(),
                 },
-                tranche_config_signer
+                tranche_config_signer,
             ),
             mint_count[0],
         )?;
@@ -202,7 +215,7 @@ pub fn handler(
                     to: ctx.accounts.junior_tranche_vault.to_account_info(),
                     authority: ctx.accounts.tranche_config.to_account_info(),
                 },
-                tranche_config_signer
+                tranche_config_signer,
             ),
             mint_count[1],
         )?;

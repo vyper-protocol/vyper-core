@@ -3,7 +3,7 @@ use anchor_spl::{
     self,
     associated_token::AssociatedToken,
     dex,
-    token::{ Mint, Token, TokenAccount },
+    token::{Mint, Token, TokenAccount},
 };
 
 #[derive(Accounts)]
@@ -57,10 +57,7 @@ pub struct CreateSerumMarketContext<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(
-    ctx: Context<CreateSerumMarketContext>,
-    vault_signer_nonce: u8,
-) -> ProgramResult {
+pub fn handler(ctx: Context<CreateSerumMarketContext>, vault_signer_nonce: u8) -> ProgramResult {
     // * * * * * * * * * * * * * * * * * * * * * * *
     // initialize market on serum
 

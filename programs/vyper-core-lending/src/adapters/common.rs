@@ -1,10 +1,21 @@
-use anchor_lang::prelude::*;
 use crate::adapters::solend::SolendAdapter;
+use anchor_lang::prelude::*;
 
 pub trait CommonAdapterTraits<'info> {
-    fn refresh_reserve(&self, ctx: CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>) -> ProgramResult;
-    fn deposit_reserve_liquidity(&self, ctx: CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>>, liquidity_amount: u64) -> ProgramResult;
-    fn redeem_reserve_collateral(&self, ctx: CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>>, collateral_amount: u64) -> ProgramResult;
+    fn refresh_reserve(
+        &self,
+        ctx: CpiContext<'_, '_, '_, 'info, RefreshReserve<'info>>,
+    ) -> ProgramResult;
+    fn deposit_reserve_liquidity(
+        &self,
+        ctx: CpiContext<'_, '_, '_, 'info, DepositReserveLiquidity<'info>>,
+        liquidity_amount: u64,
+    ) -> ProgramResult;
+    fn redeem_reserve_collateral(
+        &self,
+        ctx: CpiContext<'_, '_, '_, 'info, RedeemReserveCollateral<'info>>,
+        collateral_amount: u64,
+    ) -> ProgramResult;
 }
 
 pub enum LendingMarketID {

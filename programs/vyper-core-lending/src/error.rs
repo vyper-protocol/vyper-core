@@ -10,10 +10,10 @@ pub enum ErrorCode {
 
     #[msg("invalid tranche amount")]
     InvalidTrancheAmount,
-    
+
     #[msg("invalid tranche idx")]
     InvalidTrancheIdx,
 
     #[msg("invalid protocol id")]
-    InvalidProtocolId
+    InvalidProtocolId,
 }

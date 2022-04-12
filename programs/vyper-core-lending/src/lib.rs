@@ -1,11 +1,11 @@
+pub mod adapters;
 pub mod error;
 pub mod inputs;
-pub mod state;
 pub mod instructions;
-pub mod adapters;
+pub mod state;
 
 use anchor_lang::prelude::*;
-use inputs::{CreateTrancheConfigInput};
+use inputs::CreateTrancheConfigInput;
 use instructions::*;
 
 declare_id!("5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc");
@@ -13,7 +13,7 @@ declare_id!("5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc");
 #[program]
 pub mod vyper_core_lending {
 
-use super::*;
+    use super::*;
 
     pub fn create_tranche(
         ctx: Context<CreateTranchesContext>,
@@ -22,7 +22,13 @@ use super::*;
         senior_tranche_mint_bump: u8,
         junior_tranche_mint_bump: u8,
     ) -> ProgramResult {
-        instructions::create_tranche::handler(ctx, input_data, tranche_config_bump, senior_tranche_mint_bump, junior_tranche_mint_bump)
+        instructions::create_tranche::handler(
+            ctx,
+            input_data,
+            tranche_config_bump,
+            senior_tranche_mint_bump,
+            junior_tranche_mint_bump,
+        )
     }
 
     pub fn update_interest_split(
@@ -64,4 +70,3 @@ use super::*;
         instructions::redeem::handler(ctx, redeem_quantity)
     }
 }
-

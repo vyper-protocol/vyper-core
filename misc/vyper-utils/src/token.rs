@@ -1,10 +1,7 @@
 use anchor_lang::prelude::*;
 use {
     anchor_lang::prelude::{AccountInfo, ProgramResult},
-    anchor_spl::{
-        self,
-        token,
-    }
+    anchor_spl::{self, token},
 };
 
 /// TokenTransfer
@@ -97,10 +94,7 @@ pub fn spl_token_burn(params: TokenBurnParams<'_>) -> ProgramResult {
         to: to,
         authority: authority,
     };
-    token::burn(
-        CpiContext::new(token_program, burn_ctx),
-        amount,
-    )
+    token::burn(CpiContext::new(token_program, burn_ctx), amount)
 }
 
 pub struct TokenBurnWithSignerParams<'a: 'b, 'b> {

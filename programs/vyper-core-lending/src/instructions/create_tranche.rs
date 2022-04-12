@@ -1,17 +1,12 @@
+use crate::{
+    inputs::{CreateTrancheConfigInput, Input},
+    state::TrancheConfig,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     self,
     associated_token::AssociatedToken,
-    token::{ Mint, Token },
-};
-use crate::{
-    inputs::{
-        CreateTrancheConfigInput,
-        Input
-    },
-    state::{
-        TrancheConfig
-    }
+    token::{Mint, Token},
 };
 
 #[derive(Accounts)]

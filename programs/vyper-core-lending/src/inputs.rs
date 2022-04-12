@@ -2,7 +2,6 @@ use crate::{error::ErrorCode, state::TrancheConfig};
 use anchor_lang::prelude::*;
 use std::result::Result;
 
-
 pub trait Input {
     fn is_valid(&self) -> Result<(), ErrorCode>;
 }
@@ -30,7 +29,7 @@ impl CreateTrancheConfigInput {
         data.interest_split = self.interest_split.clone();
         data.create_serum = self.create_serum;
         data.protocol_bump = self.protocol_bump;
-        
+
         match Clock::get() {
             Ok(val) => data.created_at = val.unix_timestamp as u64,
             Err(_) => data.created_at = 0,

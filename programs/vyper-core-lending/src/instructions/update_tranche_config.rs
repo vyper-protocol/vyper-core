@@ -1,9 +1,5 @@
+use crate::state::TrancheConfig;
 use anchor_lang::prelude::*;
-use crate::{
-    state::{
-        TrancheConfig
-    },
-};
 
 #[derive(Accounts)]
 pub struct UpdateTrancheConfigContext<'info> {
@@ -18,17 +14,29 @@ pub struct UpdateTrancheConfigContext<'info> {
 
 pub fn handler_update_interest_split(
     ctx: Context<UpdateTrancheConfigContext>,
-        interest_split: [u32; 2],
+    interest_split: [u32; 2],
 ) -> ProgramResult {
     msg!("update_interest_split begin");
 
-    for (i, x) in ctx.accounts.tranche_config.interest_split.iter().enumerate() {
+    for (i, x) in ctx
+        .accounts
+        .tranche_config
+        .interest_split
+        .iter()
+        .enumerate()
+    {
         msg!("+ old_interest_split[{}]: {}", i, x);
     }
-    
+
     ctx.accounts.tranche_config.interest_split = interest_split;
 
-    for (i, x) in ctx.accounts.tranche_config.interest_split.iter().enumerate() {
+    for (i, x) in ctx
+        .accounts
+        .tranche_config
+        .interest_split
+        .iter()
+        .enumerate()
+    {
         msg!("+ new_interest_split[{}]: {}", i, x);
     }
 
@@ -44,7 +52,7 @@ pub fn handler_update_capital_split(
     for (i, x) in ctx.accounts.tranche_config.capital_split.iter().enumerate() {
         msg!("+ old_capital_split[{}]: {}", i, x);
     }
-    
+
     ctx.accounts.tranche_config.capital_split = capital_split;
 
     for (i, x) in ctx.accounts.tranche_config.capital_split.iter().enumerate() {
