@@ -1,5 +1,5 @@
 [programs.localnet]
-vyper_core_lending = "5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc"
+vyper_core_lending = "CJt5bFSebqNErzCdLNvk678S8Bmwdx2dCR8vrBS1eBoU"
 
 [registry]
 url = "https://anchor.projectserum.com"
