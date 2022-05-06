@@ -1,4 +1,4 @@
-use crate::{adapters::common::*, state::TrancheConfig};
+use crate::{adapters::{common::*, SolendReserve}, state::TrancheConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     self,
@@ -74,7 +74,7 @@ pub struct DepositContext<'info> {
     pub junior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: Safe
-    #[account()]
+    #[account(executable)]
     pub lending_program: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -90,7 +90,7 @@ impl<'info> DepositContext<'info> {
             self.lending_program.to_account_info(),
             RefreshReserve {
                 lending_program: self.lending_program.clone(),
-                reserve: self.protocol_state.clone(),
+                reserve: self.protocol_state.to_account_info().clone(),
                 pyth_reserve_liquidity_oracle: self.pyth_reserve_liquidity_oracle.clone(),
                 switchboard_reserve_liquidity_oracle: self
                     .switchboard_reserve_liquidity_oracle
@@ -111,7 +111,7 @@ impl<'info> DepositContext<'info> {
                 destination_collateral_account: self
                     .destination_collateral_account
                     .to_account_info(),
-                reserve: self.protocol_state.clone(),
+                reserve: self.protocol_state.to_account_info().clone(),
                 reserve_collateral_mint: self.collateral_mint.to_account_info(),
                 reserve_liquidity_supply: self.reserve_liquidity_supply.to_account_info(),
                 lending_market: self.lending_market_account.clone(),

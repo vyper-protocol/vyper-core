@@ -78,12 +78,12 @@ pub struct SolendReserve(Reserve);
 
 impl anchor_lang::AccountDeserialize for SolendReserve {
     fn try_deserialize(buf: &mut &[u8]) -> Result<Self, ProgramError> {
-        SolendReserve::try_deserialize_unchecked(buf)
+        // SolendReserve::try_deserialize_unchecked(buf)
+        <Reserve as solana_program::program_pack::Pack>::unpack(buf).map(SolendReserve)
     }
 
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> Result<Self, ProgramError> {
-        <spl_token_lending::state::Reserve as solana_program::program_pack::Pack>::unpack(buf)
-            .map(SolendReserve)
+        <Reserve as solana_program::program_pack::Pack>::unpack(buf).map(SolendReserve)
     }
 }
 
@@ -101,7 +101,7 @@ impl anchor_lang::Owner for SolendReserve {
 }
 
 impl Deref for SolendReserve {
-    type Target = spl_token_lending::state::Reserve;
+    type Target = Reserve;
 
     fn deref(&self) -> &Self::Target {
         &self.0
