@@ -11,34 +11,17 @@ import {
     SYSVAR_RENT_PUBKEY,
     TransactionInstruction,
 } from "@solana/web3.js";
-import {
-    Token,
-    MintLayout,
-    AccountLayout,
-    TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { Token, MintLayout, AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import * as anchor from "@project-serum/anchor";
 
-import {
-    LENDING_MARKET_SIZE,
-    SolendReserve,
-    SolendMarket,
-} from "@solendprotocol/solend-sdk";
+import { LENDING_MARKET_SIZE, SolendReserve, SolendMarket } from "@solendprotocol/solend-sdk";
 
 import { Asset } from "./asset";
 
-export const DEVNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey(
-    "ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx"
-);
-export const MAINNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey(
-    "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo"
-);
-export const pythPrice = new anchor.web3.PublicKey(
-    "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"
-);
-export const switchboardFeed = new anchor.web3.PublicKey(
-    "AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL"
-);
+export const DEVNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey("ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx");
+export const MAINNET_SOLEND_PROGRAM_ID = new anchor.web3.PublicKey("So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo");
+export const pythPrice = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
+export const switchboardFeed = new anchor.web3.PublicKey("AdtRGGhmqvom3Jemp5YNrxd9q9unX36BZk1pujkkXijL");
 
 export interface SolendAccounts {
     program: PublicKey;
@@ -52,38 +35,22 @@ export interface SolendAccounts {
 }
 
 export class SolendReserveAsset extends Asset {
-    private constructor(
-        public provider: anchor.Provider,
-        public accounts: SolendAccounts,
-        public reserve: SolendReserve
-    ) {
+    private constructor(public provider: anchor.Provider, public accounts: SolendAccounts, public reserve: SolendReserve) {
         super();
     }
 
     // TODO change to connection instead of provider so it doesn't need to be reloaded when wallet changes
-    static async load(
-        provider: anchor.Provider,
-        cluster: Cluster,
-        reserveMint: PublicKey
-    ): Promise<SolendReserveAsset> {
+    static async load(provider: anchor.Provider, cluster: Cluster, reserveMint: PublicKey): Promise<SolendReserveAsset> {
         let market: SolendMarket;
         if (cluster == "devnet") {
-            market = await SolendMarket.initialize(
-                provider.connection,
-                "devnet"
-            );
+            market = await SolendMarket.initialize(provider.connection, "devnet");
         } else if (cluster == "mainnet-beta") {
-            market = await SolendMarket.initialize(
-                provider.connection,
-                "production"
-            );
+            market = await SolendMarket.initialize(provider.connection, "production");
         } else {
             throw new Error("Cluster ${cluster} not supported");
         }
         await market.loadReserves();
-        const reserve = market.reserves.find(
-            (res) => res.config.mintAddress == reserveMint.toBase58()
-        );
+        const reserve = market.reserves.find((res) => res.config.mintAddress == reserveMint.toBase58());
 
         const accounts: SolendAccounts = {
             program: new PublicKey(market.config.programID),
@@ -91,9 +58,7 @@ export class SolendReserveAsset extends Asset {
             marketAuthority: new PublicKey(market.config.authorityAddress),
             reserve: new PublicKey(reserve.config.address),
             pythPrice: new PublicKey(reserve.config.priceAddress),
-            switchboardFeed: new PublicKey(
-                reserve.config.switchboardFeedAddress
-            ),
+            switchboardFeed: new PublicKey(reserve.config.switchboardFeedAddress),
             collateralMint: new PublicKey(reserve.config.collateralMintAddress),
             liquiditySupply: new PublicKey(reserve.config.liquidityAddress),
         };
@@ -156,10 +121,7 @@ export class SolendReserveAsset extends Asset {
             provider.connection
         );
 
-        return [
-            new SolendReserveAsset(provider, accounts, reserve),
-            marketKeypair,
-        ];
+        return [new SolendReserveAsset(provider, accounts, reserve), marketKeypair];
     }
 
     private async reload() {
@@ -175,9 +137,7 @@ export class SolendReserveAsset extends Asset {
             TOKEN_PROGRAM_ID,
             Keypair.generate() // dummy signer since we aren't making any txs
         );
-        const lpTokenAmount = new Big(
-            (await lpToken.getAccountInfo(address)).amount.toString()
-        );
+        const lpTokenAmount = new Big((await lpToken.getAccountInfo(address)).amount.toString());
         const exchangeRate = new Big(this.reserve.stats.cTokenExchangeRate);
 
         return lpTokenAmount.mul(exchangeRate);
@@ -211,10 +171,7 @@ export async function initLendingMarket(
     solendProgramId: PublicKey
 ): Promise<Keypair> {
     const lendingMarketAccount = anchor.web3.Keypair.generate();
-    const balanceNeeded =
-        await provider.connection.getMinimumBalanceForRentExemption(
-            LENDING_MARKET_SIZE
-        );
+    const balanceNeeded = await provider.connection.getMinimumBalanceForRentExemption(LENDING_MARKET_SIZE);
 
     const initTx = new anchor.web3.Transaction()
         .add(
@@ -255,10 +212,7 @@ export async function addReserve(
 ): Promise<SolendAccounts> {
     const RESERVE_SIZE = 619;
     const collateralMint = anchor.web3.Keypair.generate();
-    const [lendingMarketAuthority] = await PublicKey.findProgramAddress(
-        [lendingMarket.toBuffer()],
-        solendProgramId
-    );
+    const [lendingMarketAuthority] = await PublicKey.findProgramAddress([lendingMarket.toBuffer()], solendProgramId);
 
     const reserve = anchor.web3.Keypair.generate();
     const liquiditySupply = anchor.web3.Keypair.generate();
@@ -267,18 +221,9 @@ export async function addReserve(
     const userCollateral = anchor.web3.Keypair.generate();
     const userTransferAuthority = anchor.web3.Keypair.generate();
 
-    const reserveBalance =
-        await provider.connection.getMinimumBalanceForRentExemption(
-            RESERVE_SIZE
-        );
-    const mintBalance =
-        await provider.connection.getMinimumBalanceForRentExemption(
-            MintLayout.span
-        );
-    const accountBalance =
-        await provider.connection.getMinimumBalanceForRentExemption(
-            AccountLayout.span
-        );
+    const reserveBalance = await provider.connection.getMinimumBalanceForRentExemption(RESERVE_SIZE);
+    const mintBalance = await provider.connection.getMinimumBalanceForRentExemption(MintLayout.span);
+    const accountBalance = await provider.connection.getMinimumBalanceForRentExemption(AccountLayout.span);
 
     const tx1 = new anchor.web3.Transaction()
         .add(
@@ -394,13 +339,7 @@ export async function addReserve(
     await provider.sendAll([
         {
             tx: tx1,
-            signers: [
-                payer,
-                reserve,
-                collateralMint,
-                collateralSupply,
-                userCollateral,
-            ],
+            signers: [payer, reserve, collateralMint, collateralSupply, userCollateral],
         },
         { tx: tx2, signers: [payer, liquiditySupply, liquidityFeeReceiver] },
         { tx: tx3, signers: [payer, owner, userTransferAuthority] },
@@ -449,11 +388,7 @@ const publicKey = (property = "publicKey"): Layout<PublicKey> => {
         return new PublicKey(src);
     };
 
-    publicKeyLayout.encode = (
-        publicKey: PublicKey,
-        buffer: Buffer,
-        offset: number
-    ) => {
+    publicKeyLayout.encode = (publicKey: PublicKey, buffer: Buffer, offset: number) => {
         const src = publicKey.toBuffer();
         return encode(src, buffer, offset);
     };
@@ -474,11 +409,7 @@ const initLendingMarketInstruction = (
         owner: PublicKey;
         quoteCurrency: Buffer;
     }
-    const DataLayout = struct<Data>([
-        u8("instruction"),
-        publicKey("owner"),
-        blob(32, "quoteCurrency"),
-    ]);
+    const DataLayout = struct<Data>([u8("instruction"), publicKey("owner"), blob(32, "quoteCurrency")]);
     const data = Buffer.alloc(DataLayout.span);
     DataLayout.encode(
         {
@@ -523,11 +454,7 @@ const bigInt =
             return toBigIntLE(src as Buffer);
         };
 
-        bigIntLayout.encode = (
-            bigInt: bigint,
-            buffer: Buffer,
-            offset: number
-        ) => {
+        bigIntLayout.encode = (bigInt: bigint, buffer: Buffer, offset: number) => {
             const src = toBufferLE(bigInt, length);
             return encode(src, buffer, offset);
         };
@@ -537,10 +464,7 @@ const bigInt =
 
 const u64 = bigInt(8);
 
-const ReserveFeesLayout = struct<ReserveFees>(
-    [u64("borrowFeeWad"), u64("flashLoanFeeWad"), u8("hostFeePercentage")],
-    "fees"
-);
+const ReserveFeesLayout = struct<ReserveFees>([u64("borrowFeeWad"), u64("flashLoanFeeWad"), u8("hostFeePercentage")], "fees");
 
 interface ReserveConfig {
     optimalUtilizationRate: number;
@@ -599,11 +523,7 @@ const initReserveInstruction = (
         config: ReserveConfig;
     }
 
-    const DataLayout = struct<Data>([
-        u8("instruction"),
-        u64("liquidityAmount"),
-        ReserveConfigLayout,
-    ]);
+    const DataLayout = struct<Data>([u8("instruction"), u64("liquidityAmount"), ReserveConfigLayout]);
     const data = Buffer.alloc(DataLayout.span);
     DataLayout.encode(
         {
