@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use inputs::CreateTrancheConfigInput;
 use instructions::*;
 
-declare_id!("5UZpLufUpmnSXor6hgsGyPRMaGS3DsTUYaBZVLX1Jmzc");
+declare_id!("CJt5bFSebqNErzCdLNvk678S8Bmwdx2dCR8vrBS1eBoU");
 
 #[program]
 pub mod vyper_core_lending {
