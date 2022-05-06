@@ -22,8 +22,7 @@ pub struct RedeemContext<'info> {
     pub authority: Signer<'info>,
 
     /// Tranche config account, where all the parameters are saved
-    /// TODO add constraints
-    #[account(mut)]
+    #[account(mut, constraint = tranche_config.authority == authority.key())]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// mint token to deposit

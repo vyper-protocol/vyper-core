@@ -14,8 +14,7 @@ pub struct DepositContext<'info> {
     pub authority: Signer<'info>,
 
     /// Tranche config account, where all the parameters are saved
-    /// TODO add constraints
-    #[account(mut)]
+    #[account(mut, constraint = tranche_config.authority == authority.key())]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// mint token to deposit
@@ -145,8 +144,6 @@ pub fn handler(ctx: Context<DepositContext>, quantity: u64, mint_count: [u64; 2]
             ctx.accounts.to_deposit_reserve_liquidity_context(),
             quantity,
         )?;
-    // deposit_vyper_proxy_lending::refresh_reserve_for_deposit(ctx.accounts.to_deposit_proxy_lending_context())?;
-    // deposit_vyper_proxy_lending::deposit_reserve_liquidity(ctx.accounts.to_deposit_proxy_lending_context(), quantity)?;
 
     // * * * * * * * * * * * * * * * * * * * * * * *
     // increase the deposited quantity
