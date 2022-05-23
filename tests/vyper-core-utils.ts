@@ -2,7 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
 import { JUNIOR, SENIOR } from "./constants";
-import { to_bps } from "./utils";
+import { bn, to_bps } from "./utils";
 
 export interface CrateTrancheConfigData {
     capitalSplit: number[];
@@ -32,27 +32,18 @@ export interface TranchesConfiguration {
 export async function createTranchesConfiguration(
     proxyProtocolProgram: anchor.web3.PublicKey,
     depositMint: anchor.web3.PublicKey,
+    trancheID: anchor.BN,
     program: Program<VyperCoreLending>
 ): Promise<TranchesConfiguration> {
-    const [seniorTrancheMint, seniorTrancheMintBump] =
-        await anchor.web3.PublicKey.findProgramAddress(
-            [
-                Buffer.from(SENIOR),
-                proxyProtocolProgram.toBuffer(),
-                depositMint.toBuffer(),
-            ],
-            program.programId
-        );
+    const [seniorTrancheMint, seniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [trancheID.toArrayLike(Buffer, "be", 8), Buffer.from(SENIOR), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
+        program.programId
+    );
 
-    const [juniorTrancheMint, juniorTrancheMintBump] =
-        await anchor.web3.PublicKey.findProgramAddress(
-            [
-                Buffer.from(JUNIOR),
-                proxyProtocolProgram.toBuffer(),
-                depositMint.toBuffer(),
-            ],
-            program.programId
-        );
+    const [juniorTrancheMint, juniorTrancheMintBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [trancheID.toArrayLike(Buffer, "be", 8), Buffer.from(JUNIOR), proxyProtocolProgram.toBuffer(), depositMint.toBuffer()],
+        program.programId
+    );
 
     return {
         seniorTrancheMint,
@@ -62,21 +53,21 @@ export async function createTranchesConfiguration(
     };
 }
 
+export function createTrancheID(): anchor.BN {
+    return bn(new Date().getDate());
+}
+
 export async function findTrancheConfig(
     mint: anchor.web3.PublicKey,
     seniorTrancheMint: anchor.web3.PublicKey,
     juniorTrancheMint: anchor.web3.PublicKey,
+    trancheID: anchor.BN,
     vyperCoreProgramID: anchor.web3.PublicKey
 ): Promise<[anchor.web3.PublicKey, number]> {
-    const [trancheConfig, trancheConfigBump] =
-        await anchor.web3.PublicKey.findProgramAddress(
-            [
-                mint.toBuffer(),
-                seniorTrancheMint.toBuffer(),
-                juniorTrancheMint.toBuffer(),
-            ],
-            vyperCoreProgramID
-        );
+    const [trancheConfig, trancheConfigBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [trancheID.toArrayLike(Buffer, "be", 8), mint.toBuffer(), seniorTrancheMint.toBuffer(), juniorTrancheMint.toBuffer()],
+        vyperCoreProgramID
+    );
 
     return [trancheConfig, trancheConfigBump];
 }

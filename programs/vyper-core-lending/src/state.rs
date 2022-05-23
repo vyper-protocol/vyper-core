@@ -6,6 +6,9 @@ pub struct TrancheConfig {
     ///
     pub authority: Pubkey,
 
+    /// tranche config additional id
+    pub id: [u8;8],
+
     /// Protocol program_id
     ///
     pub protocol_program_id: Pubkey,
@@ -51,6 +54,7 @@ impl TrancheConfig {
 
     pub const LEN: usize = 8 + // discriminator
     32 + // authority: Pubkey,
+    8 + // id: [u8; 8]
     32 + // protocol_id: Pubkey
     8 + 8 + // deposited_quantity: [u64;2]
     2 * 4 + // interest_split: [u32;2],

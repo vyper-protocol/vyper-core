@@ -10,7 +10,7 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
-#[instruction(input_data: CreateTrancheConfigInput, tranche_config_bump: u8, senior_tranche_mint_bump: u8, junior_tranche_mint_bump: u8)]
+#[instruction(input_data: CreateTrancheConfigInput, tranche_config_id: u64, tranche_config_bump: u8, senior_tranche_mint_bump: u8, junior_tranche_mint_bump: u8)]
 pub struct CreateTranchesContext<'info> {
     /**
      * Signer account
@@ -24,7 +24,7 @@ pub struct CreateTranchesContext<'info> {
     #[account(
         init,
         payer = authority,
-        seeds = [mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
+        seeds = [tranche_config_id.to_be_bytes().as_ref(), mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
         // bump = tranche_config_bump,
         bump,
         space = TrancheConfig::LEN)]
@@ -41,7 +41,7 @@ pub struct CreateTranchesContext<'info> {
     // Senior tranche mint
     #[account(
         init,
-        seeds = [vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [tranche_config_id.to_be_bytes().as_ref(), vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = senior_tranche_mint_bump,
         bump,
         payer = authority,
@@ -53,7 +53,7 @@ pub struct CreateTranchesContext<'info> {
 
     // Junior tranche mint
     #[account(init,
-        seeds = [vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
+        seeds = [tranche_config_id.to_be_bytes().as_ref(), vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = junior_tranche_mint_bump,
         bump,
         payer = authority,
@@ -76,6 +76,7 @@ pub struct CreateTranchesContext<'info> {
 pub fn handler(
     ctx: Context<CreateTranchesContext>,
     input_data: CreateTrancheConfigInput,
+    tranche_config_id: u64,
     tranche_config_bump: u8,
     senior_tranche_mint_bump: u8,
     junior_tranche_mint_bump: u8,
@@ -94,6 +95,7 @@ pub fn handler(
     msg!("create tranche config");
     input_data.create_tranche_config(&mut ctx.accounts.tranche_config);
     ctx.accounts.tranche_config.authority = ctx.accounts.authority.key();
+    ctx.accounts.tranche_config.id = tranche_config_id.to_be_bytes();
     ctx.accounts.tranche_config.protocol_program_id = ctx.accounts.protocol_program.key();
     ctx.accounts.tranche_config.senior_tranche_mint = ctx.accounts.senior_tranche_mint.key();
     ctx.accounts.tranche_config.junior_tranche_mint = ctx.accounts.junior_tranche_mint.key();

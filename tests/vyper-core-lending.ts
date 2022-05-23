@@ -1,25 +1,11 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import {
-    createMint,
-    createMintAndVault,
-    createTokenAccount,
-    getMintInfo,
-    getTokenAccount,
-} from "@project-serum/common";
-import {
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    Token,
-    TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { createMint, createMintAndVault, createTokenAccount, getMintInfo, getTokenAccount } from "@project-serum/common";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
 import { bn, printProgramShortDetails, to_bps } from "./utils";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
-import {
-    createTrancheConfigInput,
-    createTranchesConfiguration,
-    findTrancheConfig,
-} from "./vyper-core-utils";
+import { createTrancheConfigInput, createTrancheID, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
 import { DEVNET_SOLEND_PROGRAM_ID } from "./solend/solend";
 
 describe("vyper-core-lending", () => {
@@ -27,8 +13,7 @@ describe("vyper-core-lending", () => {
     anchor.setProvider(anchor.Provider.env());
 
     //@ts-ignore
-    const programVyperCoreLending = anchor.workspace
-        .VyperCoreLending as Program<VyperCoreLending>;
+    const programVyperCoreLending = anchor.workspace.VyperCoreLending as Program<VyperCoreLending>;
 
     console.log("########################");
     printProgramShortDetails(programVyperCoreLending as Program);
@@ -41,35 +26,30 @@ describe("vyper-core-lending", () => {
 
         // initialize tranche config
 
-        const {
-            seniorTrancheMint,
-            seniorTrancheMintBump,
-            juniorTrancheMint,
-            juniorTrancheMintBump,
-        } = await createTranchesConfiguration(
-            DEVNET_SOLEND_PROGRAM_ID,
-            mint,
-            programVyperCoreLending
-        );
+        const trancheID = createTrancheID();
+
+        const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
+            await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, mint, trancheID, programVyperCoreLending);
 
         const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
             mint,
             seniorTrancheMint,
             juniorTrancheMint,
+            trancheID,
             programVyperCoreLending.programId
         );
 
         // vyper-core rpc: create tranche
-
+        console.log("create tranche");
         const tx = await programVyperCoreLending.rpc.createTranche(
             inputData,
+            trancheID,
             trancheConfigBump,
             seniorTrancheMintBump,
             juniorTrancheMintBump,
             {
                 accounts: {
-                    authority:
-                        programVyperCoreLending.provider.wallet.publicKey,
+                    authority: programVyperCoreLending.provider.wallet.publicKey,
                     trancheConfig,
                     mint,
                     seniorTrancheMint: seniorTrancheMint,
@@ -83,14 +63,11 @@ describe("vyper-core-lending", () => {
                 },
             }
         );
-
+        console.log("tranche created");
         // * * * * * * * * * * * * * * * * * * * * * * *
         // fetch tranche config
 
-        const account =
-            await programVyperCoreLending.account.trancheConfig.fetch(
-                trancheConfig
-            );
+        const account = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
         assert.equal(account.depositedQuantity[0].toNumber(), 0);
         assert.equal(account.depositedQuantity[1].toNumber(), 0);
@@ -99,17 +76,11 @@ describe("vyper-core-lending", () => {
         assert.equal(account.createSerum, inputData.createSerum);
         assert.ok(account.createdAt.toNumber() > 0);
 
-        const seniorTrancheMintInfo = await getMintInfo(
-            programVyperCoreLending.provider,
-            seniorTrancheMint
-        );
+        const seniorTrancheMintInfo = await getMintInfo(programVyperCoreLending.provider, seniorTrancheMint);
         assert.equal(seniorTrancheMintInfo.decimals, 0);
         assert.equal(seniorTrancheMintInfo.supply.toNumber(), 0);
 
-        const juniorTrancheMintInfo = await getMintInfo(
-            programVyperCoreLending.provider,
-            juniorTrancheMint
-        );
+        const juniorTrancheMintInfo = await getMintInfo(programVyperCoreLending.provider, juniorTrancheMint);
         assert.equal(juniorTrancheMintInfo.decimals, 0);
         assert.equal(juniorTrancheMintInfo.supply.toNumber(), 0);
     });
@@ -118,6 +89,7 @@ describe("vyper-core-lending", () => {
         const inputData = createTrancheConfigInput();
         let trancheConfig: anchor.web3.PublicKey;
         let trancheConfigBump: number;
+        let trancheID: anchor.BN;
 
         before(async () => {
             // define input data
@@ -125,21 +97,16 @@ describe("vyper-core-lending", () => {
 
             // initialize tranche config
 
-            const {
-                seniorTrancheMint,
-                seniorTrancheMintBump,
-                juniorTrancheMint,
-                juniorTrancheMintBump,
-            } = await createTranchesConfiguration(
-                DEVNET_SOLEND_PROGRAM_ID,
-                mint,
-                programVyperCoreLending
-            );
+            const trancheID = createTrancheID();
+
+            const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
+                await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, mint, trancheID, programVyperCoreLending);
 
             [trancheConfig, trancheConfigBump] = await findTrancheConfig(
                 mint,
                 seniorTrancheMint,
                 juniorTrancheMint,
+                trancheID,
                 programVyperCoreLending.programId
             );
 
@@ -147,13 +114,13 @@ describe("vyper-core-lending", () => {
 
             await programVyperCoreLending.rpc.createTranche(
                 inputData,
+                trancheID,
                 trancheConfigBump,
                 seniorTrancheMintBump,
                 juniorTrancheMintBump,
                 {
                     accounts: {
-                        authority:
-                            programVyperCoreLending.provider.wallet.publicKey,
+                        authority: programVyperCoreLending.provider.wallet.publicKey,
                         trancheConfig,
                         mint,
                         seniorTrancheMint: seniorTrancheMint,
@@ -172,116 +139,74 @@ describe("vyper-core-lending", () => {
         it("updates interest split", async () => {
             // fetch tranche config
 
-            var trancheConfigAccount =
-                await programVyperCoreLending.account.trancheConfig.fetch(
-                    trancheConfig
-                );
+            var trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
-            assert.deepEqual(
-                trancheConfigAccount.interestSplit,
-                inputData.interestSplit
-            );
+            assert.deepEqual(trancheConfigAccount.interestSplit, inputData.interestSplit);
 
             // update interest split
             var newInterestSplit = [to_bps(0.5), to_bps(1)];
 
-            await programVyperCoreLending.rpc.updateInterestSplit(
-                newInterestSplit,
-                {
-                    accounts: {
-                        authority:
-                            programVyperCoreLending.provider.wallet.publicKey,
-                        trancheConfig,
-                        systemProgram: anchor.web3.SystemProgram.programId,
-                    },
-                }
-            );
+            await programVyperCoreLending.rpc.updateInterestSplit(newInterestSplit, {
+                accounts: {
+                    authority: programVyperCoreLending.provider.wallet.publicKey,
+                    trancheConfig,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                },
+            });
 
-            trancheConfigAccount =
-                await programVyperCoreLending.account.trancheConfig.fetch(
-                    trancheConfig
-                );
-            assert.deepEqual(
-                trancheConfigAccount.interestSplit,
-                newInterestSplit
-            );
+            trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
+            assert.deepEqual(trancheConfigAccount.interestSplit, newInterestSplit);
         });
 
         it("can't update interst split with wrong authority", async () => {
             var newInterestSplit = [to_bps(0.15), to_bps(1)];
 
             assert.rejects(async () => {
-                await programVyperCoreLending.rpc.updateInterestSplit(
-                    newInterestSplit,
-                    {
-                        accounts: {
-                            authority:
-                                programVyperCoreLending.provider.wallet
-                                    .publicKey,
-                            trancheConfig,
-                            systemProgram: anchor.web3.SystemProgram.programId,
-                        },
-                        signers: [anchor.web3.Keypair.generate()],
-                    }
-                );
+                await programVyperCoreLending.rpc.updateInterestSplit(newInterestSplit, {
+                    accounts: {
+                        authority: programVyperCoreLending.provider.wallet.publicKey,
+                        trancheConfig,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                    },
+                    signers: [anchor.web3.Keypair.generate()],
+                });
             }, Error);
         });
 
         it("updates capital split", async () => {
             // fetch tranche config
 
-            var trancheConfigAccount =
-                await programVyperCoreLending.account.trancheConfig.fetch(
-                    trancheConfig
-                );
+            var trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
 
-            assert.deepEqual(
-                trancheConfigAccount.capitalSplit,
-                inputData.capitalSplit
-            );
+            assert.deepEqual(trancheConfigAccount.capitalSplit, inputData.capitalSplit);
 
             // update interest split
             var newCapitalSplit = [to_bps(0.85), to_bps(0.15)];
 
-            await programVyperCoreLending.rpc.updateCapitalSplit(
-                newCapitalSplit,
-                {
-                    accounts: {
-                        authority:
-                            programVyperCoreLending.provider.wallet.publicKey,
-                        trancheConfig,
-                        systemProgram: anchor.web3.SystemProgram.programId,
-                    },
-                }
-            );
+            await programVyperCoreLending.rpc.updateCapitalSplit(newCapitalSplit, {
+                accounts: {
+                    authority: programVyperCoreLending.provider.wallet.publicKey,
+                    trancheConfig,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                },
+            });
 
-            trancheConfigAccount =
-                await programVyperCoreLending.account.trancheConfig.fetch(
-                    trancheConfig
-                );
-            assert.deepEqual(
-                trancheConfigAccount.capitalSplit,
-                newCapitalSplit
-            );
+            trancheConfigAccount = await programVyperCoreLending.account.trancheConfig.fetch(trancheConfig);
+            assert.deepEqual(trancheConfigAccount.capitalSplit, newCapitalSplit);
         });
 
         it("can't update interst split with wrong authority", async () => {
             var newInterestSplit = [to_bps(0.75), to_bps(0.25)];
 
             assert.rejects(async () => {
-                await programVyperCoreLending.rpc.updateCapitalSplit(
-                    newInterestSplit,
-                    {
-                        accounts: {
-                            authority:
-                                programVyperCoreLending.provider.wallet
-                                    .publicKey,
-                            trancheConfig,
-                            systemProgram: anchor.web3.SystemProgram.programId,
-                        },
-                        signers: [anchor.web3.Keypair.generate()],
-                    }
-                );
+                await programVyperCoreLending.rpc.updateCapitalSplit(newInterestSplit, {
+                    accounts: {
+                        authority: programVyperCoreLending.provider.wallet.publicKey,
+                        trancheConfig,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                    },
+                    signers: [anchor.web3.Keypair.generate()],
+                });
             }, Error);
         });
 
@@ -289,19 +214,14 @@ describe("vyper-core-lending", () => {
             var newInterestSplit = [to_bps(0.75), to_bps(0.75)];
 
             assert.rejects(async () => {
-                await programVyperCoreLending.rpc.updateCapitalSplit(
-                    newInterestSplit,
-                    {
-                        accounts: {
-                            authority:
-                                programVyperCoreLending.provider.wallet
-                                    .publicKey,
-                            trancheConfig,
-                            systemProgram: anchor.web3.SystemProgram.programId,
-                        },
-                        signers: [anchor.web3.Keypair.generate()],
-                    }
-                );
+                await programVyperCoreLending.rpc.updateCapitalSplit(newInterestSplit, {
+                    accounts: {
+                        authority: programVyperCoreLending.provider.wallet.publicKey,
+                        trancheConfig,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                    },
+                    signers: [anchor.web3.Keypair.generate()],
+                });
             }, Error);
         });
     });

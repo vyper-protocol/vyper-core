@@ -18,6 +18,7 @@ pub mod vyper_core_lending {
     pub fn create_tranche(
         ctx: Context<CreateTranchesContext>,
         input_data: CreateTrancheConfigInput,
+        tranche_config_id: u64,
         tranche_config_bump: u8,
         senior_tranche_mint_bump: u8,
         junior_tranche_mint_bump: u8,
@@ -25,6 +26,7 @@ pub mod vyper_core_lending {
         instructions::create_tranche::handler(
             ctx,
             input_data,
+            tranche_config_id,
             tranche_config_bump,
             senior_tranche_mint_bump,
             junior_tranche_mint_bump,

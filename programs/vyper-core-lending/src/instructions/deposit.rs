@@ -57,7 +57,7 @@ pub struct DepositContext<'info> {
     // * * * * * * * * * * * * * * * * *
 
     // Senior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::SENIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
+    #[account(mut, seeds = [tranche_config.id.as_ref(), vyper_utils::constants::SENIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.senior_tranche_mint_bump)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Senior tranche token account
@@ -65,7 +65,7 @@ pub struct DepositContext<'info> {
     pub senior_tranche_vault: Box<Account<'info, TokenAccount>>,
 
     // Junior tranche mint
-    #[account(mut, seeds = [vyper_utils::constants::JUNIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
+    #[account(mut, seeds = [tranche_config.id.as_ref(), vyper_utils::constants::JUNIOR.as_ref(), lending_program.key().as_ref(), reserve_token.key().as_ref()], bump = tranche_config.junior_tranche_mint_bump)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     // Junior tranche token account
@@ -179,6 +179,7 @@ pub fn handler(ctx: Context<DepositContext>, quantity: u64, mint_count: [u64; 2]
     let senior_tranche_mint_key = ctx.accounts.senior_tranche_mint.clone().key();
     let junior_tranche_mint_key = ctx.accounts.junior_tranche_mint.clone().key();
     let tranche_config_seeds = &[
+        ctx.accounts.tranche_config.id.as_ref(),
         mint_key.as_ref(),
         senior_tranche_mint_key.as_ref(),
         junior_tranche_mint_key.as_ref(),

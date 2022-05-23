@@ -4,7 +4,7 @@ import { createMintAndVault, createTokenAccount, getMintInfo, getTokenAccount } 
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import assert from "assert";
 import { bn } from "./utils";
-import { createTrancheConfigInput, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
+import { createTrancheConfigInput, createTrancheID, createTranchesConfiguration, findTrancheConfig } from "./vyper-core-utils";
 import { SolendReserveAsset, DEVNET_SOLEND_PROGRAM_ID, pythPrice, switchboardFeed } from "./solend/solend";
 import { VyperCoreLending } from "../target/types/vyper_core_lending";
 
@@ -46,14 +46,20 @@ describe("vyper-core-lending-solend", () => {
         assert.equal(userReserveTokenAccountInfo.amount, quantityToDeposit);
 
         // initialize tranche config
-
+        const trancheID = createTrancheID();
         const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-            await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, solendInit.reserveToken, programVyperCoreLending);
+            await createTranchesConfiguration(
+                DEVNET_SOLEND_PROGRAM_ID,
+                solendInit.reserveToken,
+                trancheID,
+                programVyperCoreLending
+            );
 
         const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
             solendInit.reserveToken,
             seniorTrancheMint,
             juniorTrancheMint,
+            trancheID,
             programVyperCoreLending.programId
         );
 
@@ -61,6 +67,7 @@ describe("vyper-core-lending-solend", () => {
 
         const tx = await programVyperCoreLending.rpc.createTranche(
             inputData,
+            trancheID,
             trancheConfigBump,
             seniorTrancheMintBump,
             juniorTrancheMintBump,
@@ -214,13 +221,20 @@ describe("vyper-core-lending-solend", () => {
 
         // initialize tranche config
 
+        const trancheID = createTrancheID();
         const { seniorTrancheMint, seniorTrancheMintBump, juniorTrancheMint, juniorTrancheMintBump } =
-            await createTranchesConfiguration(DEVNET_SOLEND_PROGRAM_ID, solendInit.reserveToken, programVyperCoreLending);
+            await createTranchesConfiguration(
+                DEVNET_SOLEND_PROGRAM_ID,
+                solendInit.reserveToken,
+                trancheID,
+                programVyperCoreLending
+            );
 
         const [trancheConfig, trancheConfigBump] = await findTrancheConfig(
             solendInit.reserveToken,
             seniorTrancheMint,
             juniorTrancheMint,
+            trancheID,
             programVyperCoreLending.programId
         );
 
@@ -228,6 +242,7 @@ describe("vyper-core-lending-solend", () => {
 
         const tx1 = await programVyperCoreLending.rpc.createTranche(
             inputData,
+            trancheID,
             trancheConfigBump,
             seniorTrancheMintBump,
             juniorTrancheMintBump,
