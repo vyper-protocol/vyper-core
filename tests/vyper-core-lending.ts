@@ -50,6 +50,7 @@ describe("vyper-core-lending", () => {
             {
                 accounts: {
                     authority: programVyperCoreLending.provider.wallet.publicKey,
+                    payer: programVyperCoreLending.provider.wallet.publicKey,
                     trancheConfig,
                     mint,
                     seniorTrancheMint: seniorTrancheMint,
@@ -121,6 +122,7 @@ describe("vyper-core-lending", () => {
                 {
                     accounts: {
                         authority: programVyperCoreLending.provider.wallet.publicKey,
+                        payer: programVyperCoreLending.provider.wallet.publicKey,
                         trancheConfig,
                         mint,
                         seniorTrancheMint: seniorTrancheMint,

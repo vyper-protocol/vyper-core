@@ -18,12 +18,15 @@ pub struct CreateTranchesContext<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     /**
      * Tranche config account, where all the parameters are saved
      */
     #[account(
         init,
-        payer = authority,
+        payer = payer,
         seeds = [tranche_config_id.to_be_bytes().as_ref(), mint.key().as_ref(), senior_tranche_mint.key().as_ref(), junior_tranche_mint.key().as_ref()],
         // bump = tranche_config_bump,
         bump,
@@ -44,7 +47,7 @@ pub struct CreateTranchesContext<'info> {
         seeds = [tranche_config_id.to_be_bytes().as_ref(), vyper_utils::constants::SENIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = senior_tranche_mint_bump,
         bump,
-        payer = authority,
+        payer = payer,
         mint::decimals = 0,
         mint::authority = tranche_config,
         mint::freeze_authority = tranche_config
@@ -56,7 +59,7 @@ pub struct CreateTranchesContext<'info> {
         seeds = [tranche_config_id.to_be_bytes().as_ref(), vyper_utils::constants::JUNIOR.as_ref(), protocol_program.key().as_ref(), mint.key().as_ref()],
         // bump = junior_tranche_mint_bump,
         bump,
-        payer = authority,
+        payer = payer,
         mint::decimals = 0,
         mint::authority = tranche_config,
         mint::freeze_authority = tranche_config

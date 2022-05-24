@@ -74,6 +74,7 @@ describe("vyper-core-lending-solend", () => {
             {
                 accounts: {
                     authority: programVyperCoreLending.provider.wallet.publicKey,
+                    payer: programVyperCoreLending.provider.wallet.publicKey,
                     trancheConfig,
                     mint: solendInit.reserveToken,
                     seniorTrancheMint: seniorTrancheMint,
@@ -249,6 +250,7 @@ describe("vyper-core-lending-solend", () => {
             {
                 accounts: {
                     authority: programVyperCoreLending.provider.wallet.publicKey,
+                    payer: programVyperCoreLending.provider.wallet.publicKey,
                     trancheConfig,
                     mint: solendInit.reserveToken,
                     seniorTrancheMint: seniorTrancheMint,
