@@ -3,7 +3,9 @@ members = [
     "programs/*",
 ]
 
-exclude = [
-    "deps/serum-dex",
-    "deps/lending-program",
-]
+exclude = []
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+overflow-checks = true
