@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{token::{Mint, Token, TokenAccount}};
-use crate::{state::{TrancheConfig, SlotTrackedValue, TrancheData}};
+use crate::{state::{TrancheConfig, TrancheData}};
 
 #[derive(Accounts)]
 #[instruction(_input_data: InitializeInput)]

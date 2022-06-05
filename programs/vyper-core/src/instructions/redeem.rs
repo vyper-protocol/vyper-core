@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, MintTo, Mint, Burn};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint, Burn};
 use boolinator::Boolinator;
 use crate::{utils::{ Input }, state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
 #[derive(Accounts)]
-pub struct DepositContext<'info> {
+pub struct RedeemContext<'info> {
     
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -46,7 +46,7 @@ pub struct DepositContext<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-impl<'info> DepositContext<'info> {
+impl<'info> RedeemContext<'info> {
 
     fn are_valid(&self) -> Result<()> {
 
@@ -123,7 +123,7 @@ impl Input for RedeemInput {
 }
 
 pub fn handler(
-    ctx: Context<DepositContext>,
+    ctx: Context<RedeemContext>,
     input_data: RedeemInput,
 ) -> Result<()> {
     msg!("redeem begin");

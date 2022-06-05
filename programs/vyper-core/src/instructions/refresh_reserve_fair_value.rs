@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use crate::{state::TrancheConfig};
 
 #[derive(Accounts)]
-pub struct RefreshDepositedValueContext<'info> {
+pub struct RefreshReserveFairValue<'info> {
     
     pub signer: Signer<'info>,
     
@@ -17,7 +17,7 @@ pub struct RefreshDepositedValueContext<'info> {
     pub rate_program_state: AccountInfo<'info>,
 }
 
-pub fn handler(_ctx: Context<RefreshDepositedValueContext>) -> Result<()> {
+pub fn handler(_ctx: Context<RefreshReserveFairValue>) -> Result<()> {
     msg!("refresh_deposited_value begin");
 
     // todo check if refresh reserve is owner restricted

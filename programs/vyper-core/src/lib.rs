@@ -12,12 +12,6 @@ declare_id!("mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U");
 pub mod vyper_core {
     use super::*;
 
-    // #[state]
-    // pub struct Counter {
-    //     pub count: u64,
-    //     pub auth_program: Pubkey,
-    // }
-
     pub fn initialize(ctx: Context<InitializeContext>, input_data: InitializeInput) -> Result<()> {
         instructions::initialize::handler(ctx, input_data)
     }
@@ -26,17 +20,21 @@ pub mod vyper_core {
         instructions::update_tranche_data::handler(ctx, input_data)
     }
 
-    pub fn refresh_deposited_value(ctx: Context<RefreshDepositedValueContext>) -> Result<()> {
+    pub fn refresh_reserve_fair_value(ctx: Context<RefreshReserveFairValue>) -> Result<()> {
         instructions::refresh_reserve_fair_value::handler(ctx)
     }
 
-    // pub fn deposit(ctx: Context<DepositContext>, input_data: DepositInput) -> Result<()> {
-    //     instructions::deposit::handler(ctx, input_data)
-    // }
+    pub fn refresh_tranche_fair_value(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
+        instructions::refresh_tranche_fair_value::handler(ctx)
+    }
 
-    // pub fn redeem(ctx: Context<RedeemContext>, redeem_quantity: [u64; 2]) -> ProgramResult {
-    //     instructions::redeem::handler(ctx, redeem_quantity)
-    // }
+    pub fn deposit(ctx: Context<DepositContext>, input_data: DepositInput) -> Result<()> {
+        instructions::deposit::handler(ctx, input_data)
+    }
+
+    pub fn redeem(ctx: Context<RedeemContext>, input_data: RedeemInput) -> Result<()> {
+        instructions::redeem::handler(ctx, input_data)
+    }
 
 
 }
