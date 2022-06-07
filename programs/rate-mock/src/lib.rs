@@ -8,10 +8,15 @@ pub mod rate_mock {
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>) -> Result<()> {
+        msg!("rate-mock: initialize");
         
         let clock = Clock::get()?;
-        ctx.accounts.rate_data.fair_value = 0;
-        ctx.accounts.rate_data.refreshed_slot = clock.slot;
+        let rate_data = &mut ctx.accounts.rate_data;
+        rate_data.fair_value = 0;
+        rate_data.refreshed_slot = clock.slot;
+
+        msg!("rate_data.fair_value: {}", rate_data.fair_value);
+        msg!("rate_data.refreshed_slot: {}", rate_data.refreshed_slot);
 
         Ok(())
     }
@@ -27,10 +32,15 @@ pub mod rate_mock {
     }
 
     pub fn set_fair_value(ctx: Context<RefreshRateContext>, fair_value: u64) -> Result<()> {
+        msg!("rate-mock: set_fair_value");
 
         let clock = Clock::get()?;
-        ctx.accounts.rate_data.fair_value = fair_value;
-        ctx.accounts.rate_data.refreshed_slot = clock.slot;
+        let rate_data = &mut ctx.accounts.rate_data;
+        rate_data.fair_value = fair_value;
+        rate_data.refreshed_slot = clock.slot;
+
+        msg!("rate_data.fair_value: {}", rate_data.fair_value);
+        msg!("rate_data.refreshed_slot: {}", rate_data.refreshed_slot);
 
         Ok(())
     }
