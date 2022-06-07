@@ -4,7 +4,7 @@ import { assert, expect } from "chai";
 import { RateMock } from "../target/types/rate_mock";
 import { bn } from "./utils";
 
-describe.only("rate_mock", async () => {
+describe("rate_mock", async () => {
     const provider = anchor.AnchorProvider.env();
 
     // Configure the client to use the local cluster.
