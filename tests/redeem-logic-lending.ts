@@ -4,7 +4,7 @@ import { assert, expect } from "chai";
 import { RedeemLogicLending } from "../target/types/redeem_logic_lending";
 import { bn } from "./utils";
 
-describe.only("redeem_logic_lending", async () => {
+describe("redeem_logic_lending", async () => {
     const provider = anchor.AnchorProvider.env();
 
     // Configure the client to use the local cluster.
