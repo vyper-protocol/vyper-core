@@ -1,5 +1,55 @@
 import * as anchor from "@project-serum/anchor";
-import { createInitializeMintInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+    createAccount,
+    createAssociatedTokenAccount,
+    createAssociatedTokenAccountInstruction,
+    createInitializeAccountInstruction,
+    createInitializeMintInstruction,
+    createMintToInstruction,
+    getAssociatedTokenAddress,
+    getMint,
+    TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+
+export async function createTokenAccount(
+    provider: anchor.AnchorProvider,
+    mint: anchor.web3.PublicKey,
+    owner: anchor.web3.PublicKey
+) {
+    const tx = new anchor.web3.Transaction();
+
+    const aToken = await getAssociatedTokenAddress(mint, owner);
+    tx.add(createAssociatedTokenAccountInstruction(provider.wallet.publicKey, aToken, owner, mint));
+    const signature = await provider.sendAndConfirm(tx);
+    console.log("createTokenAccount signature: ", signature);
+
+    return aToken;
+}
+
+export async function createMintAndVault(provider: anchor.AnchorProvider, amount: number, decimals: number = 6) {
+    const mint = anchor.web3.Keypair.generate();
+    const authority = anchor.web3.Keypair.generate();
+
+    const createMintIx = await createMintInstructions(provider, mint.publicKey, decimals, authority.publicKey);
+    const aToken = await getAssociatedTokenAddress(mint.publicKey, provider.wallet.publicKey);
+
+    const aTokenCreationIx = createAssociatedTokenAccountInstruction(
+        provider.wallet.publicKey,
+        aToken,
+        provider.wallet.publicKey,
+        mint.publicKey
+    );
+    const mintToIx = createMintToInstruction(mint.publicKey, aToken, authority.publicKey, amount);
+
+    const tx = new anchor.web3.Transaction();
+    tx.add(...createMintIx);
+    tx.add(aTokenCreationIx);
+    tx.add(mintToIx);
+
+    const signature = await provider.sendAndConfirm(tx, [mint, authority]);
+
+    return [mint.publicKey, aToken];
+}
 
 export async function createMint(provider: anchor.AnchorProvider, decimals: number = 6, authority?: anchor.web3.PublicKey) {
     if (authority === undefined) {
@@ -34,6 +84,10 @@ export async function createMintInstructions(
     ];
 }
 
+export function bn(v: number): anchor.BN {
+    return new anchor.BN(v);
+}
+
 export function getInitializeData(trancheMintDecimals: number) {
     return {
         trancheMintDecimals,
@@ -42,6 +96,8 @@ export function getInitializeData(trancheMintDecimals: number) {
 
 export const UPDATE_TRANCHE_CONFIG_FLAGS = {
     HALT_FLAGS: 1 << 0,
+    RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD: 1 << 1,
+    TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD: 1 << 2,
 };
 
 export const TRANCHE_HALT_FLAGS = {

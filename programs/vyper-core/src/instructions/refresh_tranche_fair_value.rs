@@ -24,8 +24,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
     // TODO retrieve exchange rate from redeem_logic_program
 
-    tranche_data.reserve_fair_value.last_update.update_slot(clock.slot);
-    tranche_data.tranche_fair_value.last_update.update_slot(clock.slot);
+    tranche_data.reserve_fair_value.slot_tracking.update(clock.slot);
+    tranche_data.tranche_fair_value.slot_tracking.update(clock.slot);
 
     Ok(())
 }

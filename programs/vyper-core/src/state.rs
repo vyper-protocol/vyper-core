@@ -58,10 +58,10 @@ pub struct TrancheData {
     pub deposited_quantity: [u64; 2],
 
     /// pe cUSDC / USDC
-    pub reserve_fair_value: SlotTrackedValue<u64>,
+    pub reserve_fair_value: ReserveFairValue,
 
     /// pe [ sTranche / cUSDC ; jTranche / cUSDC ]
-    pub tranche_fair_value: SlotTrackedValue<[u64;2]>,
+    pub tranche_fair_value: TrancheFairValue,
 
     /// halt flags
     halt_flags: u16,
@@ -74,8 +74,8 @@ impl TrancheData {
     pub fn new(slot: u64) -> Self {
         Self {
             deposited_quantity: [0; 2],
-            reserve_fair_value: SlotTrackedValue::<u64>::new(0, slot),
-            tranche_fair_value: SlotTrackedValue::<[u64;2]>::new([0;2], slot),
+            reserve_fair_value: ReserveFairValue { value: 1, slot_tracking: SlotTracking::new(slot) },
+            tranche_fair_value: TrancheFairValue { value: [1;2], slot_tracking: SlotTracking::new(slot) },
             halt_flags: 0,
             owner_restricted_ix: 0
         }
@@ -142,28 +142,37 @@ bitflags::bitflags! {
     }
 }
 
-/// Deposited quantities snapshot in a certain slot
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
+pub struct ReserveFairValue {
+    pub value: u64,
+    pub slot_tracking: SlotTracking
+}
+
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
+pub struct TrancheFairValue {
+    pub value: [u64;2],
+    pub slot_tracking: SlotTracking
+}
+
+/// Tracking of slot information
 #[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
-pub struct SlotTrackedValue<T> {
-    pub value: T,
-    pub last_update: LastUpdate,
+pub struct SlotTracking {
+    last_update: LastUpdate,
     
     /// threshold for defining a slot tracked value stale
     pub stale_slot_threshold: u64,
 }
 
-impl<T> SlotTrackedValue<T> {
-    pub fn new(value: T, slot: u64) -> Self {
+impl SlotTracking {
+    pub fn new(slot: u64) -> Self {
         Self {
-            value: value,
             last_update: LastUpdate::new(slot),
             stale_slot_threshold: 2
         }
     }
 
-    pub fn update(&mut self, value: T, slot: u64) {
-        self.value = value;
+    pub fn update(&mut self, slot: u64) {
         self.last_update.update_slot(slot);
     }
 

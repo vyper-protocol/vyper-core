@@ -10,9 +10,9 @@ pub struct InitializeContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-     /// CHECK: Owner of the tranche config
-     #[account()]
-     pub owner: AccountInfo<'info>,
+    /// CHECK: Owner of the tranche config
+    #[account()]
+    pub owner: AccountInfo<'info>,
 
     /// Tranche config account, where all the parameters are saved
     #[account(init, payer = payer, space = TrancheConfig::LEN)]

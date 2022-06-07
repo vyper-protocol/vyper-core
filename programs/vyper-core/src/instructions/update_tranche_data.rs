@@ -23,8 +23,8 @@ pub struct UpdateTrancheDataContext<'info> {
 pub struct UpdateTrancheDataInput {
     pub bitmask: u16,
     pub halt_flags: u16,
-    pub reserve_fair_value_stale_slot_threashold: u64,
-    pub tranche_fair_value_stale_slot_threashold: u64
+    pub reserve_fair_value_stale_slot_threshold: u64,
+    pub tranche_fair_value_stale_slot_threshold: u64
 }
 
 impl UpdateTrancheDataInput {
@@ -63,7 +63,7 @@ pub fn handler(
         #[cfg(feature = "debug")]
         msg!("+ old value: {}", tranche_data.reserve_fair_value.stale_slot_threshold);
         
-        tranche_data.reserve_fair_value.stale_slot_threshold = input_data.reserve_fair_value_stale_slot_threashold;
+        tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold = input_data.reserve_fair_value_stale_slot_threshold;
 
         #[cfg(feature = "debug")]
         msg!("+ new value: {}", tranche_data.reserve_fair_value.stale_slot_threshold);
@@ -75,7 +75,7 @@ pub fn handler(
         #[cfg(feature = "debug")]
         msg!("+ old value: {}", tranche_data.tranche_fair_value.stale_slot_threshold);
         
-        tranche_data.tranche_fair_value.stale_slot_threshold = input_data.tranche_fair_value_stale_slot_threashold;
+        tranche_data.tranche_fair_value.slot_tracking.stale_slot_threshold = input_data.tranche_fair_value_stale_slot_threshold;
 
         #[cfg(feature = "debug")]
         msg!("+ new value: {}", tranche_data.tranche_fair_value.stale_slot_threshold);
