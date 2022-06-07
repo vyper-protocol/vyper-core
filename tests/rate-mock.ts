@@ -14,7 +14,7 @@ describe.only("rate_mock", async () => {
     it("initialize", async () => {
         const rateData = anchor.web3.Keypair.generate();
 
-        const tx1 = await programRateMock.methods
+        await programRateMock.methods
             .initialize()
             .accounts({
                 signer: provider.wallet.publicKey,
@@ -23,7 +23,13 @@ describe.only("rate_mock", async () => {
             .signers([rateData])
             .rpc();
 
-        console.log("init tx: ", tx1);
+        expect(
+            (
+                await programRateMock.account.rateState.fetch(
+                    rateData.publicKey
+                )
+            ).fairValue.toNumber()
+        ).to.eq(0);
     });
 
     it("set rate", async () => {
@@ -37,8 +43,6 @@ describe.only("rate_mock", async () => {
             })
             .signers([rateData])
             .rpc();
-
-        console.log("init tx: ", tx1);
 
         await programRateMock.methods
             .setFairValue(bn(1500))

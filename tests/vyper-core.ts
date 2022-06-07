@@ -455,12 +455,8 @@ describe("vyper_core", async () => {
         }
     });
 
-    it.only("refresh reserve fair valut", async () => {
-        const initialAmount = 1000;
-        const [reserveMint, userReserveToken] = await createMintAndVault(
-            provider,
-            initialAmount
-        );
+    it.only("refresh reserve fair value", async () => {
+        const reserveMint = await createMint(provider);
 
         const juniorTrancheMint = anchor.web3.Keypair.generate();
         const seniorTrancheMint = anchor.web3.Keypair.generate();
@@ -480,69 +476,62 @@ describe("vyper_core", async () => {
 
         const rateData = anchor.web3.Keypair.generate();
 
-        console.log(
-            "rate mock init: " +
-                (await programRateMock.methods
-                    .initialize()
-                    .accounts({
-                        signer: provider.wallet.publicKey,
-                        rateData: rateData.publicKey,
-                    })
-                    .signers([rateData])
-                    .rpc())
-        );
+        await programRateMock.methods
+            .initialize()
+            .accounts({
+                signer: provider.wallet.publicKey,
+                rateData: rateData.publicKey,
+            })
+            .signers([rateData])
+            .rpc();
 
         const initializeInputData = {
             isOpen: true,
             trancheMintDecimals: 6,
         };
 
-        console.log(
-            "vyper init: " +
-                (await programVyperCore.methods
-                    .initialize(initializeInputData)
-                    .accounts({
-                        payer: provider.wallet.publicKey,
-                        owner: provider.wallet.publicKey,
-                        trancheConfig: trancheConfig.publicKey,
-                        trancheAuthority,
-                        rateProgram: programRateMock.programId,
-                        redeemLogicProgram: programRedeemLogicMock.programId,
-                        rateProgramState: rateData.publicKey,
-                        reserveMint,
-                        reserve,
-                        juniorTrancheMint: juniorTrancheMint.publicKey,
-                        seniorTrancheMint: seniorTrancheMint.publicKey,
-                    })
-                    .signers([
-                        juniorTrancheMint,
-                        seniorTrancheMint,
-                        trancheConfig,
-                    ])
-                    .rpc())
-        );
+        await programVyperCore.methods
+            .initialize(initializeInputData)
+            .accounts({
+                payer: provider.wallet.publicKey,
+                owner: provider.wallet.publicKey,
+                trancheConfig: trancheConfig.publicKey,
+                trancheAuthority,
+                rateProgram: programRateMock.programId,
+                redeemLogicProgram: programRedeemLogicMock.programId,
+                rateProgramState: rateData.publicKey,
+                reserveMint,
+                reserve,
+                juniorTrancheMint: juniorTrancheMint.publicKey,
+                seniorTrancheMint: seniorTrancheMint.publicKey,
+            })
+            .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
+            .rpc();
 
-        console.log(
-            "set fair value: " +
-                (await programRateMock.methods
-                    .setFairValue(bn(1500))
-                    .accounts({
-                        signer: provider.wallet.publicKey,
-                        rateData: rateData.publicKey,
-                    })
-                    .rpc())
-        );
+        await programRateMock.methods
+            .setFairValue(bn(1500))
+            .accounts({
+                signer: provider.wallet.publicKey,
+                rateData: rateData.publicKey,
+            })
+            .rpc();
 
-        console.log(
-            "refresh reserve fair value: " +
-                (await programVyperCore.methods
-                    .refreshReserveFairValue()
-                    .accounts({
-                        signer: provider.wallet.publicKey,
-                        trancheConfig: trancheConfig.publicKey,
-                        rateProgramState: rateData.publicKey,
-                    })
-                    .rpc())
-        );
+        await programVyperCore.methods
+            .refreshReserveFairValue()
+            .accounts({
+                signer: provider.wallet.publicKey,
+                trancheConfig: trancheConfig.publicKey,
+                rateProgramState: rateData.publicKey,
+            })
+            .rpc();
+
+        const trancheConfigAccount =
+            await programVyperCore.account.trancheConfig.fetch(
+                trancheConfig.publicKey
+            );
+
+        expect(
+            trancheConfigAccount.trancheData.reserveFairValue.value.toNumber()
+        ).to.eq(1500);
     });
 });
