@@ -7,7 +7,12 @@ pub mod rate_mock {
 
     use super::*;
 
-    pub fn initialize(_ctx: Context<InitializeContext>) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeContext>) -> Result<()> {
+        
+        let clock = Clock::get()?;
+        ctx.accounts.rate_data.fair_value = 0;
+        ctx.accounts.rate_data.refreshed_slot = clock.slot;
+
         Ok(())
     }
 
