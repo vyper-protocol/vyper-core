@@ -26,6 +26,7 @@ pub mod redeem_logic_lending {
     }
 
     pub fn execute(_ctx: Context<ExecuteContext>, _old_tranche_fair_value: [u64; 2], _old_reserve_fair_value: u64, _new_reserve_fair_value: u64) -> Result<[u64; 2]> {
+        msg!("execute now");
 
         Ok([1993, 1993])
     }
