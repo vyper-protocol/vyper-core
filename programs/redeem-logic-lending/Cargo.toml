@@ -1,12 +1,12 @@
 [package]
-name = "redeem-logic-mock"
+name = "redeem-logic-lending"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "redeem_logic_mock"
+name = "redeem_logic_lending"
 
 [features]
 no-entrypoint = []
@@ -17,3 +17,4 @@ default = []
 
 [dependencies]
 anchor-lang = "0.24.2"
+vyper-core  = { path = "../vyper-core" }
