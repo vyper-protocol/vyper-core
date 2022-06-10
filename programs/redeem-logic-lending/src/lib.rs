@@ -4,7 +4,7 @@ declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
 #[program]
 pub mod redeem_logic_lending {
-
+    
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>, interest_split: [u64; 2]) -> Result<()> {
@@ -25,10 +25,16 @@ pub mod redeem_logic_lending {
         Ok(())
     }
 
-    pub fn execute(_ctx: Context<ExecuteContext>, _old_tranche_fair_value: [u64; 2], _old_reserve_fair_value: u64, _new_reserve_fair_value: u64) -> Result<[u64; 2]> {
+
+    pub fn execute(_ctx: Context<ExecuteContext>, _input_data: RedeemLogicExecuteInput) -> Result<()> {
+        
         msg!("execute now");
 
-        Ok([1993, 1993])
+
+        let result: RedeemLogicExecuteResult = RedeemLogicExecuteResult { new_tranche_fairvalue: [1993, 1993] };
+        anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
+
+        Ok(())
     }
 }
 
@@ -63,17 +69,33 @@ pub struct UpdateContext<'info> {
 
 #[derive(Accounts)]
 pub struct ExecuteContext<'info> {
-
     #[account()]
     pub redeem_logic_config: Account<'info, RedeemLogicConfig>, 
-
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub signer: Signer<'info>,
 }
 
 #[account]
 pub struct RedeemLogicConfig {
     pub interest_split: [u64; 2],
     pub owner: Pubkey,
+}
+
+impl RedeemLogicConfig {
+    pub const LEN: usize = 8 + // discriminator
+    8+8+32;
+}
+
+/// We can't move this struct in a library because anchor can't recognize it during IDL generation
+/// https://github.com/project-serum/anchor/issues/1058
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct RedeemLogicExecuteInput {
+    pub old_tranche_fair_value: [u64; 2],
+    pub old_reserve_fair_value: u64,
+    pub new_reserve_fair_value: u64
+}
+
+/// We can't move this struct in a library because anchor can't recognize it during IDL generation
+/// https://github.com/project-serum/anchor/issues/1058
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct RedeemLogicExecuteResult {
+    pub new_tranche_fairvalue: [u64;2]
 }

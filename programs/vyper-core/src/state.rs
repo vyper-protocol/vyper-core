@@ -30,6 +30,7 @@ pub struct TrancheConfig {
     pub rate_program_state: Pubkey,
     
     pub redeem_logic_program: Pubkey,
+    pub redeem_logic_program_state: Pubkey,
 
     /// Program version when initialized: [major, minor, patch]
     pub version: [u8; 3],
@@ -181,7 +182,16 @@ impl SlotTracking {
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
+        msg!("current_slot: {}", current_slot);
+        msg!("self.get_last_update_slot(): {}", self.get_last_update_slot());
+        msg!("self.slot_elapsed: {}", self.slot_elapsed(current_slot)?);
+        msg!("self.stale_slot_threshold: {}", self.stale_slot_threshold);
+
         Ok(self.slot_elapsed(current_slot)? >= self.stale_slot_threshold)
+    }
+
+    pub fn get_last_update_slot(&self) -> u64 {
+        self.last_update.slot
     }
 }
 

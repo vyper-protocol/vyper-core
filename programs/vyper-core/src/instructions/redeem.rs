@@ -13,7 +13,7 @@ pub struct RedeemContext<'info> {
         // constraint = !vault.value.last_update.is_stale(clock.slot)? @ ErrorCode::VaultIsNotRefreshed,
         has_one = reserve,
         has_one = tranche_authority)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// CHECK: 
     #[account(seeds = [tranche_config.key().as_ref(), b"authority".as_ref()], bump)]
@@ -21,11 +21,11 @@ pub struct RedeemContext<'info> {
 
     /// mint token A to deposit
     #[account(mut)]
-    pub reserve: Account<'info, TokenAccount>,
+    pub reserve: Box<Account<'info, TokenAccount>>,
 
     /// mint token A to deposit
     #[account(mut, token::mint = tranche_config.reserve_mint)]
-    pub user_reserve_token: Account<'info, TokenAccount>,
+    pub user_reserve_token: Box<Account<'info, TokenAccount>>,
 
     /// Senior tranche mint
     #[account(mut)]
@@ -36,10 +36,10 @@ pub struct RedeemContext<'info> {
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     #[account(mut, token::mint = tranche_config.senior_tranche_mint)]
-    pub senior_tranche_source: Account<'info, TokenAccount>,
+    pub senior_tranche_source: Box<Account<'info, TokenAccount>>,
 
     #[account(mut, token::mint = tranche_config.junior_tranche_mint)]
-    pub junior_tranche_source: Account<'info, TokenAccount>,
+    pub junior_tranche_source: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,

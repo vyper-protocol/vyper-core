@@ -23,13 +23,7 @@ describe("rate_mock", async () => {
             .signers([rateData])
             .rpc();
 
-        expect(
-            (
-                await programRateMock.account.rateState.fetch(
-                    rateData.publicKey
-                )
-            ).fairValue.toNumber()
-        ).to.eq(0);
+        expect((await programRateMock.account.rateState.fetch(rateData.publicKey)).fairValue.toNumber()).to.eq(0);
     });
 
     it("set rate", async () => {
@@ -52,13 +46,7 @@ describe("rate_mock", async () => {
             })
             .rpc();
 
-        expect(
-            (
-                await programRateMock.account.rateState.fetch(
-                    rateData.publicKey
-                )
-            ).fairValue.toNumber()
-        ).to.eq(1500);
+        expect((await programRateMock.account.rateState.fetch(rateData.publicKey)).fairValue.toNumber()).to.eq(1500);
 
         await programRateMock.methods
             .setFairValue(bn(2500))
@@ -68,12 +56,6 @@ describe("rate_mock", async () => {
             })
             .rpc();
 
-        expect(
-            (
-                await programRateMock.account.rateState.fetch(
-                    rateData.publicKey
-                )
-            ).fairValue.toNumber()
-        ).to.eq(2500);
+        expect((await programRateMock.account.rateState.fetch(rateData.publicKey)).fairValue.toNumber()).to.eq(2500);
     });
 });

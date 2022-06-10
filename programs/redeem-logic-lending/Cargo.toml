@@ -17,4 +17,3 @@ default = []
 
 [dependencies]
 anchor-lang = "0.24.2"
-vyper-core  = { path = "../vyper-core" }

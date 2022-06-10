@@ -56,7 +56,7 @@ impl<'info> DepositContext<'info> {
         (!tranche_data.get_halt_flags().contains(TrancheHaltFlags::HALT_DEPOSITS)).ok_or(VyperErrorCode::HaltError)?;
     
         // check that tranche fair values are not halted
-        (!tranche_data.tranche_fair_value.slot_tracking.is_stale(clock.slot)?).ok_or(VyperErrorCode::StaleFairValue)?;
+        (!tranche_data.reserve_fair_value.slot_tracking.is_stale(clock.slot)?).ok_or(VyperErrorCode::StaleFairValue)?;
     
         // check if the current ix is restricted to owner
         if tranche_data.get_owner_restricted_ixs().contains(OwnerRestrictedIxFlags::DEPOSITS) {

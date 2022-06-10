@@ -24,5 +24,11 @@ pub enum VyperErrorCode {
     OwnerRestrictedIx,
 
     #[msg("Fair value is stale, refresh it")]
-    StaleFairValue
+    StaleFairValue,
+    
+    #[msg("The redeem logic plugin didn't return anything, maybe we forgot to set solana_program::program::set_return_data()?")]
+    RedeemLogicNoReturn,
+    
+    #[msg("cross-program invocation error calling a vyper plugin")]
+    PluginCpiError
 }

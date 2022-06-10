@@ -37,6 +37,11 @@ pub struct InitializeContext<'info> {
     #[account()]
     pub redeem_logic_program: AccountInfo<'info>,
 
+    /// TODO check if rate program is executable and it implements the right interface
+    /// CHECK: 
+    #[account()]
+    pub redeem_logic_program_state: AccountInfo<'info>,
+
     /// LP mint token to deposit
     #[account()]
     pub reserve_mint: Box<Account<'info, Mint>>,
@@ -87,6 +92,7 @@ pub fn handler(
     tranche_config.rate_program = ctx.accounts.rate_program.key();
     tranche_config.rate_program_state = ctx.accounts.rate_program_state.key();
     tranche_config.redeem_logic_program = ctx.accounts.redeem_logic_program.key();
+    tranche_config.redeem_logic_program_state = ctx.accounts.redeem_logic_program_state.key();
     tranche_config.senior_tranche_mint = ctx.accounts.senior_tranche_mint.key();
     tranche_config.junior_tranche_mint = ctx.accounts.junior_tranche_mint.key();
     tranche_config.created_at = clock.unix_timestamp;

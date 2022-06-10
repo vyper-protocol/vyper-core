@@ -30,10 +30,6 @@ pub mod vyper_core {
         instructions::update_tranche_data::handler(ctx, input_data)
     }
 
-    pub fn refresh_reserve_fair_value(ctx: Context<RefreshReserveFairValue>) -> Result<()> {
-        instructions::refresh_reserve_fair_value::handler(ctx)
-    }
-
     pub fn refresh_tranche_fair_value(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
         instructions::refresh_tranche_fair_value::handler(ctx)
     }
@@ -45,6 +41,4 @@ pub mod vyper_core {
     pub fn redeem(ctx: Context<RedeemContext>, input_data: RedeemInput) -> Result<()> {
         instructions::redeem::handler(ctx, input_data)
     }
-
-
 }
