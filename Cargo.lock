@@ -1100,6 +1100,9 @@ name = "redeem-logic-lending"
 version = "0.1.0"
 dependencies = [
  "anchor-lang 0.24.2",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "vyper-utils",
 ]
 
 [[package]]
@@ -1127,6 +1130,27 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+
+[[package]]
+name = "rust_decimal"
+version = "1.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2ee7337df68898256ad0d4af4aad178210d9e44d2ff900ce44064a97cd86530"
+dependencies = [
+ "arrayvec",
+ "num-traits",
+ "serde",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72030e106b3dc8cb4c965faf057036f270cdd226a076804d19e3de0d27fc309b"
+dependencies = [
+ "quote",
+ "rust_decimal",
+]
 
 [[package]]
 name = "rustc_version"
@@ -1458,6 +1482,8 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang 0.18.2",
  "anchor-spl 0.18.2",
+ "rust_decimal",
+ "rust_decimal_macros",
 ]
 
 [[package]]

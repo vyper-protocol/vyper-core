@@ -14,7 +14,7 @@ describe("redeem_logic_lending", async () => {
     it("initialize", async () => {
         const redeemLogicConfig = anchor.web3.Keypair.generate();
 
-        const interestSplit = [bn(5000), bn(10000)];
+        const interestSplit = 5000;
         await program.methods
             .initialize(interestSplit)
             .accounts({
@@ -26,17 +26,15 @@ describe("redeem_logic_lending", async () => {
             .rpc();
 
         const redeemLogicAccount = await program.account.redeemLogicConfig.fetch(redeemLogicConfig.publicKey);
-        expect(redeemLogicAccount.interestSplit.map((c) => c.toNumber())).to.eql(
-            interestSplit.map((c) => c.toNumber())
-        );
+        expect(redeemLogicAccount.interestSplit).to.eql(interestSplit);
         expect(redeemLogicAccount.owner.toBase58()).to.eq(provider.wallet.publicKey.toBase58());
     });
 
     it("update", async () => {
         const redeemLogicConfig = anchor.web3.Keypair.generate();
 
-        const originalInterestSplit = [bn(5000), bn(10000)];
-        const newInterestSplit = [bn(6000), bn(10000)];
+        const originalInterestSplit = 5000;
+        const newInterestSplit = 6000;
         await program.methods
             .initialize(originalInterestSplit)
             .accounts({
@@ -54,16 +52,14 @@ describe("redeem_logic_lending", async () => {
             })
             .rpc();
         const redeemLogicAccount = await program.account.redeemLogicConfig.fetch(redeemLogicConfig.publicKey);
-        expect(redeemLogicAccount.interestSplit.map((c) => c.toNumber())).to.eql(
-            newInterestSplit.map((c) => c.toNumber())
-        );
+        expect(redeemLogicAccount.interestSplit).to.eql(newInterestSplit);
     });
 
     it("reject non owner update", async () => {
         const redeemLogicConfig = anchor.web3.Keypair.generate();
 
-        const originalInterestSplit = [bn(5000), bn(10000)];
-        const newInterestSplit = [bn(6000), bn(10000)];
+        const originalInterestSplit = 5000;
+        const newInterestSplit = 6000;
 
         await program.methods
             .initialize(originalInterestSplit)
@@ -90,27 +86,34 @@ describe("redeem_logic_lending", async () => {
     });
 
     it("execute", async () => {
-        // const redeemLogicConfig = anchor.web3.Keypair.generate();
-        // const interestSplit = [bn(5000), bn(10000)];
-        // await program.methods
-        //     .initialize(interestSplit)
-        //     .accounts({
-        //         redeemLogicConfig: redeemLogicConfig.publicKey,
-        //         owner: provider.wallet.publicKey,
-        //         payer: provider.wallet.publicKey,
-        //     })
-        //     .signers([redeemLogicConfig])
-        //     .rpc();
-        // const old_tranche_fv = [bn(5000), bn(10000)];
-        // const old_reserve_fv = bn(5000);
-        // const new_reserve_fv = bn(5000);
-        // const viewResult = await program.methods
-        //     .execute(old_tranche_fv, old_reserve_fv, new_reserve_fv)
-        //     .accounts({
-        //         redeemLogicConfig: redeemLogicConfig.publicKey,
-        //         signer: provider.wallet.publicKey,
-        //     })
-        //     .view();
-        // expect((viewResult as anchor.BN[]).map((c) => c.toNumber())).to.be.eql([1993, 1993]);
+        const redeemLogicConfig = anchor.web3.Keypair.generate();
+        const interestSplit = 2_000;
+        await program.methods
+            .initialize(interestSplit)
+            .accounts({
+                redeemLogicConfig: redeemLogicConfig.publicKey,
+                owner: provider.wallet.publicKey,
+                payer: provider.wallet.publicKey,
+            })
+            .signers([redeemLogicConfig])
+            .rpc();
+
+        const oldQuantity = [bn(100_000), bn(100_000)];
+        const oldReserveFV = 6_000;
+        const newReserveFV = 7_500;
+        const tx = await program.methods
+            .execute({
+                oldQuantity: oldQuantity,
+                oldReserveFairValueBps: oldReserveFV,
+                newReserveFairValueBps: newReserveFV,
+            })
+            .accounts({
+                redeemLogicConfig: redeemLogicConfig.publicKey,
+            })
+            .rpc();
+
+        // TODO find a way to read the solana return value from the client
+        // expect((viewResult.newQuantity as anchor.BN[]).map((c) => c.toNumber())).to.be.eql([100_000, 100_000]);
+        // expect((viewResult.feeQuantity as anchor.BN).toNumber()).to.be.eql(0);
     });
 });

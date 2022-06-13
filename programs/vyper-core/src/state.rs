@@ -55,7 +55,7 @@ impl TrancheConfig {
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct TrancheData {
-    /// Current deposited quantities, for senior and junior
+    /// Current deposited quantities, for senior and junior cUSDC
     pub deposited_quantity: [u64; 2],
 
     /// pe cUSDC / USDC
@@ -145,13 +145,15 @@ bitflags::bitflags! {
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct ReserveFairValue {
-    pub value: u64,
+    /// reserve fair value expressed in bps
+    pub value: u32,
     pub slot_tracking: SlotTracking
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct TrancheFairValue {
-    pub value: [u64;2],
+    /// tranches [senior, junior] fair values expressed in bps
+    pub value: [u32;2],
     pub slot_tracking: SlotTracking
 }
 

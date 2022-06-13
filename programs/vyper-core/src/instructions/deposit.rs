@@ -146,10 +146,11 @@ pub fn handler(
 
     // mint tranches
 
-    let mut mint_count: [u64; 2] = [0; 2];
-    for i in 0..mint_count.len() {
-        mint_count[i] = input_data.reserve_quantity[i].checked_mul(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i]).ok_or_else(|| VyperErrorCode::MathError)?;
-    }
+    let mint_count: [u64; 2] = [0; 2];
+    // TODO fix calc
+    // for i in 0..mint_count.len() {
+    //     mint_count[i] = input_data.reserve_quantity[i].checked_mul(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i]).ok_or_else(|| VyperErrorCode::MathError)?;
+    // }
 
     if mint_count[0] > 0 {
         msg!("mint {} senior tranches", mint_count[0]);

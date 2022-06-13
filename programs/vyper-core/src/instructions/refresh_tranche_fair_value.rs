@@ -62,16 +62,17 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
         ctx.accounts.redeem_logic_program.key,
         ctx.accounts.redeem_logic_program_state.to_account_info(),
         RedeemLogicExecuteInput {
-            old_reserve_fair_value,
-            new_reserve_fair_value,
-            old_tranche_fair_value: tranche_data.tranche_fair_value.value
+            old_reserve_fair_value_bps: old_reserve_fair_value,
+            new_reserve_fair_value_bps: new_reserve_fair_value,
+            old_quantity: tranche_data.deposited_quantity
         });
     let plugin_result = cpi_res.unwrap();
 
     msg!("cpi return result: {:?}", plugin_result);
 
     msg!("updating tranche fair value");
-    tranche_data.tranche_fair_value.value = plugin_result.new_tranche_fairvalue;
+    // TODO: calculate new tranche fair value
+    // tranche_data.tranche_fair_value.value = plugin_result.new_tranche_fairvalue;
     tranche_data.tranche_fair_value.slot_tracking.update(rate_state.refreshed_slot);
     
     msg!("updating reserve fair value");
@@ -83,7 +84,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: u64,
+    pub fair_value: u32,
     pub refreshed_slot: u64,
 }
 

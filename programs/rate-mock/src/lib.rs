@@ -25,13 +25,13 @@ pub mod rate_mock {
 
         // random rate
         let clock = Clock::get()?;
-        ctx.accounts.rate_data.fair_value = clock.unix_timestamp.checked_rem(10000).unwrap() as u64;
+        ctx.accounts.rate_data.fair_value = clock.unix_timestamp.checked_rem(10000).unwrap() as u32;
         ctx.accounts.rate_data.refreshed_slot = clock.slot;
 
         Ok(())
     }
 
-    pub fn set_fair_value(ctx: Context<RefreshRateContext>, fair_value: u64) -> Result<()> {
+    pub fn set_fair_value(ctx: Context<RefreshRateContext>, fair_value: u32) -> Result<()> {
         msg!("rate-mock: set_fair_value");
 
         let clock = Clock::get()?;
@@ -53,6 +53,7 @@ pub struct InitializeContext<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    /// TODO space TBD
     #[account(init, payer = signer, space = 1024)]
     pub rate_data: Account<'info, RateState>,
 
@@ -72,6 +73,6 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: u64,
+    pub fair_value: u32,
     pub refreshed_slot: u64,
 }

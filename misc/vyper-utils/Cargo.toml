@@ -10,3 +10,5 @@ name = "vyper_utils"
 [dependencies]
 anchor-lang = "0.18.2"
 anchor-spl = "0.18.2"
+rust_decimal = "1.24"
+rust_decimal_macros = "1.24"

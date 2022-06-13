@@ -1,9 +1,12 @@
-pub fn from_bps(input: u32) -> f64 {
-    input as f64 / 10000.0
+use rust_decimal::prelude::*;
+use rust_decimal_macros::dec;
+
+pub fn from_bps(input: u32) -> Option<Decimal> {
+    Decimal::from_u32(input)?.checked_div(dec!(10000.0))
 }
 
-pub fn to_bps(input: f64) -> u32 {
-    (input * 10000.0) as u32
+pub fn to_bps(input: Decimal) -> Option<u32> {
+    input.checked_mul(dec!(10000.0))?.to_u32()
 }
 
 pub fn panic_with_wrong_capital_split(capital_split_f: [f64; 2]) {

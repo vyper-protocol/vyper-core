@@ -68,16 +68,16 @@ describe("vyper_core", async () => {
         expect(trancheConfigAccount.trancheData.ownerRestrictedIx).to.eql(0);
         expect(trancheConfigAccount.trancheData.depositedQuantity.map((c) => c.toNumber())).to.eql([0, 0]);
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value.toNumber()).to.eql(1);
+        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eql(1);
         expect(
             //@ts-expect-error
             trancheConfigAccount.trancheData.reserveFairValue.slotTracking.lastUpdate.slot.toNumber()
         ).to.greaterThan(0);
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.trancheFairValue.value.map((c) => c.toNumber())).to.eql([1, 1]);
+        expect(trancheConfigAccount.trancheData.trancheFairValue.value).to.eql([1, 1]);
         expect(
             //@ts-expect-error
-            trancheConfigAccount.trancheData.reserveFairValue.slotTracking.lastUpdate.slot.toNumber()
+            trancheConfigAccount.trancheData.trancheFairValue.slotTracking.lastUpdate.slot.toNumber()
         ).to.greaterThan(0);
 
         expect(trancheConfigAccount.owner.toBase58()).to.eql(provider.wallet.publicKey.toBase58());
@@ -253,57 +253,57 @@ describe("vyper_core", async () => {
     });
 
     it("prevent rateProgramState attack", async () => {
-        //     const reserveMint = await createMint(provider);
-        //     const juniorTrancheMint = anchor.web3.Keypair.generate();
-        //     const seniorTrancheMint = anchor.web3.Keypair.generate();
-        //     const trancheConfig = anchor.web3.Keypair.generate();
-        //     const rateProgramState = anchor.web3.Keypair.generate();
-        //     const redeemLogicProgramState = anchor.web3.Keypair.generate();
-        //     const [trancheAuthority] = await anchor.web3.PublicKey.findProgramAddress(
-        //         [trancheConfig.publicKey.toBuffer(), anchor.utils.bytes.utf8.encode("authority")],
-        //         programVyperCore.programId
-        //     );
-        //     const [reserve] = await anchor.web3.PublicKey.findProgramAddress(
-        //         [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
-        //         programVyperCore.programId
-        //     );
-        //     const initializeInputData = {
-        //         isOpen: true,
-        //         trancheMintDecimals: 6,
-        //     };
-        //     await programVyperCore.methods
-        //         .initialize(initializeInputData)
-        //         .accounts({
-        //             payer: provider.wallet.publicKey,
-        //             owner: provider.wallet.publicKey,
-        //             trancheConfig: trancheConfig.publicKey,
-        //             trancheAuthority,
-        //             rateProgram: programRateMock.programId,
-        //             redeemLogicProgram: programRedeemLogicLending.programId,
-        //             redeemLogicProgramState: redeemLogicProgramState.publicKey,
-        //             rateProgramState: rateProgramState.publicKey,
-        //             reserveMint,
-        //             reserve,
-        //             juniorTrancheMint: juniorTrancheMint.publicKey,
-        //             seniorTrancheMint: seniorTrancheMint.publicKey,
-        //         })
-        //         .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
-        //         .rpc();
-        //     try {
-        //         await programVyperCore.methods
-        //             .refreshTrancheFairValue()
-        //             .accounts({
-        //                 signer: provider.wallet.publicKey,
-        //                 trancheConfig: trancheConfig.publicKey,
-        //                 rateProgramState: anchor.web3.Keypair.generate().publicKey,
-        //                 redeemLogicProgram: programRedeemLogicLending.programId,
-        //                 redeemLogicProgramState: redeemLogicProgramState.publicKey,
-        //             })
-        //             .rpc();
-        //         expect(false).to.be.true;
-        //     } catch (err) {
-        //         assert(true);
-        //     }
+        const reserveMint = await createMint(provider);
+        const juniorTrancheMint = anchor.web3.Keypair.generate();
+        const seniorTrancheMint = anchor.web3.Keypair.generate();
+        const trancheConfig = anchor.web3.Keypair.generate();
+        const rateProgramState = anchor.web3.Keypair.generate();
+        const redeemLogicProgramState = anchor.web3.Keypair.generate();
+        const [trancheAuthority] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), anchor.utils.bytes.utf8.encode("authority")],
+            programVyperCore.programId
+        );
+        const [reserve] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
+            programVyperCore.programId
+        );
+        const initializeInputData = {
+            isOpen: true,
+            trancheMintDecimals: 6,
+        };
+        await programVyperCore.methods
+            .initialize(initializeInputData)
+            .accounts({
+                payer: provider.wallet.publicKey,
+                owner: provider.wallet.publicKey,
+                trancheConfig: trancheConfig.publicKey,
+                trancheAuthority,
+                rateProgram: programRateMock.programId,
+                redeemLogicProgram: programRedeemLogicLending.programId,
+                redeemLogicProgramState: redeemLogicProgramState.publicKey,
+                rateProgramState: rateProgramState.publicKey,
+                reserveMint,
+                reserve,
+                juniorTrancheMint: juniorTrancheMint.publicKey,
+                seniorTrancheMint: seniorTrancheMint.publicKey,
+            })
+            .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
+            .rpc();
+        try {
+            await programVyperCore.methods
+                .refreshTrancheFairValue()
+                .accounts({
+                    signer: provider.wallet.publicKey,
+                    trancheConfig: trancheConfig.publicKey,
+                    rateProgramState: anchor.web3.Keypair.generate().publicKey,
+                    redeemLogicProgram: programRedeemLogicLending.programId,
+                    redeemLogicProgramState: redeemLogicProgramState.publicKey,
+                })
+                .rpc();
+            expect(false).to.be.true;
+        } catch (err) {
+            assert(true);
+        }
     });
 
     it("refresh tranche fair value", async () => {
@@ -333,7 +333,7 @@ describe("vyper_core", async () => {
             .rpc();
 
         await programRedeemLogicLending.methods
-            .initialize([bn(5000), bn(10000)])
+            .initialize(2000)
             .accounts({
                 redeemLogicConfig: redeemLogicProgramState.publicKey,
                 owner: provider.wallet.publicKey,
@@ -367,7 +367,7 @@ describe("vyper_core", async () => {
             .rpc();
 
         await programRateMock.methods
-            .setFairValue(bn(1500))
+            .setFairValue(1500)
             .accounts({
                 signer: provider.wallet.publicKey,
                 rateData: rateData.publicKey,
@@ -388,9 +388,9 @@ describe("vyper_core", async () => {
         const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(trancheConfig.publicKey);
 
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value.toNumber()).to.eq(1500);
+        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eq(1500);
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.trancheFairValue.value.map((c) => c.toNumber())).to.eql([1993, 1993]);
+        expect(trancheConfigAccount.trancheData.trancheFairValue.value).to.eql([1, 1]);
     });
 
     it("deposit", async () => {
