@@ -2,7 +2,7 @@ use anchor_lang::{prelude::*, solana_program::{self, hash::hashv, instruction::I
 use anchor_spl::token::Mint;
 use boolinator::Boolinator;
 use vyper_utils::redeem_logic_common::{RedeemLogicExecuteResult, RedeemLogicExecuteInput};
-use crate::{state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags, ReserveFairValue}, errors::VyperErrorCode};
+use crate::{state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
 #[derive(Accounts)]
 pub struct RefreshTrancheFairValue<'info> {
