@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_positive_returns_senior_imbalance() {
-        let old_quantity = [100_000, 1];
+        let old_quantity = [100_000, 1000];
         let old_reserve_bps = 6_000; // 60%
         let new_reserve_bps = 7_500; // 75%
         let interest_split = 2_000; // 20%
@@ -196,9 +196,7 @@ mod tests {
         let res = execute_plugin(old_quantity, old_reserve_bps, new_reserve_bps, interest_split);
 
         assert_eq!(res.new_quantity[0], 96_000);
-        // from python => assert new_tranche.junior == approx(5)
-        // @vantessel
-        assert_eq!(res.new_quantity[1], 4_001);
+        assert_eq!(res.new_quantity[1], 5_000);
         assert_eq!(res.fee_quantity, 0);
     }
 
