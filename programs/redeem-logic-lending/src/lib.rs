@@ -46,9 +46,8 @@ pub mod redeem_logic_lending {
 #[derive(Accounts)]
 pub struct InitializeContext<'info> {
     /// Tranche config account, where all the parameters are saved
-    /// TODO size TBD
-    #[account(init, payer = payer, space = 8 + 16 + 32)]
-    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
+    #[account(init, payer = payer, space = RedeemLogicConfig::LEN)]
+    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>, 
 
     /// CHECK: Owner of the tranche config
     #[account()]
