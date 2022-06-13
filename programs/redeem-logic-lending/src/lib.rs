@@ -6,7 +6,7 @@ declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
 #[program]
 pub mod redeem_logic_lending {
-    
+
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32) -> Result<()> {
@@ -26,15 +26,17 @@ pub mod redeem_logic_lending {
         Ok(())
     }
 
-
-    pub fn execute(ctx: Context<ExecuteContext>, input_data: RedeemLogicExecuteInput) -> Result<()> {
-
+    pub fn execute(
+        ctx: Context<ExecuteContext>,
+        input_data: RedeemLogicExecuteInput,
+    ) -> Result<()> {
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             input_data.old_reserve_fair_value_bps,
-            input_data.new_reserve_fair_value_bps, 
-            ctx.accounts.redeem_logic_config.interest_split);
-            
+            input_data.new_reserve_fair_value_bps,
+            ctx.accounts.redeem_logic_config.interest_split,
+        );
+
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
 
         Ok(())
@@ -43,16 +45,15 @@ pub mod redeem_logic_lending {
 
 #[derive(Accounts)]
 pub struct InitializeContext<'info> {
-    
     /// Tranche config account, where all the parameters are saved
     /// TODO size TBD
     #[account(init, payer = payer, space = 8 + 16 + 32)]
-    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>, 
+    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
 
     /// CHECK: Owner of the tranche config
     #[account()]
     pub owner: AccountInfo<'info>,
-    
+
     /// Signer account
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -61,9 +62,8 @@ pub struct InitializeContext<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateContext<'info> {
-
     #[account(mut, has_one = owner)]
-    pub redeem_logic_config: Account<'info, RedeemLogicConfig>, 
+    pub redeem_logic_config: Account<'info, RedeemLogicConfig>,
 
     /// CHECK: Owner of the tranche config
     #[account()]
@@ -73,7 +73,7 @@ pub struct UpdateContext<'info> {
 #[derive(Accounts)]
 pub struct ExecuteContext<'info> {
     #[account()]
-    pub redeem_logic_config: Account<'info, RedeemLogicConfig>, 
+    pub redeem_logic_config: Account<'info, RedeemLogicConfig>,
 }
 
 #[account]
@@ -93,42 +93,45 @@ impl RedeemLogicConfig {
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
     pub old_reserve_fair_value_bps: u32,
-    pub new_reserve_fair_value_bps: u32
+    pub new_reserve_fair_value_bps: u32,
 }
 
 /// We can't move this struct in a library because anchor can't recognize it during IDL generation
 /// https://github.com/project-serum/anchor/issues/1058
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteResult {
-    pub new_quantity: [u64;2],
-    pub fee_quantity: u64
+    pub new_quantity: [u64; 2],
+    pub fee_quantity: u64,
 }
 
-fn execute_plugin(old_quantity: [u64; 2], old_reserve_fair_value_bps: u32, new_reserve_fair_value_bps: u32, interest_split_bps: u32) -> RedeemLogicExecuteResult {
-
+fn execute_plugin(
+    old_quantity: [u64; 2],
+    old_reserve_fair_value_bps: u32,
+    new_reserve_fair_value_bps: u32,
+    interest_split_bps: u32,
+) -> RedeemLogicExecuteResult {
     // default in the past
     if old_reserve_fair_value_bps == 0 {
         return RedeemLogicExecuteResult {
-            new_quantity: [0,0],
-            fee_quantity: 0
+            new_quantity: old_quantity,
+            fee_quantity: 0,
         };
     }
 
-    let total_old_quantity = old_quantity.map(|u| Decimal::from(u)).iter().sum::<Decimal>();
+    let total_old_quantity = old_quantity
+        .map(|u| Decimal::from(u))
+        .iter()
+        .sum::<Decimal>();
     let old_reserve_fair_value = from_bps(old_reserve_fair_value_bps).unwrap();
     let interest_split = from_bps(interest_split_bps).unwrap();
     let new_reserve_fair_value = from_bps(new_reserve_fair_value_bps).unwrap();
 
     // positive return, share proceeds
     let senior_new_quantity = if new_reserve_fair_value > old_reserve_fair_value {
-        Decimal::from(old_quantity[0])
-        * old_reserve_fair_value
-        / new_reserve_fair_value
-        * (
-            Decimal::ONE
-            + (new_reserve_fair_value / old_reserve_fair_value - Decimal::ONE)
-            * (Decimal::ONE - interest_split)
-        )
+        Decimal::from(old_quantity[0]) * old_reserve_fair_value / new_reserve_fair_value
+            * (Decimal::ONE
+                + (new_reserve_fair_value / old_reserve_fair_value - Decimal::ONE)
+                    * (Decimal::ONE - interest_split))
     } else {
         // total loss
         if new_reserve_fair_value == Decimal::ZERO {
@@ -136,21 +139,24 @@ fn execute_plugin(old_quantity: [u64; 2], old_reserve_fair_value_bps: u32, new_r
         // partial loss
         } else {
             total_old_quantity.min(
-                Decimal::from(old_quantity[0])
-                * old_reserve_fair_value
-                / new_reserve_fair_value)
+                Decimal::from(old_quantity[0]) * old_reserve_fair_value / new_reserve_fair_value,
+            )
         }
     };
 
-    // max(0, ..) should be superfluos
-    let junior_new_quantity = Decimal::ZERO.max(total_old_quantity - senior_new_quantity);
+    let total_old_quantity = total_old_quantity.round().to_u64().unwrap();
 
-    // approx true due to rounding
+    let senior_new_quantity = senior_new_quantity.round().to_u64().unwrap();
+
+    // max(0, ..) should be superfluos
+    let junior_new_quantity = std::cmp::max(0, total_old_quantity - senior_new_quantity);
+
+    // true by construction
     // assert senior + junior == old_tranche_quantity.senior + old_tranche_quantity.junior
 
     return RedeemLogicExecuteResult {
-        new_quantity: [senior_new_quantity, junior_new_quantity].map(|d| d.round().to_u64().unwrap()),
-        fee_quantity: 0
+        new_quantity: [senior_new_quantity, junior_new_quantity],
+        fee_quantity: 0,
     };
 }
 
@@ -160,12 +166,17 @@ mod tests {
 
     #[test]
     fn test_flat_returns() {
-        let old_quantity = [100_000;2];
+        let old_quantity = [100_000; 2];
         let old_reserve_bps = 10_000; // 100%
         let new_reserve_bps = 10_000; // 100%
         let interest_split = 2_000; // 20%
-    
-        let res = execute_plugin(old_quantity, old_reserve_bps, new_reserve_bps, interest_split);
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -178,11 +189,35 @@ mod tests {
         let old_reserve_bps = 6_000; // 60%
         let new_reserve_bps = 7_500; // 75%
         let interest_split = 2_000; // 20%
-    
-        let res = execute_plugin(old_quantity, old_reserve_bps, new_reserve_bps, interest_split);
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 104_000);
+        assert_eq!(res.fee_quantity, 0);
+    }
+
+    #[test]
+    fn test_positive_returns_rounding() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 6_100; // 61%
+        let interest_split = 2_000; // 20%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
+
+        assert_eq!(res.new_quantity[0], 99_672);
+        assert_eq!(res.new_quantity[1], 100_328);
         assert_eq!(res.fee_quantity, 0);
     }
 
@@ -192,95 +227,187 @@ mod tests {
         let old_reserve_bps = 6_000; // 60%
         let new_reserve_bps = 7_500; // 75%
         let interest_split = 2_000; // 20%
-    
-        let res = execute_plugin(old_quantity, old_reserve_bps, new_reserve_bps, interest_split);
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 5_000);
         assert_eq!(res.fee_quantity, 0);
     }
 
-    /*
+    #[test]
+    fn test_positive_returns_junior_imbalance() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 12_500; // 125%
+        let interest_split = 2_000; // 20%
 
-    def test_positive_returns_junior_imbalance():
-        old_tranche = TrancheQuantity(1, 100)
-        old_reserve = 100
-        new_reserve = 125
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(0.96)
-        assert new_tranche.junior == approx(100.04)
+        assert_eq!(res.new_quantity[0], 960);
+        assert_eq!(res.new_quantity[1], 100_040);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_negative_returns() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 8_000; // 80%
+        let new_reserve_bps = 6_400; // 64%
+        let interest_split = 2_000; // 20%
 
-    def test_negative_returns():
-        old_tranche = TrancheQuantity(1, 1)
-        old_reserve = 80
-        new_reserve = 64
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(1.25)
-        assert new_tranche.junior == approx(0.75)
+        assert_eq!(res.new_quantity[0], 125_000);
+        assert_eq!(res.new_quantity[1], 75_000);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_negative_returns_rounding() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 5_900; // 59%
+        let interest_split = 2_000; // 20%
 
-    def test_negative_returns_senior_imbalance():
-        old_tranche = TrancheQuantity(100, 1)
-        old_reserve = 60
-        new_reserve = 48
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(101)
-        assert new_tranche.junior == approx(0)
+        assert_eq!(res.new_quantity[0], 101_695);
+        assert_eq!(res.new_quantity[1], 98_305);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_negative_returns_senior_imbalance() {
+        let old_quantity = [100_000, 1000];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 4_800; // 48%
+        let interest_split = 2_000; // 20%
 
-    def test_negative_returns_junior_imbalance():
-        old_tranche = TrancheQuantity(1, 100)
-        old_reserve = 100
-        new_reserve = 80
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(1.25)
-        assert new_tranche.junior == approx(99.75)
+        assert_eq!(res.new_quantity[0], 101_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_negative_returns_junior_imbalance() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 8_000; // 80%
+        let interest_split = 2_000; // 20%
 
-    def test_junior_wipeout():
-        old_tranche = TrancheQuantity(1, 1)
-        old_reserve = 100
-        new_reserve = 50
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(2)
-        assert new_tranche.junior == approx(0)
+        assert_eq!(res.new_quantity[0], 1_250);
+        assert_eq!(res.new_quantity[1], 99_750);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_junior_wipeout() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 5_000; // 50%
+        let interest_split = 2_000; // 20%
 
-    def test_junior_wipeout_senior_partial():
-        old_tranche = TrancheQuantity(1, 1)
-        old_reserve = 10
-        new_reserve = 2.5
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(2)
-        assert new_tranche.junior == approx(0)
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_junior_wipeout_senior_partial() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 2_500; // 25%
+        let interest_split = 2_000; // 20%
 
-    def test_junior_wipeout_senior_wipeout():
-        old_tranche = TrancheQuantity(1, 1)
-        old_reserve = 13
-        new_reserve = 0
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(2)
-        assert new_tranche.junior == approx(0)
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
+    #[test]
+    fn test_junior_wipeout_senior_wipeout() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 13_000; // 130%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
 
-    def test_past_wipeout():
-        old_tranche = TrancheQuantity(10, 1)
-        old_reserve = 0
-        new_reserve = 0
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
 
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(10)
-        assert new_tranche.junior == approx(1)
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+    }
 
-    */
+    #[test]
+    fn test_past_wipeout() {
+        let old_quantity = [1_000_000, 100_000];
+        let old_reserve_bps = 0; // 0%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
 
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+        );
+
+        assert_eq!(res.new_quantity[0], 1_000_000);
+        assert_eq!(res.new_quantity[1], 100_000);
+        assert_eq!(res.fee_quantity, 0);
+    }
 }
