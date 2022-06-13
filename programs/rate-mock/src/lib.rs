@@ -53,8 +53,7 @@ pub struct InitializeContext<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    /// TODO space TBD
-    #[account(init, payer = signer, space = 1024)]
+    #[account(init, payer = signer, space = 8+4+8)]
     pub rate_data: Account<'info, RateState>,
 
     pub system_program: Program<'info, System>,
