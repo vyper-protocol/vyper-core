@@ -186,17 +186,23 @@ mod tests {
         assert_eq!(res.fee_quantity, 0);
     }
 
+    #[test]
+    fn test_positive_returns_senior_imbalance() {
+        let old_quantity = [100_000, 1];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 7_500; // 75%
+        let interest_split = 2_000; // 20%
+    
+        let res = execute_plugin(old_quantity, old_reserve_bps, new_reserve_bps, interest_split);
+
+        assert_eq!(res.new_quantity[0], 96_000);
+        // from python => assert new_tranche.junior == approx(5)
+        // @vantessel
+        assert_eq!(res.new_quantity[1], 4_001);
+        assert_eq!(res.fee_quantity, 0);
+    }
+
     /*
-
-    def test_positive_returns_senior_imbalance():
-        old_tranche = TrancheQuantity(100, 1)
-        old_reserve = 60
-        new_reserve = 75
-
-        new_tranche = redeem(old_tranche, old_reserve, new_reserve)
-        assert new_tranche.senior == approx(96)
-        assert new_tranche.junior == approx(5)
-
 
     def test_positive_returns_junior_imbalance():
         old_tranche = TrancheQuantity(1, 100)
