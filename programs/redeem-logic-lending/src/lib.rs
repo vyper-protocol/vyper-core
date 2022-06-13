@@ -1,11 +1,13 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::math::from_bps;
+// use vyper_utils::redeem_logic_common::{RedeemLogicExecuteInput, RedeemLogicExecuteResult};
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
 #[program]
 pub mod redeem_logic_lending {
+
 
     use super::*;
 
@@ -41,6 +43,19 @@ pub mod redeem_logic_lending {
 
         Ok(())
     }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct RedeemLogicExecuteInput {
+    pub old_quantity: [u64; 2],
+    pub old_reserve_fair_value_bps: u32,
+    pub new_reserve_fair_value_bps: u32
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct RedeemLogicExecuteResult {
+    pub new_quantity: [u64;2],
+    pub fee_quantity: u64
 }
 
 #[derive(Accounts)]
@@ -86,22 +101,24 @@ impl RedeemLogicConfig {
     4+32;
 }
 
-/// We can't move this struct in a library because anchor can't recognize it during IDL generation
-/// https://github.com/project-serum/anchor/issues/1058
-#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct RedeemLogicExecuteInput {
-    pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: u32,
-    pub new_reserve_fair_value_bps: u32,
-}
+// /// We can't move this struct in a library because anchor can't recognize it during IDL generation
+// /// https://github.com/project-serum/anchor/issues/1058
+// #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+// pub struct RedeemLogicExecuteInput {
+//     pub old_quantity: [u64; 2],
+//     pub old_reserve_fair_value_bps: u32,
+//     pub new_reserve_fair_value_bps: u32,
+// }
 
-/// We can't move this struct in a library because anchor can't recognize it during IDL generation
-/// https://github.com/project-serum/anchor/issues/1058
-#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct RedeemLogicExecuteResult {
-    pub new_quantity: [u64; 2],
-    pub fee_quantity: u64,
-}
+// /// We can't move this struct in a library because anchor can't recognize it during IDL generation
+// /// https://github.com/project-serum/anchor/issues/1058
+// #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+// pub struct RedeemLogicExecuteResult {
+//     pub new_quantity: [u64; 2],
+//     pub fee_quantity: u64,
+// }
+
+
 
 fn execute_plugin(
     old_quantity: [u64; 2],

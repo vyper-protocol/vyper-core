@@ -57,6 +57,9 @@ impl TrancheConfig {
 pub struct TrancheData {
     /// Current deposited quantities, for senior and junior cUSDC
     pub deposited_quantity: [u64; 2],
+    
+    /// 
+    pub fee_to_collect_quantity: u64,
 
     /// pe cUSDC / USDC
     pub reserve_fair_value: ReserveFairValue,
@@ -78,7 +81,8 @@ impl TrancheData {
             reserve_fair_value: ReserveFairValue { value: 1, slot_tracking: SlotTracking::new(slot) },
             tranche_fair_value: TrancheFairValue { value: [1;2], slot_tracking: SlotTracking::new(slot) },
             halt_flags: 0,
-            owner_restricted_ix: 0
+            owner_restricted_ix: 0,
+            fee_to_collect_quantity: 0
         }
     }
 

@@ -10,7 +10,9 @@ pub struct DepositContext<'info> {
     pub signer: Signer<'info>,
     
     #[account(mut, 
-        // constraint = !vault.value.last_update.is_stale(clock.slot)? @ ErrorCode::VaultIsNotRefreshed,
+        // TODO check tranches mint
+        has_one = junior_tranche_mint,
+        has_one = senior_tranche_mint,
         has_one = reserve,
         has_one = tranche_authority)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
@@ -56,7 +58,7 @@ impl<'info> DepositContext<'info> {
         (!tranche_data.get_halt_flags().contains(TrancheHaltFlags::HALT_DEPOSITS)).ok_or(VyperErrorCode::HaltError)?;
     
         // check that tranche fair values are not halted
-        (!tranche_data.reserve_fair_value.slot_tracking.is_stale(clock.slot)?).ok_or(VyperErrorCode::StaleFairValue)?;
+        (!tranche_data.tranche_fair_value.slot_tracking.is_stale(clock.slot)?).ok_or(VyperErrorCode::StaleFairValue)?;
     
         // check if the current ix is restricted to owner
         if tranche_data.get_owner_restricted_ixs().contains(OwnerRestrictedIxFlags::DEPOSITS) {
@@ -125,7 +127,6 @@ pub fn handler(
     ctx: Context<DepositContext>,
     input_data: DepositInput,
 ) -> Result<()> {
-    msg!("deposit begin");
 
     // check if accounts are valid
     msg!("check if accounts are valid");
@@ -146,11 +147,10 @@ pub fn handler(
 
     // mint tranches
 
-    let mint_count: [u64; 2] = [0; 2];
-    // TODO fix calc
-    // for i in 0..mint_count.len() {
-    //     mint_count[i] = input_data.reserve_quantity[i].checked_mul(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i]).ok_or_else(|| VyperErrorCode::MathError)?;
-    // }
+    let mut mint_count: [u64; 2] = [0; 2];
+    for i in 0..mint_count.len() {
+        mint_count[i] = input_data.reserve_quantity[i].checked_div(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i].into()).ok_or_else(|| VyperErrorCode::MathError)?;
+    }
 
     if mint_count[0] > 0 {
         msg!("mint {} senior tranches", mint_count[0]);

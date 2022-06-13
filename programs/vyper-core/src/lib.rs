@@ -5,6 +5,7 @@ pub mod utils;
 
 use anchor_lang::prelude::*;
 use instructions::*;
+use vyper_macros::*;
 
 use solana_security_txt::security_txt;
 
@@ -22,23 +23,33 @@ declare_id!("mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U");
 pub mod vyper_core {
     use super::*;
 
+    #[log_wrap_ix()]
     pub fn initialize(ctx: Context<InitializeContext>, input_data: InitializeInput) -> Result<()> {
         instructions::initialize::handler(ctx, input_data)
     }
-
+    
+    #[log_wrap_ix()]
     pub fn update_tranche_data(ctx: Context<UpdateTrancheDataContext>, input_data: UpdateTrancheDataInput) -> Result<()> {
         instructions::update_tranche_data::handler(ctx, input_data)
     }
-
+    
+    #[log_wrap_ix()]
     pub fn refresh_tranche_fair_value(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
         instructions::refresh_tranche_fair_value::handler(ctx)
     }
-
+    
+    #[log_wrap_ix()]
     pub fn deposit(ctx: Context<DepositContext>, input_data: DepositInput) -> Result<()> {
         instructions::deposit::handler(ctx, input_data)
     }
-
+    
+    #[log_wrap_ix()]
     pub fn redeem(ctx: Context<RedeemContext>, input_data: RedeemInput) -> Result<()> {
         instructions::redeem::handler(ctx, input_data)
+    }
+
+    #[log_wrap_ix()]
+    pub fn collect_fee(ctx: Context<CollectFeeContext>) -> Result<()> {
+        instructions::collect_fee::handler(ctx)
     }
 }

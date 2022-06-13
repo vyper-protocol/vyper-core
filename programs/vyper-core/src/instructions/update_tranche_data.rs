@@ -37,9 +37,6 @@ pub fn handler(
     ctx: Context<UpdateTrancheDataContext>,
     input_data: UpdateTrancheDataInput,
 ) -> Result<()> {
-    msg!("update_tranche_data begin");
-
-
     
     // update tranche config account
 

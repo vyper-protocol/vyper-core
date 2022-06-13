@@ -18,5 +18,5 @@ default = []
 [dependencies]
 anchor-lang = "0.24.2"
 vyper-utils = { path = "../../misc/vyper-utils" }
+vyper-macros = { path = "../../misc/vyper-macros" }
 rust_decimal = "1.24"
-rust_decimal_macros = "1.24"
