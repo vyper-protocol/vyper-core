@@ -89,14 +89,18 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     msg!("updating fee_to_collect_quantity");
     tranche_data.fee_to_collect_quantity = tranche_data.fee_to_collect_quantity.checked_add(plugin_result.fee_quantity).unwrap();
 
-    msg!("updating tranche fair value");
+    msg!("updating deposited quantity");
     tranche_data.deposited_quantity = plugin_result.new_quantity;
 
     msg!("updating tranche fair value");
-    tranche_data.tranche_fair_value.value = [
-        tranche_data.deposited_quantity[0].checked_div(ctx.accounts.senior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
-        tranche_data.deposited_quantity[1].checked_div(ctx.accounts.junior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
-    ];
+    if ctx.accounts.senior_tranche_mint.supply > 0 {
+        tranche_data.tranche_fair_value.value[0] =
+            tranche_data.deposited_quantity[0].checked_div(ctx.accounts.senior_tranche_mint.supply).unwrap().try_into().ok().unwrap()
+    }
+    if ctx.accounts.junior_tranche_mint.supply > 0 {
+        tranche_data.tranche_fair_value.value[1] =
+            tranche_data.deposited_quantity[1].checked_div(ctx.accounts.junior_tranche_mint.supply).unwrap().try_into().ok().unwrap()
+    }
     tranche_data.tranche_fair_value.slot_tracking.update(rate_state.refreshed_slot);
     
     msg!("updating reserve fair value");
