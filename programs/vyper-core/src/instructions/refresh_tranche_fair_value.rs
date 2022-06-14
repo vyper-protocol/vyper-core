@@ -73,7 +73,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     let new_reserve_fair_value = rate_state.fair_value;
     msg!("+ old_reserve_fair_value: {}", old_reserve_fair_value);
     msg!("+ new_reserve_fair_value: {}", new_reserve_fair_value);
-    
+    msg!("+ tranche_data.deposited_quantity: {:?}", tranche_data.deposited_quantity);
+
     // call execute redeem logic plugin
     msg!("execute redeem logic CPI");
     let cpi_res = cpi_plugin(
