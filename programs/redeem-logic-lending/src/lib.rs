@@ -1,8 +1,6 @@
-use vyper_macros::*;
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_utils::math::from_bps;
-// use vyper_utils::redeem_logic_common::{RedeemLogicExecuteInput, RedeemLogicExecuteResult};
+use vyper_math::bps::from_bps;
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 

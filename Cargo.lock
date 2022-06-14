@@ -1102,6 +1102,7 @@ dependencies = [
  "anchor-lang 0.24.2",
  "rust_decimal",
  "vyper-macros",
+ "vyper-math",
  "vyper-utils",
 ]
 
@@ -1474,6 +1475,7 @@ dependencies = [
  "boolinator",
  "solana-security-txt",
  "vyper-macros",
+ "vyper-math",
  "vyper-utils",
 ]
 
@@ -1483,6 +1485,14 @@ version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "vyper-math"
+version = "0.1.0"
+dependencies = [
+ "rust_decimal",
+ "rust_decimal_macros",
 ]
 
 [[package]]

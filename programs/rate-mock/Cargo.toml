@@ -17,4 +17,4 @@ default = []
 
 [dependencies]
 anchor-lang = "0.24.2"
-vyper-utils = { path = "../../misc/vyper-utils" }
+vyper-utils = { path = "../../libs/vyper-utils" }
