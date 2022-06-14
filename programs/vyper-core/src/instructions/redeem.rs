@@ -126,7 +126,6 @@ pub fn handler(
     ctx: Context<RedeemContext>,
     input_data: RedeemInput,
 ) -> Result<()> {
-    msg!("redeem begin");
 
     // check if accounts are valid
     msg!("check if accounts are valid");
@@ -146,11 +145,10 @@ pub fn handler(
     token::transfer(ctx.accounts.transfer_context().with_signer(&[&ctx.accounts.tranche_config.authority_seeds()]), input_data.tranche_quantity.iter().sum::<u64>())?;     
 
     // burn tranches
-    let burn_mint_count: [u64; 2] = [0; 2];
-    // TODO fix calc
-    // for i in 0..burn_mint_count.len() {
-    //     burn_mint_count[i] = input_data.tranche_quantity[i].checked_div(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i].into()).ok_or_else(|| VyperErrorCode::MathError)?;
-    // }
+    let mut burn_mint_count: [u64; 2] = [0; 2];
+    for i in 0..burn_mint_count.len() {
+        burn_mint_count[i] = input_data.tranche_quantity[i].checked_mul(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i].into()).ok_or_else(|| VyperErrorCode::MathError)?;
+    }
 
     if burn_mint_count[0] > 0 {
         msg!("burn {} senior tranches", burn_mint_count[0]);

@@ -1,4 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::{self, hash::hashv, instruction::Instruction}};
+use anchor_spl::token::Mint;
 use boolinator::Boolinator;
 use vyper_utils::redeem_logic_common::{RedeemLogicExecuteResult, RedeemLogicExecuteInput};
 use crate::{state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
@@ -8,8 +9,22 @@ pub struct RefreshTrancheFairValue<'info> {
     
     pub signer: Signer<'info>,
     
-    #[account(mut, has_one = rate_program_state, has_one = redeem_logic_program, has_one = redeem_logic_program_state)]
+    #[account(mut, 
+        has_one = rate_program_state,
+        has_one = redeem_logic_program,
+        has_one = redeem_logic_program_state,
+        has_one = senior_tranche_mint,
+        has_one = junior_tranche_mint,
+    )]
     pub tranche_config: Account<'info, TrancheConfig>,
+
+    /// Senior tranche mint
+    #[account(mut)]
+    pub senior_tranche_mint: Box<Account<'info, Mint>>,
+
+    /// Junior tranche mint
+    #[account(mut)]
+    pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     /// CHECK: 
     pub rate_program_state: AccountInfo<'info>,
@@ -37,7 +52,6 @@ impl<'info> RefreshTrancheFairValue<'info> {
 }
 
 pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
-    msg!("refresh_tranche_fair_value begin");
 
     // check if accounts are valid
     msg!("check if accounts are valid");
@@ -49,6 +63,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     let mut account_data_slice: &[u8] = &account_data;
     let rate_state = RateState::try_deserialize_unchecked(&mut account_data_slice)?;
     
+    // TODO check rate_State not stale
+
     // get old and new reserve fair value
     let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
     let old_reserve_fair_value = tranche_data.reserve_fair_value.value;
@@ -70,9 +86,17 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
     msg!("cpi return result: {:?}", plugin_result);
 
+    msg!("updating fee_to_collect_quantity");
+    tranche_data.fee_to_collect_quantity = tranche_data.fee_to_collect_quantity.checked_add(plugin_result.fee_quantity).unwrap();
+
     msg!("updating tranche fair value");
-    // TODO: calculate new tranche fair value
-    // tranche_data.tranche_fair_value.value = plugin_result.new_tranche_fairvalue;
+    tranche_data.deposited_quantity = plugin_result.new_quantity;
+
+    msg!("updating tranche fair value");
+    tranche_data.tranche_fair_value.value = [
+        tranche_data.deposited_quantity[0].checked_div(ctx.accounts.senior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
+        tranche_data.deposited_quantity[1].checked_div(ctx.accounts.junior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
+    ];
     tranche_data.tranche_fair_value.slot_tracking.update(rate_state.refreshed_slot);
     
     msg!("updating reserve fair value");

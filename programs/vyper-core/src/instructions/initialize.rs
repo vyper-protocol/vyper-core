@@ -72,7 +72,6 @@ pub fn handler(
     ctx: Context<InitializeContext>,
     _input_data: InitializeInput,
 ) -> Result<()> {
-    msg!("initialize begin");
 
     let clock = Clock::get()?;
 
