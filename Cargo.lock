@@ -1473,6 +1473,8 @@ dependencies = [
  "anchor-spl 0.24.2",
  "bitflags",
  "boolinator",
+ "rust_decimal",
+ "rust_decimal_macros",
  "solana-security-txt",
  "vyper-macros",
  "vyper-math",

@@ -188,10 +188,12 @@ impl SlotTracking {
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
-        msg!("current_slot: {}", current_slot);
-        msg!("self.get_last_update_slot(): {}", self.get_last_update_slot());
-        msg!("self.slot_elapsed: {}", self.slot_elapsed(current_slot)?);
-        msg!("self.stale_slot_threshold: {}", self.stale_slot_threshold);
+        #[cfg(feature = "debug")] {
+            msg!("current_slot: {}", current_slot);
+            msg!("self.get_last_update_slot(): {}", self.get_last_update_slot());
+            msg!("self.slot_elapsed: {}", self.slot_elapsed(current_slot)?);
+            msg!("self.stale_slot_threshold: {}", self.stale_slot_threshold);
+        }
 
         Ok(self.slot_elapsed(current_slot)? >= self.stale_slot_threshold)
     }

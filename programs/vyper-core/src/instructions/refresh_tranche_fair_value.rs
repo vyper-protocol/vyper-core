@@ -1,6 +1,8 @@
 use anchor_lang::{prelude::*, solana_program::{self, hash::hashv, instruction::Instruction}};
 use anchor_spl::token::Mint;
 use boolinator::Boolinator;
+use rust_decimal::Decimal;
+use vyper_math::bps::{BpsRangeValue, to_bps};
 use vyper_utils::redeem_logic_common::{RedeemLogicExecuteResult, RedeemLogicExecuteInput};
 use crate::{state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
@@ -83,27 +85,41 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             old_quantity: tranche_data.deposited_quantity
         });
     let plugin_result = cpi_res.unwrap();
-
     msg!("cpi return result: {:?}", plugin_result);
 
-    msg!("updating fee_to_collect_quantity");
+    msg!("updating fee_to_collect_quantity...");
     tranche_data.fee_to_collect_quantity = tranche_data.fee_to_collect_quantity.checked_add(plugin_result.fee_quantity).unwrap();
 
-    msg!("updating deposited quantity");
+    msg!("updating deposited quantity...");
     tranche_data.deposited_quantity = plugin_result.new_quantity;
 
-    msg!("updating tranche fair value");
+    msg!("updating tranche fair value...");
     if ctx.accounts.senior_tranche_mint.supply > 0 {
-        tranche_data.tranche_fair_value.value[0] =
-            tranche_data.deposited_quantity[0].checked_div(ctx.accounts.senior_tranche_mint.supply).unwrap().try_into().ok().unwrap()
+        let dep_qty = Decimal::from(tranche_data.deposited_quantity[0]);
+        let supply = Decimal::from(ctx.accounts.senior_tranche_mint.supply);
+        let fair_value = dep_qty / supply;
+        #[cfg(feature = "debug")] {
+            msg!("senior dep qty: {:?}", dep_qty);
+            msg!("senior supply: {:?}", supply);
+            msg!("senior fair value: {:?}", fair_value);
+        }
+        tranche_data.tranche_fair_value.value[0] = to_bps(fair_value).unwrap();
     }
     if ctx.accounts.junior_tranche_mint.supply > 0 {
-        tranche_data.tranche_fair_value.value[1] =
-            tranche_data.deposited_quantity[1].checked_div(ctx.accounts.junior_tranche_mint.supply).unwrap().try_into().ok().unwrap()
+        let dep_qty = Decimal::from(tranche_data.deposited_quantity[1]);
+        let supply = Decimal::from(ctx.accounts.junior_tranche_mint.supply);
+        let fair_value = dep_qty / supply;
+        #[cfg(feature = "debug")] {
+            msg!("junior dep qty: {:?}", dep_qty);
+            msg!("junior supply: {:?}", supply);
+            msg!("junior fair value: {:?}", fair_value);
+        }
+        tranche_data.tranche_fair_value.value[1] = to_bps(fair_value).unwrap();
     }
+    msg!("tranche fair value: {:?}", tranche_data.tranche_fair_value.value);
     tranche_data.tranche_fair_value.slot_tracking.update(rate_state.refreshed_slot);
     
-    msg!("updating reserve fair value");
+    msg!("updating reserve fair value...");
     tranche_data.reserve_fair_value.value = rate_state.fair_value;
     tranche_data.reserve_fair_value.slot_tracking.update(rate_state.refreshed_slot);
 
