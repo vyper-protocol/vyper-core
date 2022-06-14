@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint, Burn};
 use boolinator::Boolinator;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
-use vyper_math::bps::from_bps;
 use crate::{utils::{ Input }, state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
 #[derive(Accounts)]
