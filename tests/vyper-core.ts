@@ -11,6 +11,7 @@ import {
     createMintAndVault,
     createTokenAccount,
     getInitializeData,
+    getTokenAccountAmount,
     TRANCHE_HALT_FLAGS,
     TRANCHE_HALT_FLAGS_HALT_ALL,
     UPDATE_TRANCHE_CONFIG_FLAGS,
@@ -442,7 +443,7 @@ describe("vyper_core", async () => {
     it("deposit", async () => {
         const vyperCoreInitializeInputData = {
             isOpen: true,
-            trancheMintDecimals: 0,
+            trancheMintDecimals: 6,
         };
         const seniorDepositAmount = 1000 * 10 ** vyperCoreInitializeInputData.trancheMintDecimals;
         const juniorDepositAmount = 500 * 10 ** vyperCoreInitializeInputData.trancheMintDecimals;
@@ -642,6 +643,194 @@ describe("vyper_core", async () => {
             } catch (exc) {
                 console.error(exc);
             }
+        }
+    });
+
+    it.only("redeem", async () => {
+        const vyperCoreInitializeInputData = {
+            isOpen: true,
+            trancheMintDecimals: 0,
+        };
+        const seniorDepositAmount = 1000 * 10 ** vyperCoreInitializeInputData.trancheMintDecimals;
+        const juniorDepositAmount = 500 * 10 ** vyperCoreInitializeInputData.trancheMintDecimals;
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            10 * (seniorDepositAmount + juniorDepositAmount),
+            0
+        );
+        const juniorTrancheMint = anchor.web3.Keypair.generate();
+        const seniorTrancheMint = anchor.web3.Keypair.generate();
+        console.log("reserveMint: " + reserveMint);
+        console.log("juniorTrancheMint: " + juniorTrancheMint.publicKey);
+        console.log("seniorTrancheMint: " + seniorTrancheMint.publicKey);
+        const trancheConfig = anchor.web3.Keypair.generate();
+        const [trancheAuthority] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), anchor.utils.bytes.utf8.encode("authority")],
+            programVyperCore.programId
+        );
+        const [reserve] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
+            programVyperCore.programId
+        );
+        const rateData = anchor.web3.Keypair.generate();
+        const redeemLogicProgramState = anchor.web3.Keypair.generate();
+        const interestSplit = 5000; // 50%
+
+        await programRateMock.methods
+            .initialize()
+            .accounts({
+                signer: provider.wallet.publicKey,
+                rateData: rateData.publicKey,
+            })
+            .signers([rateData])
+            .rpc();
+        await programRedeemLogicLending.methods
+            .initialize(interestSplit)
+            .accounts({
+                redeemLogicConfig: redeemLogicProgramState.publicKey,
+                owner: provider.wallet.publicKey,
+                payer: provider.wallet.publicKey,
+            })
+            .signers([redeemLogicProgramState])
+            .rpc();
+
+        await programVyperCore.methods
+            .initialize(vyperCoreInitializeInputData)
+            .accounts({
+                payer: provider.wallet.publicKey,
+                owner: provider.wallet.publicKey,
+                trancheConfig: trancheConfig.publicKey,
+                trancheAuthority,
+                rateProgram: programRateMock.programId,
+                redeemLogicProgram: programRedeemLogicLending.programId,
+                redeemLogicProgramState: redeemLogicProgramState.publicKey,
+                rateProgramState: rateData.publicKey,
+                reserveMint,
+                reserve,
+                juniorTrancheMint: juniorTrancheMint.publicKey,
+                seniorTrancheMint: seniorTrancheMint.publicKey,
+            })
+            .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
+            .rpc();
+
+        console.log("create token account for senior tranches");
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            seniorTrancheMint.publicKey,
+            provider.wallet.publicKey
+        );
+        console.log("create token account for junior tranches");
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            juniorTrancheMint.publicKey,
+            provider.wallet.publicKey
+        );
+
+        for (let i = 0; i < 2; i++) {
+            const depositTx = new anchor.web3.Transaction();
+            depositTx.add(
+                await programRateMock.methods
+                    .setFairValue(500 + i * 500)
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        rateData: rateData.publicKey,
+                    })
+                    .instruction()
+            );
+
+            depositTx.add(
+                await programVyperCore.methods
+                    .refreshTrancheFairValue()
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        trancheConfig: trancheConfig.publicKey,
+                        seniorTrancheMint: seniorTrancheMint.publicKey,
+                        juniorTrancheMint: juniorTrancheMint.publicKey,
+                        rateProgramState: rateData.publicKey,
+                        redeemLogicProgram: programRedeemLogicLending.programId,
+                        redeemLogicProgramState: redeemLogicProgramState.publicKey,
+                    })
+                    .instruction()
+            );
+
+            depositTx.add(
+                await programVyperCore.methods
+                    .deposit({
+                        reserveQuantity: [bn(seniorDepositAmount), bn(juniorDepositAmount)],
+                    })
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        trancheConfig: trancheConfig.publicKey,
+                        trancheAuthority,
+                        reserve,
+                        userReserveToken,
+                        seniorTrancheMint: seniorTrancheMint.publicKey,
+                        juniorTrancheMint: juniorTrancheMint.publicKey,
+                        seniorTrancheDest: seniorTrancheTokenAccount,
+                        juniorTrancheDest: juniorTrancheTokenAccount,
+                    })
+                    .instruction()
+            );
+            const depositTxSignature = await provider.sendAndConfirm(depositTx);
+            console.log("deposit tx: ", depositTxSignature);
+        }
+
+        try {
+            const redeemTx = new anchor.web3.Transaction();
+            redeemTx.add(
+                await programRateMock.methods
+                    .setFairValue(1000)
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        rateData: rateData.publicKey,
+                    })
+                    .instruction()
+            );
+            redeemTx.add(
+                await programVyperCore.methods
+                    .refreshTrancheFairValue()
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        trancheConfig: trancheConfig.publicKey,
+                        seniorTrancheMint: seniorTrancheMint.publicKey,
+                        juniorTrancheMint: juniorTrancheMint.publicKey,
+                        rateProgramState: rateData.publicKey,
+                        redeemLogicProgram: programRedeemLogicLending.programId,
+                        redeemLogicProgramState: redeemLogicProgramState.publicKey,
+                    })
+                    .instruction()
+            );
+            redeemTx.add(
+                await programVyperCore.methods
+                    .redeem({
+                        trancheQuantity: [
+                            bn(await getTokenAccountAmount(provider, seniorTrancheTokenAccount)),
+                            bn(await getTokenAccountAmount(provider, juniorTrancheTokenAccount)),
+                        ],
+                    })
+                    .accounts({
+                        signer: provider.wallet.publicKey,
+                        trancheConfig: trancheConfig.publicKey,
+                        trancheAuthority,
+                        reserve,
+                        userReserveToken,
+                        seniorTrancheMint: seniorTrancheMint.publicKey,
+                        juniorTrancheMint: juniorTrancheMint.publicKey,
+                        seniorTrancheSource: seniorTrancheTokenAccount,
+                        juniorTrancheSource: juniorTrancheTokenAccount,
+                    })
+                    .instruction()
+            );
+            const redeemTxSignature = await provider.sendAndConfirm(redeemTx);
+            console.log("redeem tx: ", redeemTxSignature);
+
+            // const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(trancheConfig.publicKey);
+            // expect(trancheConfigAccount.trancheData.depositedQuantity.map((c) => c.toNumber())).to.eql([0, 0]);
+
+            // expect(await getTokenAccountAmount(provider, seniorTrancheTokenAccount)).to.eql(0);
+            // expect(await getTokenAccountAmount(provider, juniorTrancheTokenAccount)).to.eql(0);
+        } catch (err) {
+            console.error(err);
         }
     });
 });

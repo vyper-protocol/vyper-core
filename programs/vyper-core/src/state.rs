@@ -1,4 +1,7 @@
 use anchor_lang::prelude::*;
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
+use vyper_math::bps::{to_bps, from_bps};
 
 use crate::errors::VyperErrorCode;
 
@@ -78,8 +81,8 @@ impl TrancheData {
     pub fn new(slot: u64) -> Self {
         Self {
             deposited_quantity: [0; 2],
-            reserve_fair_value: ReserveFairValue { value: 1, slot_tracking: SlotTracking::new(slot) },
-            tranche_fair_value: TrancheFairValue { value: [1;2], slot_tracking: SlotTracking::new(slot) },
+            reserve_fair_value: ReserveFairValue { value: to_bps(dec!(1.0)).unwrap(), slot_tracking: SlotTracking::new(slot) },
+            tranche_fair_value: TrancheFairValue { value: [to_bps(dec!(1.0)).unwrap();2], slot_tracking: SlotTracking::new(slot) },
             halt_flags: 0,
             owner_restricted_ix: 0,
             fee_to_collect_quantity: 0
@@ -161,6 +164,12 @@ pub struct TrancheFairValue {
     pub slot_tracking: SlotTracking
 }
 
+impl TrancheFairValue {
+    pub fn get_decimals(&self) -> [Decimal;2] {
+        self.value.map(|c| from_bps(c).unwrap())
+    }
+}
+
 /// Tracking of slot information
 #[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
@@ -188,13 +197,6 @@ impl SlotTracking {
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
-        #[cfg(feature = "debug")] {
-            msg!("current_slot: {}", current_slot);
-            msg!("self.get_last_update_slot(): {}", self.get_last_update_slot());
-            msg!("self.slot_elapsed: {}", self.slot_elapsed(current_slot)?);
-            msg!("self.stale_slot_threshold: {}", self.stale_slot_threshold);
-        }
-
         Ok(self.slot_elapsed(current_slot)? >= self.stale_slot_threshold)
     }
 

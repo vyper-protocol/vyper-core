@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint, Burn};
 use boolinator::Boolinator;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
+use vyper_math::bps::from_bps;
 use crate::{utils::{ Input }, state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
 #[derive(Accounts)]
@@ -134,21 +136,37 @@ pub fn handler(
     // check input
     msg!("check if input is valid");
     input_data.is_valid()?;
-
+    
     // decrease deposited_quantity
+    msg!("decrease deposited_quantity");
     let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
+    let mut total_reserve_to_redeem = 0u64;
     for i in 0..input_data.tranche_quantity.len() {
-        tranche_data.deposited_quantity[i] = tranche_data.deposited_quantity[i].checked_sub(input_data.tranche_quantity[i]).ok_or_else(|| VyperErrorCode::MathError)?;
-    }
+        let cur_tranche_fv = tranche_data.tranche_fair_value.get_decimals()[i];
+        let redeemed_tranche_qty = Decimal::from(input_data.tranche_quantity[i]);
+        let redeemed_reserve_qty = redeemed_tranche_qty * cur_tranche_fv;
 
+        #[cfg(feature = "debug")] {
+            msg!("cur_dep_qty: {}", tranche_data.deposited_quantity[i]);
+            msg!("cur_tranche_fv: {}", cur_tranche_fv);
+            msg!("redeemed_tranche_qty: {}", redeemed_tranche_qty);
+            msg!("redeemed_reserve_qty: {}", redeemed_reserve_qty);
+        }
+        
+        let redeemed_reserve_qty_u64 = redeemed_reserve_qty.floor().to_u64().unwrap();
+
+        total_reserve_to_redeem = total_reserve_to_redeem.checked_add(redeemed_reserve_qty_u64).ok_or_else(|| VyperErrorCode::MathError)?;
+        tranche_data.deposited_quantity[i] = tranche_data.deposited_quantity[i].checked_sub(redeemed_reserve_qty_u64).ok_or_else(|| VyperErrorCode::MathError)?;
+    }
+    
     // transfer token from tranche config token account to source account
-    token::transfer(ctx.accounts.transfer_context().with_signer(&[&ctx.accounts.tranche_config.authority_seeds()]), input_data.tranche_quantity.iter().sum::<u64>())?;     
+    msg!("transfer out {}", total_reserve_to_redeem);
+    token::transfer(
+        ctx.accounts.transfer_context().with_signer(&[&ctx.accounts.tranche_config.authority_seeds()]),
+        total_reserve_to_redeem)?;
 
     // burn tranches
-    let mut burn_mint_count: [u64; 2] = [0; 2];
-    for i in 0..burn_mint_count.len() {
-        burn_mint_count[i] = input_data.tranche_quantity[i].checked_mul(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i].into()).ok_or_else(|| VyperErrorCode::MathError)?;
-    }
+    let burn_mint_count: [u64; 2] = input_data.tranche_quantity;
 
     if burn_mint_count[0] > 0 {
         msg!("burn {} senior tranches", burn_mint_count[0]);
