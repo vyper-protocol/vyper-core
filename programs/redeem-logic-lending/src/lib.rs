@@ -1,3 +1,4 @@
+use vyper_macros::*;
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::math::from_bps;
@@ -101,31 +102,13 @@ impl RedeemLogicConfig {
     4+32;
 }
 
-// /// We can't move this struct in a library because anchor can't recognize it during IDL generation
-// /// https://github.com/project-serum/anchor/issues/1058
-// #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-// pub struct RedeemLogicExecuteInput {
-//     pub old_quantity: [u64; 2],
-//     pub old_reserve_fair_value_bps: u32,
-//     pub new_reserve_fair_value_bps: u32,
-// }
-
-// /// We can't move this struct in a library because anchor can't recognize it during IDL generation
-// /// https://github.com/project-serum/anchor/issues/1058
-// #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-// pub struct RedeemLogicExecuteResult {
-//     pub new_quantity: [u64; 2],
-//     pub fee_quantity: u64,
-// }
-
-
-
 fn execute_plugin(
     old_quantity: [u64; 2],
     old_reserve_fair_value_bps: u32,
     new_reserve_fair_value_bps: u32,
     interest_split_bps: u32,
 ) -> RedeemLogicExecuteResult {
+
     // default in the past
     if old_reserve_fair_value_bps == 0 {
         return RedeemLogicExecuteResult {
