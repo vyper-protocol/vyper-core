@@ -23,7 +23,7 @@ pub struct CollectFeeContext<'info> {
     /// tranche reserve vault
     #[account(mut)]
     pub dest_reserve: Account<'info, TokenAccount>,
-
+    
     pub owner: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -47,6 +47,8 @@ pub fn handler(
     ctx: Context<CollectFeeContext>,
 ) -> Result<()> {
     
+    // TODO calculate tranching rounding and collect in fee the exceding part
+
     let fee_to_collect_quantity = ctx.accounts.tranche_config.tranche_data.fee_to_collect_quantity;
     msg!("collecting fee: {}", fee_to_collect_quantity);
     token::transfer(ctx.accounts
