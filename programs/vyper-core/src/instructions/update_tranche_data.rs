@@ -46,36 +46,36 @@ pub fn handler(
         msg!("update tranche_data halt_flags");
         
         #[cfg(feature = "debug")]
-        msg!("+ old value: {}", ctx.accounts.tranche_config.get_halt_flags());
+        msg!("+ old value: {}", tranche_data.get_halt_flags().bits());
         
         tranche_data.set_halt_flags(input_data.halt_flags)?;
 
         #[cfg(feature = "debug")]
-        msg!("+ new value: {}", ctx.accounts.tranche_config.get_halt_flags());
+        msg!("+ new value: {}", tranche_data.get_halt_flags().bits());
     }
 
     if input_data.get_update_tranche_bitmask().unwrap().contains(UpdateTrancheConfigFlags::RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD){
         msg!("update tranche_data reserve_fair_value stale_slot_threashold");
         
         #[cfg(feature = "debug")]
-        msg!("+ old value: {}", tranche_data.reserve_fair_value.stale_slot_threshold);
+        msg!("+ old value: {}", tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold);
         
         tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold = input_data.reserve_fair_value_stale_slot_threshold;
 
         #[cfg(feature = "debug")]
-        msg!("+ new value: {}", tranche_data.reserve_fair_value.stale_slot_threshold);
+        msg!("+ new value: {}", tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold);
     }
 
     if input_data.get_update_tranche_bitmask().unwrap().contains(UpdateTrancheConfigFlags::RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD){
         msg!("update tranche_data tranche_fair_value stale_slot_threashold");
         
         #[cfg(feature = "debug")]
-        msg!("+ old value: {}", tranche_data.tranche_fair_value.stale_slot_threshold);
+        msg!("+ old value: {}", tranche_data.tranche_fair_value.slot_tracking.stale_slot_threshold);
         
         tranche_data.tranche_fair_value.slot_tracking.stale_slot_threshold = input_data.tranche_fair_value_stale_slot_threshold;
 
         #[cfg(feature = "debug")]
-        msg!("+ new value: {}", tranche_data.tranche_fair_value.stale_slot_threshold);
+        msg!("+ new value: {}", tranche_data.tranche_fair_value.slot_tracking.stale_slot_threshold);
     }
 
     Ok(())
