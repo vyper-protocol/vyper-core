@@ -217,7 +217,7 @@ describe("vyper_core", async () => {
         expect(trancheConfigAccount.trancheData.haltFlags).to.eql(TRANCHE_HALT_FLAGS_HALT_ALL);
     });
 
-    it("update fair value stale threshold", async () => {
+    it.only("update fair value stale threshold", async () => {
         const reserveMint = await createMint(provider);
 
         const juniorTrancheMint = anchor.web3.Keypair.generate();
