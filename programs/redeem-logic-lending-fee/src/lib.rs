@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_math::bps::from_bps;
+use vyper_math::bps::{from_bps, BpsRangeValue};
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
@@ -9,19 +9,41 @@ pub mod redeem_logic_lending {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32) -> Result<()> {
+    pub fn initialize(
+        ctx: Context<InitializeContext>,
+        interest_split: u32,
+        mgmt_fee: u32,
+        perf_fee: u32,
+    ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
+        let interest_split = BpsRangeValue::new(interest_split).unwrap();
+        let mgmt_fee = BpsRangeValue::new(mgmt_fee).unwrap();
+        let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
+
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = interest_split;
+        redeem_logic_config.interest_split = interest_split.get().unwrap();
+        redeem_logic_config.mgmt_fee = mgmt_fee.get().unwrap();
+        redeem_logic_config.perf_fee = perf_fee.get().unwrap();
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, interest_split: u32) -> Result<()> {
+    pub fn update(
+        ctx: Context<UpdateContext>,
+        interest_split: u32,
+        mgmt_fee: u32,
+        perf_fee: u32,
+    ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        redeem_logic_config.interest_split = interest_split;
+        let interest_split = BpsRangeValue::new(interest_split).unwrap();
+        let mgmt_fee = BpsRangeValue::new(mgmt_fee).unwrap();
+        let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
+
+        redeem_logic_config.interest_split = interest_split.get().unwrap();
+        redeem_logic_config.mgmt_fee = mgmt_fee.get().unwrap();
+        redeem_logic_config.perf_fee = perf_fee.get().unwrap();
 
         Ok(())
     }
@@ -35,6 +57,8 @@ pub mod redeem_logic_lending {
             input_data.old_reserve_fair_value_bps,
             input_data.new_reserve_fair_value_bps,
             ctx.accounts.redeem_logic_config.interest_split,
+            ctx.accounts.redeem_logic_config.mgmt_fee,
+            ctx.accounts.redeem_logic_config.perf_fee,
         );
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -91,12 +115,14 @@ pub struct ExecuteContext<'info> {
 #[account]
 pub struct RedeemLogicConfig {
     pub interest_split: u32,
+    pub mgmt_fee: u32,
+    pub perf_fee: u32,
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4+32;
+    4+4+4+32;
 }
 
 fn execute_plugin(
@@ -104,6 +130,8 @@ fn execute_plugin(
     old_reserve_fair_value_bps: u32,
     new_reserve_fair_value_bps: u32,
     interest_split_bps: u32,
+    mgmt_fee_bps: u32,
+    perf_fee_bps: u32,
 ) -> RedeemLogicExecuteResult {
     // default in the past
     if old_reserve_fair_value_bps == 0 {
@@ -113,12 +141,19 @@ fn execute_plugin(
         };
     }
 
-    let total_old_quantity = old_quantity
-        .map(|u| Decimal::from(u))
-        .iter()
-        .sum::<Decimal>();
+    let interest_split = BpsRangeValue::new(interest_split_bps).unwrap();
+    let mgmt_fee = BpsRangeValue::new(mgmt_fee_bps).unwrap();
+    let perf_fee = BpsRangeValue::new(perf_fee_bps).unwrap();
+
+    let old_quantity = old_quantity.map(|x| Decimal::from(x));
+    let total_old_quantity = old_quantity.iter().sum::<Decimal>();
+
+    let fee_quantity = (Decimal::ONE - mgmt_fee.get_decimal().unwrap()) * total_old_quantity;
+
+    let old_quantity = old_quantity.map(|x| x * (Decimal::ONE - mgmt_fee.get_decimal().unwrap()));
+    let total_old_quantity = total_old_quantity - fee_quantity;
+
     let old_reserve_fair_value = from_bps(old_reserve_fair_value_bps).unwrap();
-    let interest_split = from_bps(interest_split_bps).unwrap();
     let new_reserve_fair_value = from_bps(new_reserve_fair_value_bps).unwrap();
 
     // positive return, share proceeds
@@ -126,7 +161,7 @@ fn execute_plugin(
         Decimal::from(old_quantity[0]) * old_reserve_fair_value / new_reserve_fair_value
             * (Decimal::ONE
                 + (new_reserve_fair_value / old_reserve_fair_value - Decimal::ONE)
-                    * (Decimal::ONE - interest_split))
+                    * (Decimal::ONE - interest_split.get_decimal().unwrap()))
     } else {
         // total loss
         if new_reserve_fair_value == Decimal::ZERO {
