@@ -2,3 +2,5 @@ node_modules
 lib
 yarn.lock
 tsconfig.tsbuildinfo
+wallet.json
+.env
