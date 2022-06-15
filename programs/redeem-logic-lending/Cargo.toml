@@ -3,6 +3,9 @@ name = "redeem-logic-lending"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
+repository = "https://github.com/vyper-protocol/vyper-core/"
+homepage = "https://www.vyperprotocol.io/"
+authors = ["Vyper Labs ltd"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
