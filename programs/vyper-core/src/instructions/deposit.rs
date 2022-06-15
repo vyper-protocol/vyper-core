@@ -12,7 +12,6 @@ pub struct DepositContext<'info> {
     pub signer: Signer<'info>,
     
     #[account(mut, 
-        // TODO check tranches mint
         has_one = junior_tranche_mint,
         has_one = senior_tranche_mint,
         has_one = reserve,

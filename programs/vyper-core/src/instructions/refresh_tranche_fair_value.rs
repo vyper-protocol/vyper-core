@@ -18,7 +18,7 @@ pub struct RefreshTrancheFairValue<'info> {
         has_one = senior_tranche_mint,
         has_one = junior_tranche_mint,
     )]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// Senior tranche mint
     #[account(mut)]
@@ -55,9 +55,13 @@ impl<'info> RefreshTrancheFairValue<'info> {
 
 pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
+    let clock = Clock::get()?;
+
     // check if accounts are valid
     msg!("check if accounts are valid");
     ctx.accounts.are_valid()?;
+
+    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
 
     // retrieve exchange rate from rate_program
     msg!("deserializing rate state account");
@@ -65,10 +69,13 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     let mut account_data_slice: &[u8] = &account_data;
     let rate_state = RateState::try_deserialize_unchecked(&mut account_data_slice)?;
     
-    // TODO check rate_State not stale
+    // check if rate state is stale
+    let elapsed_slot = clock.slot.checked_sub(rate_state.refreshed_slot).unwrap();
+    if elapsed_slot >= tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold {
+        return err!(VyperErrorCode::StaleFairValue);
+    }
 
     // get old and new reserve fair value
-    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
     let old_reserve_fair_value = tranche_data.reserve_fair_value.value;
     let new_reserve_fair_value = rate_state.fair_value;
     msg!("+ old_reserve_fair_value: {}", old_reserve_fair_value);

@@ -40,6 +40,9 @@ pub struct TrancheConfig {
 
     /// Creation date
     pub created_at: i64,
+
+    /// Reserved space for future upgrades
+    _reserved: [u8; 256],
 }
 
 impl TrancheConfig {
@@ -53,10 +56,25 @@ impl TrancheConfig {
     }
 
     pub const LEN: usize = 8 + // discriminator
-    1024; // TODO TBD
+        32 + // pub reserve_mint: Pubkey,
+        32 + // pub reserve: Pubkey,
+        TrancheData::LEN + // pub tranche_data: TrancheData,
+        32 + // pub senior_tranche_mint: Pubkey,
+        32 + // pub junior_tranche_mint: Pubkey,
+        32 + // pub tranche_authority: Pubkey,
+        32 + // pub authority_seed: Pubkey,
+        1 + // pub authority_bump: [u8; 1],
+        32 + // pub owner: Pubkey,
+        32 + // pub rate_program: Pubkey,
+        32 + // pub rate_program_state: Pubkey,
+        32 + // pub redeem_logic_program: Pubkey,
+        32 + // pub redeem_logic_program_state: Pubkey,
+        3 + // pub version: [u8; 3],
+        8 + // pub created_at: i64;
+        256; // _reserved: [u8; 256],
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct TrancheData {
     /// Current deposited quantities, for senior and junior cUSDC
     pub deposited_quantity: [u64; 2],
@@ -75,6 +93,9 @@ pub struct TrancheData {
 
     /// flags for owner-only instructions
     owner_restricted_ix: u16,
+
+    /// Reserved space for future upgrades
+    _padding: [u8; 256],
 }
 
 impl TrancheData {
@@ -85,7 +106,8 @@ impl TrancheData {
             tranche_fair_value: TrancheFairValue { value: [to_bps(dec!(1.0)).unwrap();2], slot_tracking: SlotTracking::new(slot) },
             halt_flags: 0,
             owner_restricted_ix: 0,
-            fee_to_collect_quantity: 0
+            fee_to_collect_quantity: 0,
+            _padding: [0u8;256]
         }
     }
 
@@ -110,6 +132,16 @@ impl TrancheData {
         self.owner_restricted_ix = bits;
         Ok(())
     }
+
+    pub const LEN: usize = 
+    2*8 + // pub deposited_quantity: [u64; 2],
+    8 + // pub fee_to_collect_quantity: u64,
+    ReserveFairValue::LEN + // pub reserve_fair_value: ReserveFairValue,
+    TrancheFairValue::LEN + // pub tranche_fair_value: TrancheFairValue,
+    2 + // halt_flags: u16,
+    2 + // owner_restricted_ix: u16,
+    256; // _padding: [u8; 256],,
+
 }
 
 bitflags::bitflags! {
@@ -157,6 +189,12 @@ pub struct ReserveFairValue {
     pub slot_tracking: SlotTracking
 }
 
+impl ReserveFairValue {
+    pub const LEN: usize = 
+    4 + // pub value: u32,
+    SlotTracking::LEN; // pub slot_tracking: SlotTracking
+}
+
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct TrancheFairValue {
     /// tranches [senior, junior] fair values expressed in bps
@@ -168,6 +206,10 @@ impl TrancheFairValue {
     pub fn get_decimals(&self) -> [Decimal;2] {
         self.value.map(|c| from_bps(c).unwrap())
     }
+
+    pub const LEN: usize = 
+    2*4 + // pub value: [u32;2],
+    SlotTracking::LEN; // pub slot_tracking: SlotTracking
 }
 
 /// Tracking of slot information
@@ -203,6 +245,10 @@ impl SlotTracking {
     pub fn get_last_update_slot(&self) -> u64 {
         self.last_update.slot
     }
+
+    pub const LEN: usize = 
+    LastUpdate::LEN + // last_update: LastUpdate,
+    8; // pub stale_slot_threshold: u64,
 }
 
 // TODO check jet protocol assert_size macro: https://github.com/jet-lab/program-libraries/blob/main/proc-macros/src/lib.rs 
@@ -232,4 +278,9 @@ impl LastUpdate {
     pub fn update_slot(&mut self, slot: u64) {
         self.slot = slot;
     }
+
+    pub const LEN: usize = 
+        8 + // slot: u64,
+        8; // _padding: [u8; 8],
+        
 }

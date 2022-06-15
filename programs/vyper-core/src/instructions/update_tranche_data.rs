@@ -16,7 +16,7 @@ pub struct UpdateTrancheDataContext<'info> {
     
     /// Tranche config account, where all the parameters are saved
     #[account(mut, has_one = owner)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
