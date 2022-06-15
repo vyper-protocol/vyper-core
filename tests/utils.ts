@@ -22,7 +22,7 @@ export async function createTokenAccount(
     const aToken = await getAssociatedTokenAddress(mint, owner);
     tx.add(createAssociatedTokenAccountInstruction(provider.wallet.publicKey, aToken, owner, mint));
     const signature = await provider.sendAndConfirm(tx);
-    console.log("createTokenAccount signature: ", signature);
+    // console.log("createTokenAccount signature: ", signature);
 
     return aToken;
 }
