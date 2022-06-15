@@ -46,11 +46,12 @@ impl BpsRangeValue {
     }
 }
 
-
+/// Convert an input representing a bps value into an Option<Decimal>
 pub fn from_bps(input: u32) -> Option<Decimal> {
     Decimal::from_u32(input)?.checked_div(dec!(10000.0))
 }
 
+/// Convert a decimal input into a bps value
 pub fn to_bps(input: Decimal) -> Option<u32> {
     input.checked_mul(dec!(10000.0))?.to_u32()
 }
