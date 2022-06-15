@@ -38,6 +38,7 @@ impl BpsRangeValue {
         from_bps(self.value)
     }
 
+    /// Get the value as a float 64
     pub fn get_f64(&self) -> Option<f64> {
         match self.value.to_f64() {
             Some(val) => Some(val / 10_000.0),
