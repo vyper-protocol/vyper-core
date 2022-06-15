@@ -1,20 +1,12 @@
-name: test rust libs
+name: Test Rust Libs
 on:
   push:
-    branches:
-      - "*"
     paths:
-      - "**.rs"
-      - "**.toml"
-  pull_request:
-    branches: "*"
-    paths:
-      - "**.rs"
-      - "**.toml"
-
+      - "libs/**.rs"
+      - "libs/**.toml"
 jobs:
-  check:
-    name: Cargo check
+  cargo-check:
+    name: cargo check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -27,8 +19,8 @@ jobs:
         with:
           command: check
 
-  test:
-    name: Cargo test
+  cargo-test:
+    name: cargo test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
