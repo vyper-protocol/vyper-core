@@ -6,7 +6,7 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "redeem_logic_lending"
+name = "redeem_logic_lending_fee"
 
 [features]
 no-entrypoint = []
