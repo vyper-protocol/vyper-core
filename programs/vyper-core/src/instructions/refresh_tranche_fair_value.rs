@@ -1,6 +1,8 @@
 use anchor_lang::{prelude::*, solana_program::{self, hash::hashv, instruction::Instruction}};
 use anchor_spl::token::Mint;
 use boolinator::Boolinator;
+use rust_decimal::Decimal;
+use vyper_math::bps::to_bps;
 use vyper_utils::redeem_logic_common::{RedeemLogicExecuteResult, RedeemLogicExecuteInput};
 use crate::{state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
@@ -16,7 +18,7 @@ pub struct RefreshTrancheFairValue<'info> {
         has_one = senior_tranche_mint,
         has_one = junior_tranche_mint,
     )]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// Senior tranche mint
     #[account(mut)]
@@ -53,9 +55,13 @@ impl<'info> RefreshTrancheFairValue<'info> {
 
 pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
+    let clock = Clock::get()?;
+
     // check if accounts are valid
     msg!("check if accounts are valid");
     ctx.accounts.are_valid()?;
+
+    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
 
     // retrieve exchange rate from rate_program
     msg!("deserializing rate state account");
@@ -63,15 +69,19 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     let mut account_data_slice: &[u8] = &account_data;
     let rate_state = RateState::try_deserialize_unchecked(&mut account_data_slice)?;
     
-    // TODO check rate_State not stale
+    // check if rate state is stale
+    let elapsed_slot = clock.slot.checked_sub(rate_state.refreshed_slot).unwrap();
+    if elapsed_slot >= tranche_data.reserve_fair_value.slot_tracking.stale_slot_threshold {
+        return err!(VyperErrorCode::StaleFairValue);
+    }
 
     // get old and new reserve fair value
-    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
     let old_reserve_fair_value = tranche_data.reserve_fair_value.value;
     let new_reserve_fair_value = rate_state.fair_value;
     msg!("+ old_reserve_fair_value: {}", old_reserve_fair_value);
     msg!("+ new_reserve_fair_value: {}", new_reserve_fair_value);
-    
+    msg!("+ tranche_data.deposited_quantity: {:?}", tranche_data.deposited_quantity);
+
     // call execute redeem logic plugin
     msg!("execute redeem logic CPI");
     let cpi_res = cpi_plugin(
@@ -83,23 +93,41 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             old_quantity: tranche_data.deposited_quantity
         });
     let plugin_result = cpi_res.unwrap();
-
     msg!("cpi return result: {:?}", plugin_result);
 
-    msg!("updating fee_to_collect_quantity");
+    msg!("updating fee_to_collect_quantity...");
     tranche_data.fee_to_collect_quantity = tranche_data.fee_to_collect_quantity.checked_add(plugin_result.fee_quantity).unwrap();
 
-    msg!("updating tranche fair value");
+    msg!("updating deposited quantity...");
     tranche_data.deposited_quantity = plugin_result.new_quantity;
 
-    msg!("updating tranche fair value");
-    tranche_data.tranche_fair_value.value = [
-        tranche_data.deposited_quantity[0].checked_div(ctx.accounts.senior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
-        tranche_data.deposited_quantity[1].checked_div(ctx.accounts.junior_tranche_mint.supply).unwrap().try_into().ok().unwrap(),
-    ];
+    msg!("updating tranche fair value...");
+    if ctx.accounts.senior_tranche_mint.supply > 0 {
+        let dep_qty = Decimal::from(tranche_data.deposited_quantity[0]);
+        let supply = Decimal::from(ctx.accounts.senior_tranche_mint.supply);
+        let fair_value = dep_qty / supply;
+        #[cfg(feature = "debug")] {
+            msg!("senior dep qty: {:?}", dep_qty);
+            msg!("senior supply: {:?}", supply);
+            msg!("senior fair value: {:?}", fair_value);
+        }
+        tranche_data.tranche_fair_value.value[0] = to_bps(fair_value).unwrap();
+    }
+    if ctx.accounts.junior_tranche_mint.supply > 0 {
+        let dep_qty = Decimal::from(tranche_data.deposited_quantity[1]);
+        let supply = Decimal::from(ctx.accounts.junior_tranche_mint.supply);
+        let fair_value = dep_qty / supply;
+        #[cfg(feature = "debug")] {
+            msg!("junior dep qty: {:?}", dep_qty);
+            msg!("junior supply: {:?}", supply);
+            msg!("junior fair value: {:?}", fair_value);
+        }
+        tranche_data.tranche_fair_value.value[1] = to_bps(fair_value).unwrap();
+    }
+    msg!("tranche fair value: {:?}", tranche_data.tranche_fair_value.value);
     tranche_data.tranche_fair_value.slot_tracking.update(rate_state.refreshed_slot);
     
-    msg!("updating reserve fair value");
+    msg!("updating reserve fair value...");
     tranche_data.reserve_fair_value.value = rate_state.fair_value;
     tranche_data.reserve_fair_value.slot_tracking.update(rate_state.refreshed_slot);
 

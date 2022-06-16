@@ -6,6 +6,7 @@ import {
     createInitializeAccountInstruction,
     createInitializeMintInstruction,
     createMintToInstruction,
+    getAccount,
     getAssociatedTokenAddress,
     getMint,
     TOKEN_PROGRAM_ID,
@@ -21,7 +22,7 @@ export async function createTokenAccount(
     const aToken = await getAssociatedTokenAddress(mint, owner);
     tx.add(createAssociatedTokenAccountInstruction(provider.wallet.publicKey, aToken, owner, mint));
     const signature = await provider.sendAndConfirm(tx);
-    console.log("createTokenAccount signature: ", signature);
+    // console.log("createTokenAccount signature: ", signature);
 
     return aToken;
 }
@@ -51,7 +52,11 @@ export async function createMintAndVault(provider: anchor.AnchorProvider, amount
     return [mint.publicKey, aToken];
 }
 
-export async function createMint(provider: anchor.AnchorProvider, decimals: number = 6, authority?: anchor.web3.PublicKey) {
+export async function createMint(
+    provider: anchor.AnchorProvider,
+    decimals: number = 6,
+    authority?: anchor.web3.PublicKey
+) {
     if (authority === undefined) {
         authority = anchor.web3.Keypair.generate().publicKey;
     }
@@ -92,6 +97,13 @@ export function getInitializeData(trancheMintDecimals: number) {
     return {
         trancheMintDecimals,
     };
+}
+
+export async function getTokenAccountAmount(
+    provider: anchor.AnchorProvider,
+    tokenAccount: anchor.web3.PublicKey
+): Promise<number> {
+    return Number((await getAccount(provider.connection, tokenAccount, undefined, TOKEN_PROGRAM_ID)).amount);
 }
 
 export const UPDATE_TRANCHE_CONFIG_FLAGS = {

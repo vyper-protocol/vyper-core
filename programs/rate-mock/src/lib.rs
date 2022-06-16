@@ -44,6 +44,18 @@ pub mod rate_mock {
 
         Ok(())
     }
+
+    pub fn refresh(ctx: Context<RefreshRateContext>) -> Result<()> {
+        msg!("rate-mock: refresh");
+
+        let clock = Clock::get()?;
+        let rate_data = &mut ctx.accounts.rate_data;
+        rate_data.refreshed_slot = clock.slot;
+
+        msg!("rate_data.refreshed_slot: {}", rate_data.refreshed_slot);
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]

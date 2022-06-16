@@ -5,16 +5,14 @@ use quote::quote;
 #[proc_macro_attribute]
 pub fn log_wrap_ix(_attr: TokenStream, stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(stream as ItemFn);
-
     let ItemFn { attrs, vis, sig, block } = input;
     let stmts = &block.stmts;
+    let name = &sig.ident;
     let gen = quote! {
         #(#attrs)* #vis #sig {
-            msg!("{} begin", stringify!(#sig));
+            msg!("{} begin", stringify!(#name));
 
             #(#stmts)*
-            
-            // msg!("{} end", stringify!(#sig));
         }
     };
 

@@ -16,7 +16,7 @@ describe("redeem_logic_lending", async () => {
 
         const interestSplit = 5000;
         await program.methods
-            .initialize(interestSplit)
+            .initialize(interestSplit, bn(0))
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,
                 owner: provider.wallet.publicKey,
@@ -36,7 +36,7 @@ describe("redeem_logic_lending", async () => {
         const originalInterestSplit = 5000;
         const newInterestSplit = 6000;
         await program.methods
-            .initialize(originalInterestSplit)
+            .initialize(originalInterestSplit, bn(0))
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,
                 owner: provider.wallet.publicKey,
@@ -45,7 +45,7 @@ describe("redeem_logic_lending", async () => {
             .signers([redeemLogicConfig])
             .rpc();
         await program.methods
-            .update(newInterestSplit)
+            .update(newInterestSplit, bn(0))
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,
                 owner: provider.wallet.publicKey,
@@ -62,7 +62,7 @@ describe("redeem_logic_lending", async () => {
         const newInterestSplit = 6000;
 
         await program.methods
-            .initialize(originalInterestSplit)
+            .initialize(originalInterestSplit, bn(0))
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,
                 owner: provider.wallet.publicKey,
@@ -73,7 +73,7 @@ describe("redeem_logic_lending", async () => {
 
         try {
             await program.methods
-                .update(newInterestSplit)
+                .update(newInterestSplit, bn(0))
                 .accounts({
                     redeemLogicConfig: redeemLogicConfig.publicKey,
                     owner: anchor.web3.Keypair.generate().publicKey,
@@ -89,7 +89,7 @@ describe("redeem_logic_lending", async () => {
         const redeemLogicConfig = anchor.web3.Keypair.generate();
         const interestSplit = 2_000;
         await program.methods
-            .initialize(interestSplit)
+            .initialize(interestSplit, bn(0))
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,
                 owner: provider.wallet.publicKey,

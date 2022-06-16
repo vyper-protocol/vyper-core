@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer, MintTo, Mint};
 use boolinator::Boolinator;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
+use vyper_math::bps::from_bps;
 use crate::{utils::{ Input }, state::{TrancheConfig, TrancheHaltFlags, OwnerRestrictedIxFlags}, errors::VyperErrorCode};
 
 #[derive(Accounts)]
@@ -10,7 +12,6 @@ pub struct DepositContext<'info> {
     pub signer: Signer<'info>,
     
     #[account(mut, 
-        // TODO check tranches mint
         has_one = junior_tranche_mint,
         has_one = senior_tranche_mint,
         has_one = reserve,
@@ -149,7 +150,13 @@ pub fn handler(
 
     let mut mint_count: [u64; 2] = [0; 2];
     for i in 0..mint_count.len() {
-        mint_count[i] = input_data.reserve_quantity[i].checked_div(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i].into()).ok_or_else(|| VyperErrorCode::MathError)?;
+        let tranche_fv = from_bps(ctx.accounts.tranche_config.tranche_data.tranche_fair_value.value[i]).unwrap();
+        let dep_qty = Decimal::from(input_data.reserve_quantity[i]);
+        
+        msg!("tranche_fv: {}", tranche_fv);
+        msg!("dep_qty: {}", dep_qty);
+
+        mint_count[i] = (dep_qty / tranche_fv).round().to_u64().ok_or_else(|| VyperErrorCode::MathError)?;
     }
 
     if mint_count[0] > 0 {

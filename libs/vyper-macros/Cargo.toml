@@ -2,6 +2,9 @@
 name = "vyper-macros"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/vyper-protocol/vyper-core/"
+homepage = "https://www.vyperprotocol.io/"
+authors = ["Vyper Labs ltd"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

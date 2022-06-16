@@ -22,22 +22,18 @@ pub struct InitializeContext<'info> {
     #[account(seeds = [tranche_config.key().as_ref(), b"authority".as_ref()], bump)]
     pub tranche_authority: AccountInfo<'info>,
 
-    /// TODO check if rate program is executable and it implements the right interface
     /// CHECK: 
     #[account()]
     pub rate_program: AccountInfo<'info>,
 
-    /// TODO check if rate program is executable and it implements the right interface
     /// CHECK: 
     #[account()]
     pub rate_program_state: AccountInfo<'info>,
     
-    /// TODO check if rate program is executable and it implements the right interface
     /// CHECK: 
     #[account()]
     pub redeem_logic_program: AccountInfo<'info>,
 
-    /// TODO check if rate program is executable and it implements the right interface
     /// CHECK: 
     #[account()]
     pub redeem_logic_program_state: AccountInfo<'info>,
