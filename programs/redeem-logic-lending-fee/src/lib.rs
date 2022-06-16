@@ -138,73 +138,76 @@ fn execute_plugin(
     let mgmt_fee = BpsRangeValue::new(mgmt_fee_bps).unwrap();
     let perf_fee = BpsRangeValue::new(perf_fee_bps).unwrap();
 
+    let total_old_quantity = old_quantity.iter().sum::<u64>();
+
+    // default
+    if (old_reserve_fair_value_bps == 0) || (new_reserve_fair_value_bps == 0) {
+        let senior_new_quantity = (Decimal::from(old_quantity.iter().sum::<u64>())
+            * (Decimal::ONE - mgmt_fee.get_decimal().unwrap()))
+        .floor()
+        .to_u64()
+        .unwrap();
+        return RedeemLogicExecuteResult {
+            new_quantity: [senior_new_quantity, 0u64],
+            fee_quantity: total_old_quantity - senior_new_quantity,
+        };
+    }
+
     let old_reserve_fair_value = from_bps(old_reserve_fair_value_bps).unwrap();
     let new_reserve_fair_value = from_bps(new_reserve_fair_value_bps).unwrap();
 
     let old_quantity = old_quantity.map(|x| Decimal::from(x));
 
-    let old_quantity_fee = old_quantity.map(|x| {
-        let start = x * old_reserve_fair_value;
-        let end = x * new_reserve_fair_value;
-        let end_mgmt = end * (Decimal::ONE - mgmt_fee.get_decimal().unwrap());
-        let end_mgmt_perf = if end_mgmt > start {
-            start + (end_mgmt - start) * (Decimal::ONE - perf_fee.get_decimal().unwrap())
-        } else {
-            end_mgmt
-        };
-        end_mgmt_perf / new_reserve_fair_value
-    });
+    let old_value_mgmt = old_quantity
+        .map(|x| x * old_reserve_fair_value * (Decimal::ONE - mgmt_fee.get_decimal().unwrap()));
 
-    let total_old_quantity_fee = old_quantity_fee.iter().sum::<Decimal>();
+    let new_value_mgmt =
+        old_value_mgmt.map(|x| x / old_reserve_fair_value * new_reserve_fair_value);
 
-    let fee_quantity = old_quantity.iter().sum::<Decimal>() - total_old_quantity_fee;
+    let new_value_perf: Vec<Decimal> = old_value_mgmt
+        .iter()
+        .zip(new_value_mgmt.iter())
+        .map(|(&old, &new)| {
+            if new > old {
+                old + (new - old) * (Decimal::ONE - perf_fee.get_decimal().unwrap())
+            } else {
+                new
+            }
+        })
+        .collect();
 
-    // default in the past
-    if old_reserve_fair_value_bps == 0 {
-        return RedeemLogicExecuteResult {
-            new_quantity: old_quantity_fee.map(|x| x.floor().to_u64().unwrap()),
-            fee_quantity: 0,
-        };
-    }
-
-    // positive return, share proceeds
-    let senior_new_quantity = if new_reserve_fair_value > old_reserve_fair_value {
-        old_quantity_fee[0] * old_reserve_fair_value / new_reserve_fair_value
-            * (Decimal::ONE
-                + (new_reserve_fair_value / old_reserve_fair_value - Decimal::ONE)
-                    * (Decimal::ONE - interest_split.get_decimal().unwrap()))
+    let senior_new_value = if new_value_perf[0] > old_value_mgmt[0] {
+        old_value_mgmt[0]
+            + (new_value_perf[0] - old_value_mgmt[0])
+                * (Decimal::ONE - interest_split.get_decimal().unwrap())
     } else {
-        // total loss
-        if new_reserve_fair_value == Decimal::ZERO {
-            total_old_quantity_fee
-        // partial loss
-        } else {
-            total_old_quantity_fee.min(
-                Decimal::from(old_quantity_fee[0]) * old_reserve_fair_value
-                    / new_reserve_fair_value,
-            )
-        }
+        old_value_mgmt[0].min(new_value_perf.iter().sum())
     };
 
-    let total_old_quantity_fee = total_old_quantity_fee.floor().to_u64().unwrap();
+    let senior_new_quantity = (senior_new_value / new_reserve_fair_value)
+        .floor()
+        .to_u64()
+        .unwrap();
 
-    let senior_new_quantity = senior_new_quantity.floor().to_u64().unwrap();
+    let junior_new_quantity = ((new_value_perf.iter().sum::<Decimal>() - senior_new_value)
+        / new_reserve_fair_value)
+        .floor()
+        .to_u64()
+        .unwrap();
 
-    // max(0, ..) should be superfluos
-    let junior_new_quantity = std::cmp::max(0, total_old_quantity_fee - senior_new_quantity);
-
-    // true by construction
-    // assert senior + junior == old_tranche_quantity.senior + old_tranche_quantity.junior
+    let fee_quantity = total_old_quantity - senior_new_quantity - junior_new_quantity;
 
     return RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
-        fee_quantity: fee_quantity.floor().to_u64().unwrap(),
+        fee_quantity: fee_quantity,
     };
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // TODO check errors
 
     #[test]
     fn test_flat_returns() {
@@ -227,6 +230,10 @@ mod tests {
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
         assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
     }
 
     #[test]
@@ -236,7 +243,7 @@ mod tests {
         let new_reserve_bps = 10_000; // 100%
         let interest_split = 2_000; // 20%
         let mgmt_fee_bps = 100; // 1%
-        let perf_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 10_000u32; // 100%
 
         let res = execute_plugin(
             old_quantity,
@@ -250,233 +257,657 @@ mod tests {
         assert_eq!(res.new_quantity[0], 99_000);
         assert_eq!(res.new_quantity[1], 99_000);
         assert_eq!(res.fee_quantity, 2_000);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
     }
 
-    // #[test]
-    // fn test_positive_returns() {
-    //     let old_quantity = [100_000; 2];
-    //     let old_reserve_bps = 6_000; // 60%
-    //     let new_reserve_bps = 7_500; // 75%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 7_500; // 75%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 96_000);
-    //     assert_eq!(res.new_quantity[1], 104_000);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 96_000);
+        assert_eq!(res.new_quantity[1], 104_000);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_positive_returns_rounding() {
-    //     let old_quantity = [100_000; 2];
-    //     let old_reserve_bps = 6_000; // 60%
-    //     let new_reserve_bps = 6_100; // 61%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_fee() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 7_500; // 75%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 250; // 2.5%
+        let perf_fee_bps = 700; // 7%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 99_672);
-    //     assert_eq!(res.new_quantity[1], 100_328);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 92_508);
+        assert_eq!(res.new_quantity[1], 99_762);
+        assert_eq!(res.fee_quantity, 7_730);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_positive_returns_senior_imbalance() {
-    //     let old_quantity = [100_000, 1000];
-    //     let old_reserve_bps = 6_000; // 60%
-    //     let new_reserve_bps = 7_500; // 75%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_rounding() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 6_100; // 61%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 96_000);
-    //     assert_eq!(res.new_quantity[1], 5_000);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 99_672);
+        assert_eq!(res.new_quantity[1], 100_327);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_positive_returns_junior_imbalance() {
-    //     let old_quantity = [1000, 100_000];
-    //     let old_reserve_bps = 10_000; // 100%
-    //     let new_reserve_bps = 12_500; // 125%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_rounding_fee() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 6_100; // 61%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 649; // 6.49%
+        let perf_fee_bps = 123; // 1.23%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 960);
-    //     assert_eq!(res.new_quantity[1], 100_040);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 93_188);
+        assert_eq!(res.new_quantity[1], 93_793);
+        assert_eq!(res.fee_quantity, 13_019);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_negative_returns() {
-    //     let old_quantity = [100_000; 2];
-    //     let old_reserve_bps = 8_000; // 80%
-    //     let new_reserve_bps = 6_400; // 64%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_senior_imbalance() {
+        let old_quantity = [100_000, 1_000];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 7_500; // 75%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 125_000);
-    //     assert_eq!(res.new_quantity[1], 75_000);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 96_000);
+        assert_eq!(res.new_quantity[1], 5_000);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_negative_returns_rounding() {
-    //     let old_quantity = [100_000; 2];
-    //     let old_reserve_bps = 6_000; // 60%
-    //     let new_reserve_bps = 5_900; // 59%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_senior_imbalance_fee() {
+        let old_quantity = [100_000, 1_000];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 7_500; // 75%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 800; // 8%
+        let perf_fee_bps = 1_600; // 16%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 101_695);
-    //     assert_eq!(res.new_quantity[1], 98_305);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 85_964);
+        assert_eq!(res.new_quantity[1], 3_981);
+        assert_eq!(res.fee_quantity, 11_055);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_negative_returns_senior_imbalance() {
-    //     let old_quantity = [100_000, 1000];
-    //     let old_reserve_bps = 6_000; // 60%
-    //     let new_reserve_bps = 4_800; // 48%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_junior_imbalance() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 12_500; // 125%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 101_000);
-    //     assert_eq!(res.new_quantity[1], 0);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 960);
+        assert_eq!(res.new_quantity[1], 100_040);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_negative_returns_junior_imbalance() {
-    //     let old_quantity = [1000, 100_000];
-    //     let old_reserve_bps = 10_000; // 100%
-    //     let new_reserve_bps = 8_000; // 80%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_positive_returns_junior_imbalance_fee() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 12_500; // 125%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 749; // 7.49%
+        let perf_fee_bps = 10; // 0.10%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 1_250);
-    //     assert_eq!(res.new_quantity[1], 99_750);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 887);
+        assert_eq!(res.new_quantity[1], 92_528);
+        assert_eq!(res.fee_quantity, 7_585);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_junior_wipeout() {
-    //     let old_quantity = [100_000, 100_000];
-    //     let old_reserve_bps = 10_000; // 100%
-    //     let new_reserve_bps = 5_000; // 50%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_negative_returns() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 8_000; // 80%
+        let new_reserve_bps = 6_400; // 64%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 200_000);
-    //     assert_eq!(res.new_quantity[1], 0);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 125_000);
+        assert_eq!(res.new_quantity[1], 75_000);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_junior_wipeout_senior_partial() {
-    //     let old_quantity = [100_000, 100_000];
-    //     let old_reserve_bps = 10_000; // 100%
-    //     let new_reserve_bps = 2_500; // 25%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_negative_returns_fee() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 8_000; // 80%
+        let new_reserve_bps = 6_400; // 64%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 1_333; // 13.33%
+        let perf_fee_bps = 812; // 8.12%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 200_000);
-    //     assert_eq!(res.new_quantity[1], 0);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 108_337);
+        assert_eq!(res.new_quantity[1], 65_002);
+        assert_eq!(res.fee_quantity, 26_661);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_junior_wipeout_senior_wipeout() {
-    //     let old_quantity = [100_000, 100_000];
-    //     let old_reserve_bps = 13_000; // 130%
-    //     let new_reserve_bps = 0; // 0%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_negative_returns_rounding() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 5_900; // 59%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 200_000);
-    //     assert_eq!(res.new_quantity[1], 0);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 101_694);
+        assert_eq!(res.new_quantity[1], 98_305);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 
-    // #[test]
-    // fn test_past_wipeout() {
-    //     let old_quantity = [1_000_000, 100_000];
-    //     let old_reserve_bps = 0; // 0%
-    //     let new_reserve_bps = 0; // 0%
-    //     let interest_split = 2_000; // 20%
+    #[test]
+    fn test_negative_returns_rounding_fee() {
+        let old_quantity = [100_000; 2];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 5_900; // 59%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 100; // 1%
+        let perf_fee_bps = 500; // 5%
 
-    //     let res = execute_plugin(
-    //         old_quantity,
-    //         old_reserve_bps,
-    //         new_reserve_bps,
-    //         interest_split,
-    //     );
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
 
-    //     assert_eq!(res.new_quantity[0], 1_000_000);
-    //     assert_eq!(res.new_quantity[1], 100_000);
-    //     assert_eq!(res.fee_quantity, 0);
-    // }
+        assert_eq!(res.new_quantity[0], 100_677);
+        assert_eq!(res.new_quantity[1], 97_322);
+        assert_eq!(res.fee_quantity, 2_001);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_negative_returns_senior_imbalance() {
+        let old_quantity = [100_000, 1000];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 4_800; // 48%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 101_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_negative_returns_senior_imbalance_fee() {
+        let old_quantity = [100_000, 1000];
+        let old_reserve_bps = 6_000; // 60%
+        let new_reserve_bps = 4_800; // 48%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 50; // 0.5%
+        let perf_fee_bps = 567; // 5.67%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 100_495);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 505);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_negative_returns_junior_imbalance() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 8_000; // 80%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 1_250);
+        assert_eq!(res.new_quantity[1], 99_750);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_negative_returns_junior_imbalance_fee() {
+        let old_quantity = [1000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 8_000; // 80%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 999; // 9.99%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 1_125);
+        assert_eq!(res.new_quantity[1], 89_784);
+        assert_eq!(res.fee_quantity, 10_091);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 5_000; // 50%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout_fee() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 5_000; // 50%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 999; // 9.99%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 180_020);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 19_980);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout_senior_partial() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 2_500; // 25%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout_senior_partial_fee() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 10_000; // 100%
+        let new_reserve_bps = 2_500; // 25%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 132; // 1.32%
+        let perf_fee_bps = 8_500; // 85%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 197_360);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 2_640);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout_senior_wipeout() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 13_000; // 130%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 200_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_junior_wipeout_senior_wipeout_fee() {
+        let old_quantity = [100_000, 100_000];
+        let old_reserve_bps = 13_000; // 130%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 100; // 1%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 198_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 2_000);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_past_wipeout() {
+        let old_quantity = [1_000_000, 100_000];
+        let old_reserve_bps = 0; // 0%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 0u32; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 1_100_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_past_wipeout_fee() {
+        let old_quantity = [1_000_000, 100_000];
+        let old_reserve_bps = 0; // 0%
+        let new_reserve_bps = 0; // 0%
+        let interest_split = 2_000; // 20%
+        let mgmt_fee_bps = 1_000; // 0%
+        let perf_fee_bps = 0u32; // 0%
+
+        let res = execute_plugin(
+            old_quantity,
+            old_reserve_bps,
+            new_reserve_bps,
+            interest_split,
+            mgmt_fee_bps,
+            perf_fee_bps,
+        );
+
+        assert_eq!(res.new_quantity[0], 990_000);
+        assert_eq!(res.new_quantity[1], 0);
+        assert_eq!(res.fee_quantity, 110_000);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
 }
