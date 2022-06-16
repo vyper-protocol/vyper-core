@@ -21,10 +21,10 @@ export class RedeemLogicLendingPlugin {
         return client;
     }
 
-    async initialize(interestSplit: number) {
+    async initialize(interestSplit: number, fixedFeePerTranche: number = 0) {
         const redeemLogicProgramState = anchor.web3.Keypair.generate();
         await this.program.methods
-            .initialize(interestSplit)
+            .initialize(interestSplit, new anchor.BN(fixedFeePerTranche))
             .accounts({
                 redeemLogicConfig: redeemLogicProgramState.publicKey,
                 owner: this.provider.wallet.publicKey,

@@ -87,44 +87,60 @@ describe("vyper_core", async () => {
     });
 
     it("collect fees", async () => {
-        const reserveMint = await createMint(provider);
-
-        const juniorTrancheMint = anchor.web3.Keypair.generate();
-        const seniorTrancheMint = anchor.web3.Keypair.generate();
-        const trancheConfig = anchor.web3.Keypair.generate();
-        const rateProgramState = anchor.web3.Keypair.generate();
-        const redeemLogicProgramState = anchor.web3.Keypair.generate();
-
-        const [trancheAuthority] = await anchor.web3.PublicKey.findProgramAddress(
-            [trancheConfig.publicKey.toBuffer(), anchor.utils.bytes.utf8.encode("authority")],
-            programVyperCore.programId
-        );
-        const [reserve] = await anchor.web3.PublicKey.findProgramAddress(
-            [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
-            programVyperCore.programId
+        const trancheMintDecimals = 6;
+        const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
+        const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            seniorDepositAmount + juniorDepositAmount
         );
 
-        const initializeInputData = getInitializeData(6);
-        await programVyperCore.methods
-            .initialize(initializeInputData)
-            .accounts({
-                payer: provider.wallet.publicKey,
-                owner: provider.wallet.publicKey,
-                trancheConfig: trancheConfig.publicKey,
-                trancheAuthority,
-                rateProgram: programRateMock.programId,
-                rateProgramState: rateProgramState.publicKey,
-                redeemLogicProgram: programRedeemLogicLending.programId,
-                redeemLogicProgramState: redeemLogicProgramState.publicKey,
-                reserveMint,
-                reserve,
-                juniorTrancheMint: juniorTrancheMint.publicKey,
-                seniorTrancheMint: seniorTrancheMint.publicKey,
-            })
-            .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
-            .rpc();
+        let redeemLogic = RedeemLogicLendingPlugin.create(programRedeemLogicLending, provider);
+        let rateMock = RateMockPlugin.create(programRateMock, provider);
+        let vyper = Vyper.create(programVyperCore, provider);
 
-        // TODO finish logic
+        await rateMock.initialize();
+        await redeemLogic.initialize(5000, 15); // with fee
+        await vyper.initialize(
+            trancheMintDecimals,
+            reserveMint,
+            rateMock.programID,
+            rateMock.state,
+            redeemLogic.programID,
+            redeemLogic.state
+        );
+
+        await rateMock.setFairValue(1000);
+
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.seniorTrancheMint,
+            provider.wallet.publicKey
+        );
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.juniorTrancheMint,
+            provider.wallet.publicKey
+        );
+
+        const depositTx = new anchor.web3.Transaction();
+        depositTx.add(await rateMock.getRefreshIX());
+        depositTx.add(await vyper.getRefreshTrancheFairValueIX());
+        depositTx.add(
+            await vyper.getDepositIx(
+                seniorDepositAmount,
+                juniorDepositAmount,
+                userReserveToken,
+                seniorTrancheTokenAccount,
+                juniorTrancheTokenAccount
+            )
+        );
+        const signature = await provider.sendAndConfirm(depositTx);
+
+        await vyper.refreshTrancheFairValue();
+
+        const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(vyper.trancheConfig);
+        expect(trancheConfigAccount.trancheData.feeToCollectQuantity.toNumber()).to.eql(30);
     });
 
     it("update tranche halt flags", async () => {

@@ -10,19 +10,22 @@ pub mod redeem_logic_lending {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32, fixed_fee_per_tranche: u64,) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
         redeem_logic_config.interest_split = interest_split;
+        redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
+
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, interest_split: u32) -> Result<()> {
+    pub fn update(ctx: Context<UpdateContext>, interest_split: u32, fixed_fee_per_tranche: u64,) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         redeem_logic_config.interest_split = interest_split;
+        redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
 
         Ok(())
     }
@@ -36,6 +39,7 @@ pub mod redeem_logic_lending {
             input_data.old_reserve_fair_value_bps,
             input_data.new_reserve_fair_value_bps,
             ctx.accounts.redeem_logic_config.interest_split,
+            ctx.accounts.redeem_logic_config.fixed_fee_per_tranche
         );
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -92,12 +96,13 @@ pub struct ExecuteContext<'info> {
 #[account]
 pub struct RedeemLogicConfig {
     pub interest_split: u32,
+    pub fixed_fee_per_tranche: u64,
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4+32;
+    4+32 + 8;
 }
 
 fn execute_plugin(
@@ -105,6 +110,7 @@ fn execute_plugin(
     old_reserve_fair_value_bps: u32,
     new_reserve_fair_value_bps: u32,
     interest_split_bps: u32,
+    fixed_fee_per_tranche: u64
 ) -> RedeemLogicExecuteResult {
 
     // default in the past
@@ -143,17 +149,27 @@ fn execute_plugin(
 
     let total_old_quantity = total_old_quantity.round().to_u64().unwrap();
 
-    let senior_new_quantity = senior_new_quantity.round().to_u64().unwrap();
+    let senior_new_quantity_with_fee = senior_new_quantity.round().to_u64().unwrap();
+    let junior_new_quantity_with_fee = std::cmp::max(0, total_old_quantity - senior_new_quantity_with_fee);
 
-    // max(0, ..) should be superfluos
-    let junior_new_quantity = std::cmp::max(0, total_old_quantity - senior_new_quantity);
 
-    // true by construction
-    // assert senior + junior == old_tranche_quantity.senior + old_tranche_quantity.junior
+    // fee calculation
+
+    let (senior_new_quantity, senior_tranche_fee) = if senior_new_quantity_with_fee > fixed_fee_per_tranche {
+        (senior_new_quantity_with_fee - fixed_fee_per_tranche, fixed_fee_per_tranche)
+    } else {
+        (senior_new_quantity_with_fee, 0)
+    };
+
+    let (junior_new_quantity, junior_tranche_fee) = if junior_new_quantity_with_fee > fixed_fee_per_tranche {
+        (junior_new_quantity_with_fee - fixed_fee_per_tranche, fixed_fee_per_tranche)
+    } else {
+        (junior_new_quantity_with_fee, 0)
+    };
 
     return RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
-        fee_quantity: 0,
+        fee_quantity: senior_tranche_fee + junior_tranche_fee,
     };
 }
 
@@ -173,6 +189,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 100_000);
@@ -192,6 +209,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 96_000);
@@ -211,6 +229,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 99_672);
@@ -230,6 +249,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 96_000);
@@ -249,6 +269,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 960);
@@ -268,6 +289,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 125_000);
@@ -287,6 +309,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 101_695);
@@ -306,6 +329,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 101_000);
@@ -325,6 +349,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 1_250);
@@ -344,6 +369,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 200_000);
@@ -363,6 +389,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 200_000);
@@ -382,6 +409,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 200_000);
@@ -401,6 +429,7 @@ mod tests {
             old_reserve_bps,
             new_reserve_bps,
             interest_split,
+            0
         );
 
         assert_eq!(res.new_quantity[0], 1_000_000);
