@@ -36,8 +36,8 @@ impl BpsRangeValue {
         self.value = value;
     }
 
-    pub fn get(&self) -> Option<u32> {
-        Some(self.value)
+    pub fn get(&self) -> u32 {
+        self.value
     }
 
     pub fn get_decimal(&self) -> Option<Decimal> {

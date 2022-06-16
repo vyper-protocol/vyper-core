@@ -5,7 +5,7 @@ use vyper_math::bps::{from_bps, BpsRangeValue};
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
 #[program]
-pub mod redeem_logic_lending {
+pub mod redeem_logic_lending_fee {
 
     use super::*;
 
@@ -22,9 +22,9 @@ pub mod redeem_logic_lending {
         let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = interest_split.get().unwrap();
-        redeem_logic_config.mgmt_fee = mgmt_fee.get().unwrap();
-        redeem_logic_config.perf_fee = perf_fee.get().unwrap();
+        redeem_logic_config.interest_split = interest_split.get();
+        redeem_logic_config.mgmt_fee = mgmt_fee.get();
+        redeem_logic_config.perf_fee = perf_fee.get();
 
         Ok(())
     }
@@ -41,9 +41,9 @@ pub mod redeem_logic_lending {
         let mgmt_fee = BpsRangeValue::new(mgmt_fee).unwrap();
         let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
 
-        redeem_logic_config.interest_split = interest_split.get().unwrap();
-        redeem_logic_config.mgmt_fee = mgmt_fee.get().unwrap();
-        redeem_logic_config.perf_fee = perf_fee.get().unwrap();
+        redeem_logic_config.interest_split = interest_split.get();
+        redeem_logic_config.mgmt_fee = mgmt_fee.get();
+        redeem_logic_config.perf_fee = perf_fee.get();
 
         Ok(())
     }
