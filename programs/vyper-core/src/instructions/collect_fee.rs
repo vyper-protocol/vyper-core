@@ -10,7 +10,7 @@ pub struct CollectFeeContext<'info> {
         has_one = owner,
         has_one = tranche_authority,
         has_one = reserve)]
-    pub tranche_config: Account<'info, TrancheConfig>,
+    pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
     /// CHECK: 
     #[account(seeds = [tranche_config.key().as_ref(), b"authority".as_ref()], bump)]
@@ -18,11 +18,11 @@ pub struct CollectFeeContext<'info> {
 
     /// tranche reserve vault
     #[account(mut)]
-    pub reserve: Account<'info, TokenAccount>,
+    pub reserve: Box<Account<'info, TokenAccount>>,
 
     /// tranche reserve vault
     #[account(mut)]
-    pub dest_reserve: Account<'info, TokenAccount>,
+    pub dest_reserve: Box<Account<'info, TokenAccount>>,
     
     pub owner: Signer<'info>,
 
