@@ -7,7 +7,6 @@ declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 #[program]
 pub mod redeem_logic_lending {
 
-
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32, fixed_fee_per_tranche: u64,) -> Result<()> {
@@ -52,20 +51,20 @@ pub mod redeem_logic_lending {
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
     pub old_reserve_fair_value_bps: u32,
-    pub new_reserve_fair_value_bps: u32
+    pub new_reserve_fair_value_bps: u32,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteResult {
-    pub new_quantity: [u64;2],
-    pub fee_quantity: u64
+    pub new_quantity: [u64; 2],
+    pub fee_quantity: u64,
 }
 
 #[derive(Accounts)]
 pub struct InitializeContext<'info> {
     /// Tranche config account, where all the parameters are saved
     #[account(init, payer = payer, space = RedeemLogicConfig::LEN)]
-    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>, 
+    pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
 
     /// CHECK: Owner of the tranche config
     #[account()]
@@ -112,7 +111,6 @@ fn execute_plugin(
     interest_split_bps: u32,
     fixed_fee_per_tranche: u64
 ) -> RedeemLogicExecuteResult {
-
     // default in the past
     if old_reserve_fair_value_bps == 0 {
         return RedeemLogicExecuteResult {

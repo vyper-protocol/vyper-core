@@ -1,6 +1,6 @@
 use rust_decimal::prelude::*;
-use rust_decimal_macros::dec;
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use std::ops::RangeInclusive;
 
 use crate::errors::MathErrorCode;
@@ -15,14 +15,16 @@ impl BpsRangeValue {
         BpsRangeValue::new_with_range(value, 0..=10_000)
     }
 
-    pub fn new_with_range(value: u32, range: RangeInclusive<u32>) -> Result<BpsRangeValue, MathErrorCode> {
+    pub fn new_with_range(
+        value: u32,
+        range: RangeInclusive<u32>,
+    ) -> Result<BpsRangeValue, MathErrorCode> {
         return if range.contains(&value) {
             Ok(BpsRangeValue {
                 value: value,
-                range: range
+                range: range,
             })
-        }
-        else {
+        } else {
             Err(MathErrorCode::OutOfRange)
         };
     }
@@ -34,6 +36,10 @@ impl BpsRangeValue {
         self.value = value;
     }
 
+    pub fn get(&self) -> u32 {
+        self.value
+    }
+
     pub fn get_decimal(&self) -> Option<Decimal> {
         from_bps(self.value)
     }
@@ -42,7 +48,7 @@ impl BpsRangeValue {
     pub fn get_f64(&self) -> Option<f64> {
         match self.value.to_f64() {
             Some(val) => Some(val / 10_000.0),
-            None => None
+            None => None,
         }
     }
 }
@@ -60,8 +66,8 @@ pub fn to_bps(input: Decimal) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust_decimal_macros::dec;
     use crate::bps::BpsRangeValue;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn test_from_bps() {

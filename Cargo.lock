@@ -948,6 +948,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redeem-logic-lending-fee"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang 0.24.2",
+ "rust_decimal",
+ "vyper-macros",
+ "vyper-math",
+ "vyper-utils",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
