@@ -8,7 +8,7 @@ export class Vyper {
 
     program: anchor.Program<VyperCore>;
     provider: anchor.AnchorProvider;
-    trancheConfig: PublicKey;
+    trancheId: PublicKey;
 
     static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey): Vyper {
         const client = new Vyper();
@@ -18,8 +18,12 @@ export class Vyper {
         return client;
     }
 
-    async getTrancheConfiguration(trancheId: PublicKey): Promise<TrancheConfig> {
+    async getTrancheConfiguration(trancheId?: PublicKey): Promise<TrancheConfig> {
         let trancheConfig = new TrancheConfig();
+        // if not supplied we take if from object
+        if (!trancheId) {
+            trancheId = this.trancheId
+        }
         const trancheInfo = await this.program.account.trancheConfig.fetch(trancheId);
         trancheConfig.reserveMint = trancheInfo.reserveMint;
         trancheConfig.reserve = trancheInfo.reserve;
