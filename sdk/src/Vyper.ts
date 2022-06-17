@@ -8,7 +8,6 @@ import { LastUpdate } from "./LastUpdate";
 import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
-
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
@@ -58,14 +57,14 @@ export class Vyper {
             slotTrackingTranche
         );
 
+
         const trancheData = new TrancheData(
             trancheInfo.trancheData.depositedQuantity.map((x) => x.toNumber()),
             trancheInfo.trancheData.feeToCollectQuantity.toNumber(),
             reserveFairValue,
             trancheFairValue,
             trancheInfo.trancheData.ownerRestrictedIx,
-            trancheInfo.trancheData.haltFlags,
-            trancheInfo.trancheData.padding
+            trancheInfo.trancheData.haltFlags
         );
 
         const trancheConfig = new TrancheConfig(

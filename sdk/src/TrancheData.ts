@@ -1,30 +1,30 @@
 import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheFairValue } from "./TrancheFairValue";
+import { HaltFlags } from "./HaltFlags";
+import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
 
 export class TrancheData {
     depositedQuantity: number[];
     feeToCollectQuantity: number;
     reserveFairValue: ReserveFairValue;
     trancheFairValue: TrancheFairValue;
-    haltFlags: number;
-    ownerRestrictedIx: number;
-    padding: number[];
+    haltFlags: HaltFlags;
+    ownerRestrictedIx: OwnerRestrictedIxFlags;
 
     constructor(
         depositedQuantity: number[],
         feeToCollectQuantity: number,
         reserveFairValue: ReserveFairValue,
         trancheFairValue: TrancheFairValue,
-        ownerRestrictedIx: number,
-        haltFlags: number,
-        padding: number[]) {
+        ownerRestrictedIx: OwnerRestrictedIxFlags,
+        haltFlags: HaltFlags,
+    ) {
 
-        this.depositedQuantity = depositedQuantity
-        this.feeToCollectQuantity = feeToCollectQuantity
-        this.reserveFairValue = reserveFairValue
-        this.trancheFairValue = trancheFairValue
-        this.haltFlags = haltFlags
-        this.ownerRestrictedIx = ownerRestrictedIx
-        this.padding = padding
+        this.depositedQuantity = depositedQuantity;
+        this.feeToCollectQuantity = feeToCollectQuantity;
+        this.reserveFairValue = reserveFairValue;
+        this.trancheFairValue = trancheFairValue;
+        this.haltFlags = haltFlags;
+        this.ownerRestrictedIx = ownerRestrictedIx;
     }
 }
