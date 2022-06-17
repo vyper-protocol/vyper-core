@@ -2,7 +2,12 @@ import * as anchor from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { VyperCore } from "../../target/types/vyper_core";
 import idlVyperCore from '../../target/idl/vyper_core.json';
-import { TrancheConfig, TrancheData } from "./TrancheConfig";
+import { TrancheConfig } from "./TrancheConfig";
+import { SlotTracking } from "./SlotTracking";
+import { LastUpdate } from "./LastUpdate";
+import { ReserveFairValue } from "./ReserveFairValue";
+import { TrancheData } from "./TrancheData";
+import { TrancheFairValue } from "./TrancheFairValue";
 
 export class Vyper {
 
@@ -19,27 +24,68 @@ export class Vyper {
     }
 
     async getTrancheConfiguration(trancheId?: PublicKey): Promise<TrancheConfig> {
-        let trancheConfig = new TrancheConfig();
+
         // if not supplied we take if from object
         if (!trancheId) {
             trancheId = this.trancheId
         }
+
         const trancheInfo = await this.program.account.trancheConfig.fetch(trancheId);
-        trancheConfig.reserveMint = trancheInfo.reserveMint;
-        trancheConfig.reserve = trancheInfo.reserve;
-        trancheConfig.trancheData = TrancheData.create(trancheInfo.trancheData);
-        trancheConfig.seniorTrancheMint = trancheInfo.seniorTrancheMint;
-        trancheConfig.juniorTrancheMint = trancheInfo.juniorTrancheMint;
-        trancheConfig.trancheAuthority = trancheInfo.trancheAuthority;
-        trancheConfig.authoritySeed = trancheInfo.authoritySeed;
-        trancheConfig.authorityBump = trancheInfo.authorityBump;
-        trancheConfig.owner = trancheInfo.owner;
-        trancheConfig.rateProgram = trancheInfo.rateProgram;
-        trancheConfig.rateProgramState = trancheInfo.rateProgramState;
-        trancheConfig.redeemLogicProgram = trancheInfo.redeemLogicProgram;
-        trancheConfig.redeemLogicProgramState = trancheInfo.redeemLogicProgramState;
-        trancheConfig.version = trancheInfo.version;
-        trancheConfig.createdAt = trancheInfo.createdAt.toNumber();
+
+        const slotTrackingReserve = new SlotTracking(
+            new LastUpdate(
+                trancheInfo.trancheData.reserveFairValue['slotTracking']['lastUpdate']['slot'],
+                trancheInfo.trancheData.reserveFairValue['slotTracking']['lastUpdate']['padding']
+            ),
+            trancheInfo.trancheData.reserveFairValue['slotTracking']['staleSlotThreshold']
+        );
+
+        const slotTrackingTranche = new SlotTracking(
+            new LastUpdate(
+                trancheInfo.trancheData.trancheFairValue['slotTracking']['lastUpdate']['slot'],
+                trancheInfo.trancheData.trancheFairValue['slotTracking']['lastUpdate']['padding']
+            ),
+            trancheInfo.trancheData.trancheFairValue['slotTracking']['staleSlotThreshold']
+        );
+
+        const reserveFairValue = new ReserveFairValue(
+            trancheInfo.trancheData.reserveFairValue['value'],
+            slotTrackingReserve
+        );
+
+        const trancheFairValue = new TrancheFairValue(
+            trancheInfo.trancheData.reserveFairValue['value'],
+            slotTrackingTranche
+        );
+
+        const trancheData = new TrancheData(
+            trancheInfo.trancheData.depositedQuantity.map((x) => x.toNumber()),
+            trancheInfo.trancheData.feeToCollectQuantity.toNumber(),
+            reserveFairValue,
+            trancheFairValue,
+            trancheInfo.trancheData.ownerRestrictedIx,
+            trancheInfo.trancheData.haltFlags,
+            trancheInfo.trancheData.padding
+        );
+
+        const trancheConfig = new TrancheConfig(
+            trancheInfo.reserveMint,
+            trancheInfo.reserve,
+            trancheData,
+            trancheInfo.seniorTrancheMint,
+            trancheInfo.juniorTrancheMint,
+            trancheInfo.trancheAuthority,
+            trancheInfo.authoritySeed,
+            trancheInfo.authorityBump,
+            trancheInfo.owner,
+            trancheInfo.rateProgram,
+            trancheInfo.rateProgramState,
+            trancheInfo.redeemLogicProgram,
+            trancheInfo.redeemLogicProgramState,
+            trancheInfo.version,
+            trancheInfo.createdAt.toNumber()
+        );
+
         return trancheConfig;
     }
 }
