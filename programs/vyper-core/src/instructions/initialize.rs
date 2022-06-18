@@ -1,11 +1,10 @@
+use crate::state::{TrancheConfig, TrancheData};
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{Mint, Token, TokenAccount}};
-use crate::{state::{TrancheConfig, TrancheData}};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
 #[instruction(_input_data: InitializeInput)]
 pub struct InitializeContext<'info> {
-    
     /// Signer account
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -18,23 +17,23 @@ pub struct InitializeContext<'info> {
     #[account(init, payer = payer, space = TrancheConfig::LEN)]
     pub tranche_config: Box<Account<'info, TrancheConfig>>,
 
-    /// CHECK: 
+    /// CHECK:
     #[account(seeds = [tranche_config.key().as_ref(), b"authority".as_ref()], bump)]
     pub tranche_authority: AccountInfo<'info>,
 
-    /// CHECK: 
+    /// CHECK:
     #[account()]
     pub rate_program: AccountInfo<'info>,
 
-    /// CHECK: 
+    /// CHECK:
     #[account()]
     pub rate_program_state: AccountInfo<'info>,
-    
-    /// CHECK: 
+
+    /// CHECK:
     #[account()]
     pub redeem_logic_program: AccountInfo<'info>,
 
-    /// CHECK: 
+    /// CHECK:
     #[account()]
     pub redeem_logic_program_state: AccountInfo<'info>,
 
@@ -61,14 +60,10 @@ pub struct InitializeContext<'info> {
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct InitializeInput {
-    pub tranche_mint_decimals: u8
+    pub tranche_mint_decimals: u8,
 }
 
-pub fn handler(
-    ctx: Context<InitializeContext>,
-    _input_data: InitializeInput,
-) -> Result<()> {
-
+pub fn handler(ctx: Context<InitializeContext>, _input_data: InitializeInput) -> Result<()> {
     let clock = Clock::get()?;
 
     // create tranche config account

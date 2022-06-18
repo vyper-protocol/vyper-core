@@ -53,7 +53,7 @@ describe("vyper_core", async () => {
         expect(trancheConfigAccount.trancheData.ownerRestrictedIx).to.eql(0);
         expect(trancheConfigAccount.trancheData.depositedQuantity.map((c) => c.toNumber())).to.eql([0, 0]);
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eql(10000);
+        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eql(Array(10).fill(10000));
         expect(
             //@ts-expect-error
             trancheConfigAccount.trancheData.reserveFairValue.slotTracking.lastUpdate.slot.toNumber()
@@ -373,7 +373,7 @@ describe("vyper_core", async () => {
         const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(vyper.trancheConfig);
 
         //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eq(1500);
+        expect(trancheConfigAccount.trancheData.reserveFairValue.value[0]).to.eq(1500);
         //@ts-expect-error
         expect(trancheConfigAccount.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
     });

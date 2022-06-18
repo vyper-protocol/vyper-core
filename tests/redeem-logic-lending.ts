@@ -104,8 +104,8 @@ describe("redeem_logic_lending", async () => {
         const tx = await program.methods
             .execute({
                 oldQuantity: oldQuantity,
-                oldReserveFairValueBps: oldReserveFV,
-                newReserveFairValueBps: newReserveFV,
+                oldReserveFairValueBps: [oldReserveFV, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                newReserveFairValueBps: [newReserveFV, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             })
             .accounts({
                 redeemLogicConfig: redeemLogicConfig.publicKey,

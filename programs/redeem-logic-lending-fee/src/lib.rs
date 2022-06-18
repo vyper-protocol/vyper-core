@@ -54,8 +54,8 @@ pub mod redeem_logic_lending_fee {
     ) -> Result<()> {
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value_bps,
-            input_data.new_reserve_fair_value_bps,
+            input_data.old_reserve_fair_value_bps[0],
+            input_data.new_reserve_fair_value_bps[0],
             ctx.accounts.redeem_logic_config.interest_split,
             ctx.accounts.redeem_logic_config.mgmt_fee,
             ctx.accounts.redeem_logic_config.perf_fee,
@@ -70,8 +70,8 @@ pub mod redeem_logic_lending_fee {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: u32,
-    pub new_reserve_fair_value_bps: u32,
+    pub old_reserve_fair_value_bps: [u32; 10],
+    pub new_reserve_fair_value_bps: [u32; 10],
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]

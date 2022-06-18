@@ -1,13 +1,12 @@
 use anchor_lang::prelude::*;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use vyper_math::bps::{to_bps, from_bps};
+use vyper_math::bps::{from_bps, to_bps};
 
 use crate::errors::VyperErrorCode;
 
 #[account]
 pub struct TrancheConfig {
-
     pub reserve_mint: Pubkey,
     pub reserve: Pubkey,
 
@@ -15,7 +14,7 @@ pub struct TrancheConfig {
 
     /// Senior tranche mint public key
     pub senior_tranche_mint: Pubkey,
-    
+
     /// Junior tranche mint public key
     pub junior_tranche_mint: Pubkey,
 
@@ -31,7 +30,7 @@ pub struct TrancheConfig {
 
     pub rate_program: Pubkey,
     pub rate_program_state: Pubkey,
-    
+
     pub redeem_logic_program: Pubkey,
     pub redeem_logic_program_state: Pubkey,
 
@@ -46,7 +45,6 @@ pub struct TrancheConfig {
 }
 
 impl TrancheConfig {
-
     pub fn authority_seeds(&self) -> [&[u8]; 3] {
         [
             self.authority_seed.as_ref(),
@@ -78,8 +76,8 @@ impl TrancheConfig {
 pub struct TrancheData {
     /// Current deposited quantities, for senior and junior cUSDC
     pub deposited_quantity: [u64; 2],
-    
-    /// 
+
+    ///
     pub fee_to_collect_quantity: u64,
 
     /// pe cUSDC / USDC
@@ -102,46 +100,61 @@ impl TrancheData {
     pub fn new(slot: u64) -> Self {
         Self {
             deposited_quantity: [0; 2],
-            reserve_fair_value: ReserveFairValue { value: to_bps(dec!(1.0)).unwrap(), slot_tracking: SlotTracking::new(slot) },
-            tranche_fair_value: TrancheFairValue { value: [to_bps(dec!(1.0)).unwrap();2], slot_tracking: SlotTracking::new(slot) },
+            reserve_fair_value: ReserveFairValue {
+                value: [to_bps(dec!(1.0)).unwrap(); 10],
+                slot_tracking: SlotTracking::new(slot),
+            },
+            tranche_fair_value: TrancheFairValue {
+                value: [to_bps(dec!(1.0)).unwrap(); 2],
+                slot_tracking: SlotTracking::new(slot),
+            },
             halt_flags: 0,
             owner_restricted_ix: 0,
             fee_to_collect_quantity: 0,
-            _padding: [0u8;256]
+            _padding: [0u8; 256],
         }
     }
 
     pub fn get_halt_flags(&self) -> TrancheHaltFlags {
-        TrancheHaltFlags::from_bits(self.halt_flags)
-            .unwrap_or_else(|| panic!("{:?} does not resolve to valid TrancheHaltFlags", self.halt_flags))
+        TrancheHaltFlags::from_bits(self.halt_flags).unwrap_or_else(|| {
+            panic!(
+                "{:?} does not resolve to valid TrancheHaltFlags",
+                self.halt_flags
+            )
+        })
     }
 
     pub fn set_halt_flags(&mut self, bits: u16) -> Result<()> {
-        TrancheHaltFlags::from_bits(bits).ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidTranchHaltFlags.into())?;
+        TrancheHaltFlags::from_bits(bits)
+            .ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidTranchHaltFlags.into())?;
         self.halt_flags = bits;
         Ok(())
     }
 
     pub fn get_owner_restricted_ixs(&self) -> OwnerRestrictedIxFlags {
-        OwnerRestrictedIxFlags::from_bits(self.owner_restricted_ix)
-            .unwrap_or_else(|| panic!("{:?} does not resolve to valid OwnerRestrictedInstructions", self.owner_restricted_ix))
+        OwnerRestrictedIxFlags::from_bits(self.owner_restricted_ix).unwrap_or_else(|| {
+            panic!(
+                "{:?} does not resolve to valid OwnerRestrictedInstructions",
+                self.owner_restricted_ix
+            )
+        })
     }
 
     pub fn set_owner_restricted_instructions(&mut self, bits: u16) -> Result<()> {
-        OwnerRestrictedIxFlags::from_bits(bits).ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidOwnerRestrictedIxFlags.into())?;
+        OwnerRestrictedIxFlags::from_bits(bits).ok_or_else::<VyperErrorCode, _>(|| {
+            VyperErrorCode::InvalidOwnerRestrictedIxFlags.into()
+        })?;
         self.owner_restricted_ix = bits;
         Ok(())
     }
 
-    pub const LEN: usize = 
-    2*8 + // pub deposited_quantity: [u64; 2],
+    pub const LEN: usize = 2*8 + // pub deposited_quantity: [u64; 2],
     8 + // pub fee_to_collect_quantity: u64,
     ReserveFairValue::LEN + // pub reserve_fair_value: ReserveFairValue,
     TrancheFairValue::LEN + // pub tranche_fair_value: TrancheFairValue,
     2 + // halt_flags: u16,
     2 + // owner_restricted_ix: u16,
     256; // _padding: [u8; 256],,
-
 }
 
 bitflags::bitflags! {
@@ -185,30 +198,28 @@ bitflags::bitflags! {
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct ReserveFairValue {
     /// reserve fair value expressed in bps
-    pub value: u32,
-    pub slot_tracking: SlotTracking
+    pub value: [u32; 10],
+    pub slot_tracking: SlotTracking,
 }
 
 impl ReserveFairValue {
-    pub const LEN: usize = 
-    4 + // pub value: u32,
+    pub const LEN: usize = 4*10 + // pub value: u32,
     SlotTracking::LEN; // pub slot_tracking: SlotTracking
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct TrancheFairValue {
     /// tranches [senior, junior] fair values expressed in bps
-    pub value: [u32;2],
-    pub slot_tracking: SlotTracking
+    pub value: [u32; 2],
+    pub slot_tracking: SlotTracking,
 }
 
 impl TrancheFairValue {
-    pub fn get_decimals(&self) -> [Decimal;2] {
+    pub fn get_decimals(&self) -> [Decimal; 2] {
         self.value.map(|c| from_bps(c).unwrap())
     }
 
-    pub const LEN: usize = 
-    2*4 + // pub value: [u32;2],
+    pub const LEN: usize = 2*4 + // pub value: [u32;2],
     SlotTracking::LEN; // pub slot_tracking: SlotTracking
 }
 
@@ -217,7 +228,7 @@ impl TrancheFairValue {
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct SlotTracking {
     last_update: LastUpdate,
-    
+
     /// threshold for defining a slot tracked value stale
     pub stale_slot_threshold: u64,
 }
@@ -226,7 +237,7 @@ impl SlotTracking {
     pub fn new(slot: u64) -> Self {
         Self {
             last_update: LastUpdate::new(slot),
-            stale_slot_threshold: 2
+            stale_slot_threshold: 2,
         }
     }
 
@@ -235,7 +246,9 @@ impl SlotTracking {
     }
 
     pub fn slot_elapsed(&self, current_slot: u64) -> Result<u64> {
-        current_slot.checked_sub(self.last_update.slot).ok_or_else(|| VyperErrorCode::MathError.into())
+        current_slot
+            .checked_sub(self.last_update.slot)
+            .ok_or_else(|| VyperErrorCode::MathError.into())
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
@@ -246,12 +259,11 @@ impl SlotTracking {
         self.last_update.slot
     }
 
-    pub const LEN: usize = 
-    LastUpdate::LEN + // last_update: LastUpdate,
+    pub const LEN: usize = LastUpdate::LEN + // last_update: LastUpdate,
     8; // pub stale_slot_threshold: u64,
 }
 
-// TODO check jet protocol assert_size macro: https://github.com/jet-lab/program-libraries/blob/main/proc-macros/src/lib.rs 
+// TODO check jet protocol assert_size macro: https://github.com/jet-lab/program-libraries/blob/main/proc-macros/src/lib.rs
 // #[assert_size(aligns, 16)]
 #[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
@@ -271,7 +283,8 @@ impl LastUpdate {
 
     /// Return slots elapsed since given slot
     pub fn slots_elapsed(&self, slot: u64) -> Result<u64> {
-        slot.checked_sub(self.slot).ok_or_else(|| VyperErrorCode::MathError.into())
+        slot.checked_sub(self.slot)
+            .ok_or_else(|| VyperErrorCode::MathError.into())
     }
 
     /// Set last update slot
@@ -279,8 +292,6 @@ impl LastUpdate {
         self.slot = slot;
     }
 
-    pub const LEN: usize = 
-        8 + // slot: u64,
+    pub const LEN: usize = 8 + // slot: u64,
         8; // _padding: [u8; 8],
-        
 }

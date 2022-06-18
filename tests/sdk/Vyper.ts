@@ -43,6 +43,7 @@ export class Vyper {
             [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
             this.program.programId
         );
+
         await this.program.methods
             .initialize({
                 trancheMintDecimals,
