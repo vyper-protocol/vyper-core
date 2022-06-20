@@ -1,4 +1,11 @@
 {
-    "printWidth": 128,
-    "tabWidth": 4
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": {
+        "tabWidth": 4,
+        "printWidth": 120
+      }
+    }
+  ]
 }

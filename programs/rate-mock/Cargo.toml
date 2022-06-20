@@ -1,0 +1,22 @@
+[package]
+name = "rate-mock"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/vyper-protocol/vyper-core/"
+homepage = "https://www.vyperprotocol.io/"
+authors = ["Vyper Labs ltd"]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "rate_mock"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.24.2"
+vyper-utils = { path = "../../libs/vyper-utils" }
