@@ -122,7 +122,7 @@ impl<'info> RedeemContext<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
 pub struct RedeemInput {
-    tranche_quantity: [u64; 2],
+    pub tranche_quantity: [u64; 2],
 }
 
 impl Input for RedeemInput {

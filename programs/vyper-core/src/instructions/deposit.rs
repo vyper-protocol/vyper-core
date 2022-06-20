@@ -124,7 +124,7 @@ impl<'info> DepositContext<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
 pub struct DepositInput {
-    reserve_quantity: [u64; 2],
+    pub reserve_quantity: [u64; 2],
 }
 
 impl Input for DepositInput {
