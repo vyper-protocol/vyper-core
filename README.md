@@ -68,4 +68,4 @@ General Vyper documentation can be found [here](https://docs.vyperprotocol.io/).
 
 # Getting Help
 
-Join [our Discord channel](https://discord.gg/uKHfg58j) and post a message
+Join [our Discord channel](https://discord.gg/KYaXgwetcK) and post a message
