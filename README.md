@@ -1,25 +1,71 @@
-<div align="center">
-  <img height="170x" src="https://github.com/vyper-protocol/branding/blob/main/medium-logo.png" />
+<p align="center">
+  <a href="https://vyperprotocol.io">
+    <img alt="Vyper Protocol" src="https://github.com/vyper-protocol/branding/blob/main/medium-logo.png" width="250" />
+  </a>
+</p>
 
-  <h1>Vyper</h1>
+Currently Vyper Core works as a set of smart contract which can take any SPL token and a custom payoff function, and redistribute the tokens to match the payoff upon certain conditions. For example, people can deposit Orca LP tokens, which after some time (e.g. a week) are redistributed to reflect the the impermanent loss vs fees generated.
 
-  <p>
-    <strong>The first tranching protocol in DeFi</strong>
-  </p>
+Currently there are three main smart contracts:
 
-  <div align="left">
-  <h2>Running the tests</h2>  
-    Since Vyper integrates with <a href="https://github.com/project-serum/serum-dex">Serum DEX</a> in order to facilitate trades of the tranche tokens, the Serum DEX repository has been added as a submodule in the <code>deps/</code> sub-directory. To fetch the sub-module, run the following from the root of the cloned project.<br><br>
-    
-    git submodule update --init --recursive
-   
-   Then, build the Serum DEX program locally so that it can be deployed on the test validator and be interacted with.<br>
-    
-    cd deps/serum-dex/dex/ && cargo build-bpf && cd ../../../
-    
-   Assuming that you have Anchor setup, the tests can be run as follows.
-    
-    anchor test
-  </div>
+- **Vyper Core**: manages tranches (position IOUs) creation and redemption, accepts only fungible tokens (e.g. LP tokens or cTokens). It redistributes collateral deposited consuming data from the rate calculator and redeem logic contracts
+- **Rate Calculator**: updates the fair price of the collateral deposited (e.g. USD value of LP token)
+- **Redeem Logic**: payoff formula which specifies how collateral should be distributed, based on initial collateral deposited, initial fair price, and final fair price
 
-</div>
+# Repository Structure
+
+Following the Vyper suite
+
+## Solana Programs
+
+| Name                         | Type                | Version | Path                                |
+| ---------------------------- | ------------------- | ------- | ----------------------------------- |
+| **Vyper Core**               | Core Primitive      | `0.1.0` | `programs/vyper-core`               |
+| **Rate Mock**                | Rate Plugin         | `0.1.0` | `programs/rate-mock`                |
+| **Redeem Logic Lending**     | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending`     |
+| **Redeem Logic Lending Fee** | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending-fee` |
+
+## Rust Libraries
+
+| Name         | Version | Path                |
+| ------------ | ------- | ------------------- |
+| Vyper Math   | `0.1.0` | `libs/vyper-math`   |
+| Vyper Utils  | `0.1.0` | `libs/vyper-utils`  |
+| Vyper Macros | `0.1.0` | `libs/vyper-macros` |
+
+## Typescript SDK
+
+We're currently working on a typescript sdk for frontend integrations. This is still a WIP, but it's available at the path `/sdk`.
+
+Once finished it'll be published as a npm module.
+
+# Setup, Build, and Test
+
+First, install dependencies:
+
+```
+$ yarn install
+```
+
+And install Anchor by following the [instructions here](https://project-serum.github.io/anchor/getting-started/installation.html).
+
+Build the program:
+
+```
+$ anchor build
+```
+
+Finally, run the tests:
+
+```
+$ cargo test
+$ anchor test
+```
+
+# Documentation
+
+General Vyper documentation can be found [here](https://docs.vyperprotocol.io/).
+
+# Getting Help
+
+Join [our Discord channel](https://discord.gg/uKHfg58j) and post a message
