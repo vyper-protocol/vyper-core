@@ -53,7 +53,7 @@ export class Vyper {
         );
 
         const trancheFairValue = new TrancheFairValue(
-            trancheInfo.trancheData.reserveFairValue['value'],
+            trancheInfo.trancheData.trancheFairValue['value'],
             slotTrackingTranche
         );
 
