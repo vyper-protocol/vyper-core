@@ -8,11 +8,17 @@ import { LastUpdate } from "./LastUpdate";
 import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
+import { RedeemLogicLending } from "../../target/types/redeem_logic_lending";
+import idlRedeemLogicLending from "../../target/idl/redeem_logic_lending.json";
+import { RedeemLogicState } from "./RedeemLogicState";
+
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
     provider: anchor.AnchorProvider;
     trancheId: PublicKey;
+    redeemLendingprogram: anchor.Program<RedeemLogicLending>;
+    redeemLendingStateId: PublicKey;
 
     static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey): Vyper {
         const client = new Vyper();
@@ -87,5 +93,26 @@ export class Vyper {
 
         return trancheConfig;
     }
+
+    createRedeemLendingProgram(provider: anchor.AnchorProvider, redeemLendingId: PublicKey) {
+        const program = new anchor.Program(idlRedeemLogicLending as any, redeemLendingId, provider) as anchor.Program<RedeemLogicLending>;
+        this.redeemLendingprogram = program;
+    }
+
+    async getRedeemLendingConfiguration(redeemLendingStateId?: PublicKey) {
+
+        if (!redeemLendingStateId) {
+            redeemLendingStateId = this.redeemLendingStateId;
+        }
+        const redeemLendingState = await this.redeemLendingprogram.account.redeemLogicConfig.fetch(redeemLendingStateId);
+        const redeemLogicState = new RedeemLogicState(
+            redeemLendingState.interestSplit,
+            redeemLendingState.fixedFeePerTranche.toNumber(),
+            redeemLendingState.owner
+        )
+        return redeemLogicState;
+    }
+
+
 }
 
