@@ -9,7 +9,11 @@ dotenv.config();
 describe('TrancheConfig', () => {
 
     const provider = AnchorProvider.env();
-    const vyper = Vyper.create(provider, new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'));
+    const vyper = Vyper.create(provider,
+        new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'),
+        new PublicKey('Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA'),
+        new PublicKey('FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG')
+    );
 
     it('fetch existing tranche configuration', async () => {
         const accounts = await provider.connection.getProgramAccounts(new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'));
@@ -43,16 +47,11 @@ describe('TrancheConfig', () => {
 
         const accounts = await provider.connection.getProgramAccounts(new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'));
         vyper.trancheId = new PublicKey(accounts[0].pubkey);
-        vyper.createRateMockProgram(provider, new PublicKey('FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG'));
-        vyper.createRedeemLendingProgram(provider, new PublicKey('Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA'));
 
         let trancheConfig = await vyper.getTrancheConfiguration();
-        vyper.redeemLendingStateId = new PublicKey(trancheConfig.redeemLogicProgramState);
-        vyper.rateMockStateId = new PublicKey(trancheConfig.rateProgramState);
-
         await vyper.refreshTrancheFairValue(1500);
-
         trancheConfig = await vyper.getTrancheConfiguration();
+
         expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(1500);
         expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
     })

@@ -25,11 +25,22 @@ export class Vyper {
     rateMockProgram: anchor.Program<RateMock>;
     rateMockStateId: PublicKey;
 
-    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey): Vyper {
+    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLendingId?: PublicKey, rateMockId?: PublicKey): Vyper {
         const client = new Vyper();
         const program = new anchor.Program(idlVyperCore as any, vyperCoreId, provider) as anchor.Program<VyperCore>;
         client.program = program;
         client.provider = provider;
+
+        if (redeemLendingId) {
+            const redeemProgram = new anchor.Program(idlRedeemLogicLending as any, redeemLendingId, provider) as anchor.Program<RedeemLogicLending>;
+            client.redeemLendingProgram = redeemProgram;
+        }
+
+        if (rateMockId) {
+            const rateMockProgram = new anchor.Program(idlRateMock as any, rateMockId, provider) as anchor.Program<RateMock>;
+            client.rateMockProgram = rateMockProgram;
+        }
+
         return client;
     }
 
@@ -99,11 +110,6 @@ export class Vyper {
         return trancheConfig;
     }
 
-    createRedeemLendingProgram(provider: anchor.AnchorProvider, redeemLendingId: PublicKey) {
-        const program = new anchor.Program(idlRedeemLogicLending as any, redeemLendingId, provider) as anchor.Program<RedeemLogicLending>;
-        this.redeemLendingProgram = program;
-    }
-
     async getRedeemLendingConfiguration(redeemLendingStateId?: PublicKey) {
 
         if (!redeemLendingStateId) {
@@ -118,13 +124,7 @@ export class Vyper {
         return redeemLogicState;
     }
 
-    createRateMockProgram(provider: anchor.AnchorProvider, rateMockId: PublicKey) {
-        const program = new anchor.Program(idlRateMock as any, rateMockId, provider) as anchor.Program<RateMock>;
-        this.rateMockProgram = program;
-    }
-
     async getRateMockState(rateMockStateId?: PublicKey) {
-
 
         if (!rateMockStateId) {
             rateMockStateId = this.rateMockStateId;
@@ -137,27 +137,31 @@ export class Vyper {
         return rateState;
     }
 
-    async refreshTrancheFairValue(fairValue: number) {
+    async refreshTrancheFairValue(fairValue: number, trancheId?: PublicKey) {
+
+        if (!trancheId) {
+            trancheId = this.trancheId
+        }
+
+        const trancheConfig = await this.getTrancheConfiguration(trancheId);
 
         await this.rateMockProgram.methods.setFairValue(fairValue)
             .accounts({
-                rateData: this.rateMockStateId,
+                rateData: trancheConfig.rateProgramState,
                 signer: this.provider.wallet.publicKey,
             })
             .rpc();
-
-        const trancheConfig = await this.program.account.trancheConfig.fetch(this.trancheId);
 
         await this.program.methods
             .refreshTrancheFairValue()
             .accounts({
                 signer: this.provider.wallet.publicKey,
-                trancheConfig: this.trancheId,
+                trancheConfig: trancheId,
                 seniorTrancheMint: trancheConfig.seniorTrancheMint,
                 juniorTrancheMint: trancheConfig.juniorTrancheMint,
-                rateProgramState: this.rateMockStateId,
-                redeemLogicProgram: this.redeemLendingProgram.programId,
-                redeemLogicProgramState: this.redeemLendingStateId,
+                rateProgramState: trancheConfig.rateProgramState,
+                redeemLogicProgram: trancheConfig.redeemLogicProgram,
+                redeemLogicProgramState: trancheConfig.redeemLogicProgramState,
             })
             .rpc();
     }
