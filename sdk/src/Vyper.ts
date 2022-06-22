@@ -137,6 +137,29 @@ export class Vyper {
         return rateState;
     }
 
+    async refreshTrancheFairValue(fairValue: number) {
 
+        await this.rateMockProgram.methods.setFairValue(fairValue)
+            .accounts({
+                rateData: this.rateMockStateId,
+                signer: this.provider.wallet.publicKey,
+            })
+            .rpc();
+
+        const trancheConfig = await this.program.account.trancheConfig.fetch(this.trancheId);
+
+        await this.program.methods
+            .refreshTrancheFairValue()
+            .accounts({
+                signer: this.provider.wallet.publicKey,
+                trancheConfig: this.trancheId,
+                seniorTrancheMint: trancheConfig.seniorTrancheMint,
+                juniorTrancheMint: trancheConfig.juniorTrancheMint,
+                rateProgramState: this.rateMockStateId,
+                redeemLogicProgram: this.redeemLendingProgram.programId,
+                redeemLogicProgramState: this.redeemLendingStateId,
+            })
+            .rpc();
+    }
 }
 
