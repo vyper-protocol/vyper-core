@@ -49,7 +49,7 @@ describe('TrancheConfig', () => {
         vyper.trancheId = new PublicKey(accounts[0].pubkey);
 
         let trancheConfig = await vyper.getTrancheConfiguration();
-        await vyper.refreshTrancheFairValue(1500);
+        const tx = await vyper.refreshTrancheFairValue(1500);
         trancheConfig = await vyper.getTrancheConfiguration();
 
         expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(1500);

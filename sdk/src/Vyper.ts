@@ -137,7 +137,7 @@ export class Vyper {
         return rateState;
     }
 
-    async refreshTrancheFairValue(fairValue: number, trancheId?: PublicKey) {
+    async refreshTrancheFairValue(fairValue: number, trancheId?: PublicKey): Promise<string> {
 
         if (!trancheId) {
             trancheId = this.trancheId
@@ -152,7 +152,7 @@ export class Vyper {
             })
             .rpc();
 
-        await this.program.methods
+        const tx = await this.program.methods
             .refreshTrancheFairValue()
             .accounts({
                 signer: this.provider.wallet.publicKey,
@@ -164,6 +164,8 @@ export class Vyper {
                 redeemLogicProgramState: trancheConfig.redeemLogicProgramState,
             })
             .rpc();
+
+        return tx;
     }
 }
 
