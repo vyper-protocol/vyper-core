@@ -10,6 +10,9 @@ import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
 import { IRedeemLogicLendingPlugin } from "./plugins/redeemLogicPlugin/IReedeemLogicPlugin";
 import { IRateMockPlugin } from "./plugins/ratePlugin/IRatePlugin";
+import { HaltFlags } from "./HaltFlags";
+import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
+
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
@@ -34,7 +37,6 @@ export class Vyper {
     }
 
     async getTrancheConfiguration(trancheId?: PublicKey): Promise<TrancheConfig> {
-
         // if not supplied we take if from object
         if (!trancheId) {
             trancheId = this.trancheId
@@ -95,7 +97,6 @@ export class Vyper {
             trancheInfo.version,
             trancheInfo.createdAt.toNumber()
         );
-
         return trancheConfig;
     }
 
@@ -140,5 +141,22 @@ export class Vyper {
             .instruction();
     }
  
+    async updateTrancheConfig(
+        bitmask: UpdateTrancheConfigFlags,
+        haltFlags: HaltFlags,
+        reserveFairValueStaleSlotThreshold: number,
+        trancheFairValueStaleSlotThreshold: number
+    ) {
+        await this.program.methods.updateTrancheData({
+            bitmask: bitmask,
+            haltFlags: haltFlags,
+            reserveFairValueStaleSlotThreshold: new anchor.BN(reserveFairValueStaleSlotThreshold),
+            trancheFairValueStaleSlotThreshold: new anchor.BN(trancheFairValueStaleSlotThreshold),
+        }).accounts({
+            owner: this.provider.wallet.publicKey,
+            trancheConfig: this.trancheId
+        }).rpc();
+    }
+
 }
 
