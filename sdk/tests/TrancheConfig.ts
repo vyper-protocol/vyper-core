@@ -18,13 +18,19 @@ describe('TrancheConfig', () => {
 
         assert.ok(trancheConfig.reserveMint)
         assert.ok(trancheConfig.reserve)
-        assert.ok(trancheConfig.trancheData)
+        expect(trancheConfig.trancheData.haltFlags).to.eql(0);
+        expect(trancheConfig.trancheData.ownerRestrictedIx).to.eql(0);
+        expect(trancheConfig.trancheData.depositedQuantity).to.eql([0, 0]);
+        expect(trancheConfig.trancheData.reserveFairValue.value).to.eql(Array(10).fill(10000));
+        expect(trancheConfig.trancheData.reserveFairValue.slotTracking.lastUpdate.slot).to.greaterThan(0);
+        expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+        expect(trancheConfig.trancheData.trancheFairValue.slotTracking.lastUpdate.slot).to.greaterThan(0);
         assert.ok(trancheConfig.seniorTrancheMint)
         assert.ok(trancheConfig.juniorTrancheMint)
         assert.ok(trancheConfig.trancheAuthority)
         assert.ok(trancheConfig.authoritySeed)
         assert.ok(trancheConfig.authorityBump)
-        assert.ok(trancheConfig.owner)
+        expect(trancheConfig.owner.toBase58()).to.eql(provider.wallet.publicKey.toBase58());
         assert.ok(trancheConfig.rateProgram)
         assert.ok(trancheConfig.rateProgramState)
         assert.ok(trancheConfig.redeemLogicProgram)
