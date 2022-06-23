@@ -157,6 +157,5 @@ export class Vyper {
             trancheConfig: this.trancheId
         }).rpc();
     }
-
 }
 
