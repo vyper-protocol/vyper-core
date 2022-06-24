@@ -2,6 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { getAccount, getMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { assert, expect } from "chai";
+import { OwnerRestrictedIxFlags } from "../sdk/src/OwnerRestrictedIxFlags";
 import { RateMock } from "../target/types/rate_mock";
 import { RedeemLogicLending } from "../target/types/redeem_logic_lending";
 import { VyperCore } from "../target/types/vyper_core";
@@ -40,7 +41,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000);
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,
@@ -102,7 +103,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000, 15); // with fee
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,
@@ -161,13 +162,8 @@ describe("vyper_core", async () => {
             programVyperCore.programId
         );
 
-        const initializeInputData = {
-            isOpen: true,
-            trancheMintDecimals: 6,
-        };
-
         await programVyperCore.methods
-            .initialize(initializeInputData)
+            .initialize({ trancheMintDecimals: 6, ownerRestrictedIxs: 0, haltFlags: 0 })
             .accounts({
                 payer: provider.wallet.publicKey,
                 owner: provider.wallet.publicKey,
@@ -189,6 +185,7 @@ describe("vyper_core", async () => {
             .updateTrancheData({
                 bitmask: UPDATE_TRANCHE_CONFIG_FLAGS.HALT_FLAGS,
                 haltFlags: TRANCHE_HALT_FLAGS.HALT_DEPOSITS,
+                ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(2),
                 trancheFairValueStaleSlotThreshold: bn(2),
             })
@@ -205,6 +202,7 @@ describe("vyper_core", async () => {
             .updateTrancheData({
                 bitmask: UPDATE_TRANCHE_CONFIG_FLAGS.HALT_FLAGS,
                 haltFlags: TRANCHE_HALT_FLAGS_HALT_ALL,
+                ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(2),
                 trancheFairValueStaleSlotThreshold: bn(2),
             })
@@ -236,13 +234,8 @@ describe("vyper_core", async () => {
             programVyperCore.programId
         );
 
-        const initializeInputData = {
-            isOpen: true,
-            trancheMintDecimals: 6,
-        };
-
         await programVyperCore.methods
-            .initialize(initializeInputData)
+            .initialize({ trancheMintDecimals: 6, ownerRestrictedIxs: 0, haltFlags: 0 })
             .accounts({
                 payer: provider.wallet.publicKey,
                 owner: provider.wallet.publicKey,
@@ -274,6 +267,7 @@ describe("vyper_core", async () => {
                     UPDATE_TRANCHE_CONFIG_FLAGS.RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD |
                     UPDATE_TRANCHE_CONFIG_FLAGS.TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD,
                 haltFlags: TRANCHE_HALT_FLAGS.HALT_DEPOSITS,
+                ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(newStaleSlotThreshold),
                 trancheFairValueStaleSlotThreshold: bn(newStaleSlotThreshold),
             })
@@ -309,12 +303,8 @@ describe("vyper_core", async () => {
             [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
             programVyperCore.programId
         );
-        const initializeInputData = {
-            isOpen: true,
-            trancheMintDecimals: 6,
-        };
         await programVyperCore.methods
-            .initialize(initializeInputData)
+            .initialize({ trancheMintDecimals: 6, ownerRestrictedIxs: 0, haltFlags: 0 })
             .accounts({
                 payer: provider.wallet.publicKey,
                 owner: provider.wallet.publicKey,
@@ -359,7 +349,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000);
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,
@@ -394,7 +384,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000);
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,
@@ -453,7 +443,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000);
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,
@@ -511,7 +501,7 @@ describe("vyper_core", async () => {
         await rateMock.initialize();
         await redeemLogic.initialize(5000);
         await vyper.initialize(
-            trancheMintDecimals,
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
             rateMock.programID,
             rateMock.state,

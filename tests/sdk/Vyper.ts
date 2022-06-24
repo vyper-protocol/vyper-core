@@ -2,6 +2,12 @@ import * as anchor from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { VyperCore } from "../../target/types/vyper_core";
 
+export type InitializationData = {
+    trancheMintDecimals: number;
+    haltFlags: number;
+    ownerRestrictedIxs: number;
+};
+
 export class Vyper {
     program: anchor.Program<VyperCore>;
     provider: anchor.AnchorProvider;
@@ -25,7 +31,7 @@ export class Vyper {
     }
 
     async initialize(
-        trancheMintDecimals: number,
+        initData: InitializationData,
         reserveMint: PublicKey,
         ratePlugin: PublicKey,
         ratePluginState: PublicKey,
@@ -45,9 +51,7 @@ export class Vyper {
         );
 
         await this.program.methods
-            .initialize({
-                trancheMintDecimals,
-            })
+            .initialize(initData)
             .accounts({
                 payer: this.provider.wallet.publicKey,
                 owner: this.provider.wallet.publicKey,
