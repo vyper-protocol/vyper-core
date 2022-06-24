@@ -47,7 +47,7 @@ First, install dependencies:
 $ yarn install
 ```
 
-And install Anchor by following the [instructions here](https://project-serum.github.io/anchor/getting-started/installation.html).
+And install Anchor by following the [instructions here](https://github.com/coral-xyz/anchor/blob/master/docs/src/getting-started/installation.md).
 
 Build the program:
 
