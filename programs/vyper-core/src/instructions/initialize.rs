@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(_input_data: InitializeInput)]
+#[instruction(input_data: InitializeInput)]
 pub struct InitializeContext<'info> {
     /// Signer account
     #[account(mut)]
@@ -46,11 +46,11 @@ pub struct InitializeContext<'info> {
     pub reserve: Box<Account<'info, TokenAccount>>,
 
     /// Senior tranche mint
-    #[account(init, payer = payer, mint::decimals = _input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
+    #[account(init, payer = payer, mint::decimals = input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
     pub senior_tranche_mint: Box<Account<'info, Mint>>,
 
     /// Junior tranche mint
-    #[account(init, payer = payer, mint::decimals = _input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
+    #[account(init, payer = payer, mint::decimals = input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
     pub junior_tranche_mint: Box<Account<'info, Mint>>,
 
     pub system_program: Program<'info, System>,
@@ -61,9 +61,11 @@ pub struct InitializeContext<'info> {
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct InitializeInput {
     pub tranche_mint_decimals: u8,
+    pub halt_flags: u16,
+    pub owner_restricted_ixs: u16,
 }
 
-pub fn handler(ctx: Context<InitializeContext>, _input_data: InitializeInput) -> Result<()> {
+pub fn handler(ctx: Context<InitializeContext>, input_data: InitializeInput) -> Result<()> {
     let clock = Clock::get()?;
 
     // create tranche config account
@@ -74,6 +76,12 @@ pub fn handler(ctx: Context<InitializeContext>, _input_data: InitializeInput) ->
     tranche_config.version = get_version_arr();
     tranche_config.owner = ctx.accounts.owner.key();
     tranche_config.tranche_data = TrancheData::new(clock.slot);
+    tranche_config
+        .tranche_data
+        .set_halt_flags(input_data.halt_flags)?;
+    tranche_config
+        .tranche_data
+        .set_owner_restricted_instructions(input_data.owner_restricted_ixs)?;
     tranche_config.tranche_authority = ctx.accounts.tranche_authority.key();
     tranche_config.authority_seed = tranche_config.key();
     tranche_config.authority_bump = [*ctx.bumps.get("tranche_authority").unwrap()];
