@@ -10,7 +10,7 @@ use rust_decimal::{prelude::ToPrimitive, Decimal};
 
 #[derive(Accounts)]
 pub struct RedeemContext<'info> {
-    #[account(mut)]
+    #[account()]
     pub signer: Signer<'info>,
 
     #[account(mut, 

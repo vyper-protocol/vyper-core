@@ -11,7 +11,7 @@ use vyper_math::bps::from_bps;
 
 #[derive(Accounts)]
 pub struct DepositContext<'info> {
-    #[account(mut)]
+    #[account()]
     pub signer: Signer<'info>,
 
     #[account(mut, 
