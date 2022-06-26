@@ -36,7 +36,8 @@ export class Vyper {
         ratePlugin: PublicKey,
         ratePluginState: PublicKey,
         redeemLogicPlugin: PublicKey,
-        redeemLogicPluginState: PublicKey
+        redeemLogicPluginState: PublicKey,
+        owner?: PublicKey
     ) {
         const juniorTrancheMint = anchor.web3.Keypair.generate();
         const seniorTrancheMint = anchor.web3.Keypair.generate();
@@ -54,7 +55,7 @@ export class Vyper {
             .initialize(initData)
             .accounts({
                 payer: this.provider.wallet.publicKey,
-                owner: this.provider.wallet.publicKey,
+                owner: owner ?? this.provider.wallet.publicKey,
                 trancheConfig: trancheConfig.publicKey,
                 trancheAuthority,
                 rateProgram: ratePlugin,
