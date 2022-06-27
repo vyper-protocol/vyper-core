@@ -70,7 +70,6 @@ export class Vyper {
             slotTrackingTranche
         );
 
-
         const trancheData = new TrancheData(
             trancheInfo.trancheData.depositedQuantity.map((x) => x.toNumber()),
             trancheInfo.trancheData.feeToCollectQuantity.toNumber(),
@@ -144,12 +143,14 @@ export class Vyper {
     async updateTrancheConfig(
         bitmask: UpdateTrancheConfigFlags,
         haltFlags: HaltFlags,
+        ownerRestrictedIxs: number, //turn it into enum
         reserveFairValueStaleSlotThreshold: number,
         trancheFairValueStaleSlotThreshold: number
     ) {
         await this.program.methods.updateTrancheData({
             bitmask: bitmask,
             haltFlags: haltFlags,
+            ownerRestrictedIxs: ownerRestrictedIxs,
             reserveFairValueStaleSlotThreshold: new anchor.BN(reserveFairValueStaleSlotThreshold),
             trancheFairValueStaleSlotThreshold: new anchor.BN(trancheFairValueStaleSlotThreshold),
         }).accounts({
