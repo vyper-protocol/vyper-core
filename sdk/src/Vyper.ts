@@ -12,6 +12,7 @@ import { IRedeemLogicLendingPlugin } from "./plugins/redeemLogicPlugin/IReedeemL
 import { IRateMockPlugin } from "./plugins/ratePlugin/IRatePlugin";
 import { HaltFlags } from "./HaltFlags";
 import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
+import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
 
 export class Vyper {
 
@@ -143,7 +144,7 @@ export class Vyper {
     async updateTrancheConfig(
         bitmask: UpdateTrancheConfigFlags,
         haltFlags: HaltFlags,
-        ownerRestrictedIxs: number, //turn it into enum
+        ownerRestrictedIxs: OwnerRestrictedIxFlags,
         reserveFairValueStaleSlotThreshold: number,
         trancheFairValueStaleSlotThreshold: number
     ) {
