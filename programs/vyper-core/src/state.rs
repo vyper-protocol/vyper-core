@@ -126,7 +126,7 @@ impl TrancheData {
 
     pub fn set_halt_flags(&mut self, bits: u16) -> Result<()> {
         TrancheHaltFlags::from_bits(bits)
-            .ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidTranchHaltFlags.into())?;
+            .ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidTrancheHaltFlags.into())?;
         self.halt_flags = bits;
         Ok(())
     }

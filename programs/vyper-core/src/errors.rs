@@ -12,7 +12,7 @@ pub enum VyperErrorCode {
     MathError,
 
     #[msg("Bits passed in do not result in valid halt flags")]
-    InvalidTranchHaltFlags,
+    InvalidTrancheHaltFlags,
 
     #[msg("Current operation is not available because is halted")]
     HaltError,
