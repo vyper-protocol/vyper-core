@@ -24,6 +24,7 @@ Following the Vyper suite
 | **Rate Mock**                | Rate Plugin         | `0.1.0` | `programs/rate-mock`                |
 | **Redeem Logic Lending**     | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending`     |
 | **Redeem Logic Lending Fee** | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending-fee` |
+| **Redeem Logic Farming**     | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-farming`     |
 
 ## Rust Libraries
 
