@@ -225,6 +225,10 @@ mod tests {
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
         assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        );
     }
 
     #[test]
