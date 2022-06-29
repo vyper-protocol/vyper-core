@@ -100,6 +100,25 @@ export class Vyper {
         return trancheConfig;
     }
 
+    async updateTrancheConfig(
+        bitmask: UpdateTrancheConfigFlags,
+        haltFlags: HaltFlags,
+        ownerRestrictedIxs: OwnerRestrictedIxFlags,
+        reserveFairValueStaleSlotThreshold: number,
+        trancheFairValueStaleSlotThreshold: number,
+    ) {
+        await this.program.methods.updateTrancheData({
+            bitmask: bitmask,
+            haltFlags: haltFlags,
+            ownerRestrictedIxs: ownerRestrictedIxs,
+            reserveFairValueStaleSlotThreshold: new anchor.BN(reserveFairValueStaleSlotThreshold),
+            trancheFairValueStaleSlotThreshold: new anchor.BN(trancheFairValueStaleSlotThreshold),
+        }).accounts({
+            owner: this.provider.wallet.publicKey,
+            trancheConfig: this.trancheId
+        }).rpc();
+    }
+
     async refreshTrancheFairValue(trancheId?: PublicKey) {
         
         if(!trancheId) {
@@ -139,25 +158,6 @@ export class Vyper {
                 redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId
             })
             .instruction();
-    }
- 
-    async updateTrancheConfig(
-        bitmask: UpdateTrancheConfigFlags,
-        haltFlags: HaltFlags,
-        ownerRestrictedIxs: OwnerRestrictedIxFlags,
-        reserveFairValueStaleSlotThreshold: number,
-        trancheFairValueStaleSlotThreshold: number
-    ) {
-        await this.program.methods.updateTrancheData({
-            bitmask: bitmask,
-            haltFlags: haltFlags,
-            ownerRestrictedIxs: ownerRestrictedIxs,
-            reserveFairValueStaleSlotThreshold: new anchor.BN(reserveFairValueStaleSlotThreshold),
-            trancheFairValueStaleSlotThreshold: new anchor.BN(trancheFairValueStaleSlotThreshold),
-        }).accounts({
-            owner: this.provider.wallet.publicKey,
-            trancheConfig: this.trancheId
-        }).rpc();
     }
 }
 
