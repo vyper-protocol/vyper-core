@@ -970,6 +970,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redeem-logic-vanilla-option"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "vyper-macros",
+ "vyper-math",
+ "vyper-utils",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
