@@ -1,18 +1,25 @@
-import { AnchorProvider } from '@project-serum/anchor';
+import * as anchor from "@project-serum/anchor";
 import { Vyper } from '../src/index';
 import { PublicKey, } from "@solana/web3.js";
 import * as dotenv from 'dotenv';
 import { assert, expect } from "chai";
+import {RedeemLogicLendingPlugin} from "../src/plugins/redeemLogicPlugin/redeemLogicLending/RedeemLogicLending";
+import {RateMockPlugin} from "../src/plugins/ratePlugin/rateMock/RateMock";
 
 dotenv.config();
 
+const vyperCoreId = new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U');
+const rateMockPluginId = new PublicKey('FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG');
+const redeemLogicLendingPluginId = new PublicKey('Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA');
+
 describe('TrancheConfig', () => {
 
-    const provider = AnchorProvider.env();
-    const vyper = Vyper.create(provider, new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'));
+    const provider = anchor.AnchorProvider.env();
 
     it('fetch existing tranche configuration', async () => {
-        const accounts = await provider.connection.getProgramAccounts(new PublicKey('mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U'));
+        
+        const vyper = Vyper.create(provider,vyperCoreId);
+        const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
         vyper.trancheId = new PublicKey(accounts[0].pubkey);
         const trancheConfig = await vyper.getTrancheConfiguration();
 
@@ -38,4 +45,45 @@ describe('TrancheConfig', () => {
         assert.ok(trancheConfig.version)
         assert.ok(trancheConfig.createdAt)
     });
+
+    it('refresh tranche fair value', async () => {
+        
+        let vyper = Vyper.create(provider,vyperCoreId);
+        const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
+        vyper.trancheId = new PublicKey(accounts[0].pubkey);
+        let trancheConfig = await vyper.getTrancheConfiguration();
+
+        let rateMockPlugin = RateMockPlugin.create(provider,rateMockPluginId);
+        rateMockPlugin.rateMockStateId=trancheConfig.rateProgramState;
+
+        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId)
+        redeemLogicLendingPlugin.redeemLendingStateId=trancheConfig.redeemLogicProgramState;
+
+        // creating vyper with all plugins
+        vyper = Vyper.create(provider,
+            vyperCoreId,
+            redeemLogicLendingPlugin,
+            rateMockPlugin
+        )
+        vyper.trancheId = new PublicKey(accounts[0].pubkey);
+        
+        
+        // with rpc call
+        await rateMockPlugin.setFairValue(1500);
+        await vyper.refreshTrancheFairValue();
+        trancheConfig = await vyper.getTrancheConfiguration();
+        expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(1500);
+        expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+
+
+        // with instruction call
+        await rateMockPlugin.setFairValue(2500);
+        const tx = new anchor.web3.Transaction();
+        const instruction = await vyper.getRefreshTrancheFairValueIX();
+        tx.add(instruction);
+        await provider.sendAndConfirm(tx);
+        trancheConfig = await vyper.getTrancheConfiguration();
+        expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(2500);
+        expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+    })
 });

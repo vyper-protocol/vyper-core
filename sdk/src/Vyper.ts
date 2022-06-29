@@ -8,17 +8,28 @@ import { LastUpdate } from "./LastUpdate";
 import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
+import { IRedeemLogicLendingPlugin } from "./plugins/redeemLogicPlugin/IReedeemLogicPlugin";
+import { IRateMockPlugin } from "./plugins/ratePlugin/IRatePlugin";
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
     provider: anchor.AnchorProvider;
     trancheId: PublicKey;
+    redeemLogicLendingPlugin: IRedeemLogicLendingPlugin;
+    rateMockPlugin: IRateMockPlugin;
 
-    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey): Vyper {
+    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, rateMockPlugin?: IRateMockPlugin): Vyper {
         const client = new Vyper();
         const program = new anchor.Program(idlVyperCore as any, vyperCoreId, provider) as anchor.Program<VyperCore>;
         client.program = program;
         client.provider = provider;
+
+        if (redeemLogicLendingPlugin) {
+            client.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
+        }
+        if (rateMockPlugin) {
+            client.rateMockPlugin = rateMockPlugin;
+        }
         return client;
     }
 
@@ -87,5 +98,47 @@ export class Vyper {
 
         return trancheConfig;
     }
+
+    async refreshTrancheFairValue(trancheId?: PublicKey) {
+        
+        if(!trancheId) {
+            trancheId = this.trancheId;
+        }
+
+        const trancheConfig = await this.getTrancheConfiguration(trancheId);
+        await this.program.methods
+            .refreshTrancheFairValue()
+            .accounts({
+                signer: this.provider.wallet.publicKey,
+                trancheConfig: trancheId,
+                seniorTrancheMint: trancheConfig.seniorTrancheMint,
+                juniorTrancheMint: trancheConfig.juniorTrancheMint,
+                rateProgramState: this.rateMockPlugin.rateMockStateId,
+                redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
+                redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId,
+            })
+            .rpc();
+    }
+
+    async getRefreshTrancheFairValueIX(trancheId?: PublicKey): Promise<anchor.web3.TransactionInstruction> {
+
+        if(!trancheId) {
+            trancheId = this.trancheId;
+        }
+        const trancheConfig = await this.getTrancheConfiguration(trancheId);
+        return await this.program.methods
+            .refreshTrancheFairValue()
+            .accounts({
+                signer: this.provider.wallet.publicKey,
+                trancheConfig: trancheId,
+                seniorTrancheMint: trancheConfig.seniorTrancheMint,
+                juniorTrancheMint: trancheConfig.juniorTrancheMint,
+                rateProgramState: this.rateMockPlugin.rateMockStateId,
+                redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
+                redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId
+            })
+            .instruction();
+    }
+ 
 }
 
