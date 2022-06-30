@@ -937,6 +937,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redeem-logic-farming"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "vyper-macros",
+ "vyper-math",
+ "vyper-utils",
+]
+
+[[package]]
 name = "redeem-logic-lending"
 version = "0.1.0"
 dependencies = [
@@ -949,6 +960,17 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-lending-fee"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "vyper-macros",
+ "vyper-math",
+ "vyper-utils",
+]
+
+[[package]]
+name = "redeem-logic-vanilla-option"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
