@@ -1,10 +1,13 @@
 import * as anchor from "@project-serum/anchor";
 import { Vyper } from '../src/index';
-import { PublicKey, } from "@solana/web3.js";
+import { PublicKey} from "@solana/web3.js";
 import * as dotenv from 'dotenv';
 import { assert, expect } from "chai";
 import {RedeemLogicLendingPlugin} from "../src/plugins/redeemLogicPlugin/redeemLogicLending/RedeemLogicLending";
 import {RateMockPlugin} from "../src/plugins/ratePlugin/rateMock/RateMock";
+import {UpdateTrancheConfigFlags} from '../src/UpdateTrancheConfigFlags'
+import {HaltFlags} from '../src/HaltFlags'
+import { OwnerRestrictedIxFlags } from "../src/OwnerRestrictedIxFlags";
 
 dotenv.config();
 
@@ -18,7 +21,7 @@ describe('TrancheConfig', () => {
 
     it('fetch existing tranche configuration', async () => {
         
-        const vyper = Vyper.create(provider,vyperCoreId);
+        const vyper = Vyper.create(provider, vyperCoreId);
         const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
         vyper.trancheId = new PublicKey(accounts[0].pubkey);
         const trancheConfig = await vyper.getTrancheConfiguration();
@@ -44,6 +47,71 @@ describe('TrancheConfig', () => {
         assert.ok(trancheConfig.redeemLogicProgramState)
         assert.ok(trancheConfig.version)
         assert.ok(trancheConfig.createdAt)
+    });
+
+    it("update tranche halt flags", async () => {
+        const vyper = Vyper.create(provider, vyperCoreId)
+        const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
+        vyper.trancheId = new PublicKey(accounts[0].pubkey);
+     
+        await vyper.updateTrancheConfig(
+            UpdateTrancheConfigFlags.HALT_FLAGS,
+            HaltFlags.HALT_DEPOSITS,
+            OwnerRestrictedIxFlags.NONE,
+            2,
+            2
+        )
+
+        let trancheConfigAccount = await vyper.program.account.trancheConfig.fetch(vyper.trancheId)
+
+        expect(trancheConfigAccount.trancheData.haltFlags).to.eql(HaltFlags.HALT_DEPOSITS)
+
+
+        await vyper.updateTrancheConfig(
+            UpdateTrancheConfigFlags.HALT_FLAGS,
+            HaltFlags.HALT_ALL,
+            OwnerRestrictedIxFlags.NONE,
+            2,
+            2
+        )
+
+        trancheConfigAccount = await vyper.program.account.trancheConfig.fetch(vyper.trancheId);
+
+        expect(trancheConfigAccount.trancheData.haltFlags).to.eql(HaltFlags.HALT_ALL);
+    })
+
+
+    it("update fair value stale threshold", async () => {
+        const vyper = Vyper.create(provider, vyperCoreId)
+        const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
+        vyper.trancheId = new PublicKey(accounts[0].pubkey);
+
+        let trancheConfigAccount = await vyper.program.account.trancheConfig.fetch(vyper.trancheId);
+
+        //@ts-expect-error
+        expect(trancheConfigAccount.trancheData.reserveFairValue.slotTracking.staleSlotThreshold.toNumber()).to.eql(2);
+        //@ts-expect-error
+        expect(trancheConfigAccount.trancheData.trancheFairValue.slotTracking.staleSlotThreshold.toNumber()).to.eql(2);
+
+        const newStaleSlotThreshold = 4;
+
+        await vyper.updateTrancheConfig(
+            UpdateTrancheConfigFlags.RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD | UpdateTrancheConfigFlags.TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD,
+            HaltFlags.HALT_ALL,
+            OwnerRestrictedIxFlags.NONE,
+            newStaleSlotThreshold,
+            newStaleSlotThreshold,
+        )
+        trancheConfigAccount = await vyper.program.account.trancheConfig.fetch(vyper.trancheId);
+
+        //@ts-expect-error
+        expect(trancheConfigAccount.trancheData.reserveFairValue.slotTracking.staleSlotThreshold.toNumber()).to.eql(
+            newStaleSlotThreshold
+        );
+        //@ts-expect-error
+        expect(trancheConfigAccount.trancheData.trancheFairValue.slotTracking.staleSlotThreshold.toNumber()).to.eql(
+            newStaleSlotThreshold
+        );
     });
 
     it('refresh tranche fair value', async () => {

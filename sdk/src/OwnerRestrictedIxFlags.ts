@@ -1,4 +1,6 @@
 export enum OwnerRestrictedIxFlags {
+    NONE = 0,
+    
     DEPOSITS = 1 << 0,
 
     // Owner restricted: Refreshes

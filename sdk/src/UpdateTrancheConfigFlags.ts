@@ -1,0 +1,6 @@
+export enum UpdateTrancheConfigFlags {
+    HALT_FLAGS = 1 << 0,
+    OWNER_RESTRICTED_IXS = 1 << 1,
+    RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD = 1 << 2,
+    TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD = 1 << 3,
+};

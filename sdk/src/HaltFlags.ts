@@ -1,4 +1,6 @@
 export enum HaltFlags {
+    NONE = 0,
+    
     // Disable deposits
     HALT_DEPOSITS = 1 << 0,
 
