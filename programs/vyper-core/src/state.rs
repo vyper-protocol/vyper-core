@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
-use vyper_math::bps::{from_bps, to_bps};
+use vyper_math::bps::{from_bps, ONE_BPS};
 
 use crate::errors::VyperErrorCode;
 
@@ -101,11 +100,11 @@ impl TrancheData {
         Self {
             deposited_quantity: [0; 2],
             reserve_fair_value: ReserveFairValue {
-                value: [to_bps(dec!(1.0)).unwrap(); 10],
+                value: [ONE_BPS; 10],
                 slot_tracking: SlotTracking::new(slot),
             },
             tranche_fair_value: TrancheFairValue {
-                value: [to_bps(dec!(1.0)).unwrap(); 2],
+                value: [ONE_BPS; 2],
                 slot_tracking: SlotTracking::new(slot),
             },
             halt_flags: 0,
@@ -115,35 +114,25 @@ impl TrancheData {
         }
     }
 
-    pub fn get_halt_flags(&self) -> TrancheHaltFlags {
-        TrancheHaltFlags::from_bits(self.halt_flags).unwrap_or_else(|| {
-            panic!(
-                "{:?} does not resolve to valid TrancheHaltFlags",
-                self.halt_flags
-            )
-        })
+    pub fn get_halt_flags(&self) -> Result<TrancheHaltFlags> {
+        TrancheHaltFlags::from_bits(self.halt_flags)
+            .ok_or(VyperErrorCode::InvalidTrancheHaltFlags.into())
     }
 
     pub fn set_halt_flags(&mut self, bits: u16) -> Result<()> {
-        TrancheHaltFlags::from_bits(bits)
-            .ok_or_else::<VyperErrorCode, _>(|| VyperErrorCode::InvalidTrancheHaltFlags.into())?;
+        TrancheHaltFlags::from_bits(bits).ok_or(VyperErrorCode::InvalidTrancheHaltFlags)?;
         self.halt_flags = bits;
         Ok(())
     }
 
-    pub fn get_owner_restricted_ixs(&self) -> OwnerRestrictedIxFlags {
-        OwnerRestrictedIxFlags::from_bits(self.owner_restricted_ix).unwrap_or_else(|| {
-            panic!(
-                "{:?} does not resolve to valid OwnerRestrictedInstructions",
-                self.owner_restricted_ix
-            )
-        })
+    pub fn get_owner_restricted_ixs(&self) -> Result<OwnerRestrictedIxFlags> {
+        OwnerRestrictedIxFlags::from_bits(self.owner_restricted_ix)
+            .ok_or(VyperErrorCode::InvalidOwnerRestrictedIxFlags.into())
     }
 
     pub fn set_owner_restricted_instructions(&mut self, bits: u16) -> Result<()> {
-        OwnerRestrictedIxFlags::from_bits(bits).ok_or_else::<VyperErrorCode, _>(|| {
-            VyperErrorCode::InvalidOwnerRestrictedIxFlags.into()
-        })?;
+        OwnerRestrictedIxFlags::from_bits(bits)
+            .ok_or(VyperErrorCode::InvalidOwnerRestrictedIxFlags)?;
         self.owner_restricted_ix = bits;
         Ok(())
     }
@@ -248,7 +237,7 @@ impl SlotTracking {
     pub fn slot_elapsed(&self, current_slot: u64) -> Result<u64> {
         current_slot
             .checked_sub(self.last_update.slot)
-            .ok_or_else(|| VyperErrorCode::MathError.into())
+            .ok_or(VyperErrorCode::MathError.into())
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
@@ -284,7 +273,7 @@ impl LastUpdate {
     /// Return slots elapsed since given slot
     pub fn slots_elapsed(&self, slot: u64) -> Result<u64> {
         slot.checked_sub(self.slot)
-            .ok_or_else(|| VyperErrorCode::MathError.into())
+            .ok_or(VyperErrorCode::MathError.into())
     }
 
     /// Set last update slot

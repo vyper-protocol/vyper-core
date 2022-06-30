@@ -53,6 +53,8 @@ impl BpsRangeValue {
     }
 }
 
+pub const ONE_BPS: u32 = 10000;
+
 /// Convert an input representing a bps value into an Option<Decimal>
 pub fn from_bps(input: u32) -> Option<Decimal> {
     Decimal::from_u32(input)?.checked_div(dec!(10000.0))

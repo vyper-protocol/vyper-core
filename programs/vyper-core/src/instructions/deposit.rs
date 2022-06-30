@@ -59,7 +59,7 @@ impl<'info> DepositContext<'info> {
 
         // check that deposits are not halted
         (!tranche_data
-            .get_halt_flags()
+            .get_halt_flags()?
             .contains(TrancheHaltFlags::HALT_DEPOSITS))
         .ok_or(VyperErrorCode::HaltError)?;
 
@@ -72,7 +72,7 @@ impl<'info> DepositContext<'info> {
 
         // check if the current ix is restricted to owner
         if tranche_data
-            .get_owner_restricted_ixs()
+            .get_owner_restricted_ixs()?
             .contains(OwnerRestrictedIxFlags::DEPOSITS)
         {
             require_keys_eq!(
@@ -152,7 +152,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
     for i in 0..input_data.reserve_quantity.len() {
         tranche_data.deposited_quantity[i] = tranche_data.deposited_quantity[i]
             .checked_add(input_data.reserve_quantity[i])
-            .ok_or_else(|| VyperErrorCode::MathError)?;
+            .ok_or(VyperErrorCode::MathError)?;
     }
 
     // transfer token from source account to tranche config token account
@@ -171,8 +171,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
                 .tranche_data
                 .tranche_fair_value
                 .value[i],
-        )
-        .unwrap();
+        ).ok_or(VyperErrorCode::MathError)?;
         let dep_qty = Decimal::from(input_data.reserve_quantity[i]);
 
         msg!("tranche_fv: {}", tranche_fv);
@@ -181,7 +180,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
         mint_count[i] = (dep_qty / tranche_fv)
             .round()
             .to_u64()
-            .ok_or_else(|| VyperErrorCode::MathError)?;
+            .ok_or(VyperErrorCode::MathError)?;
     }
 
     if mint_count[0] > 0 {
