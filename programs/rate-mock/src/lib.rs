@@ -5,6 +5,8 @@ declare_id!("FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG");
 #[program]
 pub mod rate_mock {
 
+    use vyper_utils::rate_common::RateErrors;
+
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>) -> Result<()> {
@@ -24,8 +26,10 @@ pub mod rate_mock {
     pub fn set_random_fair_value(ctx: Context<RefreshRateContext>) -> Result<()> {
         // random rate
         let clock = Clock::get()?;
-        ctx.accounts.rate_data.fair_value[0] =
-            clock.unix_timestamp.checked_rem(10000).unwrap() as u32;
+        ctx.accounts.rate_data.fair_value[0] = clock
+            .unix_timestamp
+            .checked_rem(10000)
+            .ok_or(RateErrors::MathError)? as u32;
         ctx.accounts.rate_data.refreshed_slot = clock.slot;
 
         Ok(())

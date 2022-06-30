@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_math::bps::from_bps;
+use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
@@ -58,7 +59,7 @@ pub mod redeem_logic_lending {
             ctx.accounts.redeem_logic_config.strike,
             ctx.accounts.redeem_logic_config.is_call,
             ctx.accounts.redeem_logic_config.is_linear,
-        );
+        )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
 
@@ -131,23 +132,23 @@ fn execute_plugin(
     strike_bps: u32,
     is_call: bool,
     is_linear: bool,
-) -> RedeemLogicExecuteResult {
+) -> Result<RedeemLogicExecuteResult> {
     // TODO: CHECK OVERFLOW
 
     if old_spot_value_bps == 0 {
-        return RedeemLogicExecuteResult {
+        return Ok(RedeemLogicExecuteResult {
             new_quantity: old_quantity,
             fee_quantity: 0,
-        };
+        });
     }
 
     // let senior_old_quantity = Decimal::from(old_quantity[0]);
     let junior_old_quantity = Decimal::from(old_quantity[1]);
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
 
-    let old_spot = from_bps(old_spot_value_bps).unwrap();
-    let new_spot = from_bps(new_spot_value_bps).unwrap();
-    let strike = from_bps(strike_bps).unwrap();
+    let old_spot = from_bps(old_spot_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let new_spot = from_bps(new_spot_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let strike = from_bps(strike_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     let notional = if is_linear {
         junior_old_quantity / old_spot
@@ -190,14 +191,20 @@ fn execute_plugin(
     let senior_new_quantity = junior_old_quantity.min(notional * payoff);
     let junior_new_quantity = Decimal::ZERO.max(total_old_quantity - senior_new_quantity);
 
-    let senior_new_quantity = senior_new_quantity.floor().to_u64().unwrap();
-    let junior_new_quantity = junior_new_quantity.floor().to_u64().unwrap();
+    let senior_new_quantity = senior_new_quantity
+        .floor()
+        .to_u64()
+        .ok_or(RedeemLogicErrors::MathError)?;
+    let junior_new_quantity = junior_new_quantity
+        .floor()
+        .to_u64()
+        .ok_or(RedeemLogicErrors::MathError)?;
     let fee_quantity = old_quantity.iter().sum::<u64>() - senior_new_quantity - junior_new_quantity;
 
-    return RedeemLogicExecuteResult {
+    return Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity,
-    };
+    });
 }
 
 #[cfg(test)]
@@ -220,7 +227,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -247,7 +255,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -274,7 +283,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -301,7 +311,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -328,7 +339,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -355,7 +367,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 40_000);
         assert_eq!(res.new_quantity[1], 160_000);
@@ -382,7 +395,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -409,7 +423,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -436,7 +451,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 50_000);
         assert_eq!(res.new_quantity[1], 150_000);
@@ -463,7 +479,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -490,7 +507,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -517,7 +535,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -544,7 +563,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -571,7 +591,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -598,7 +619,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -625,7 +647,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 190_000);
@@ -652,7 +675,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -679,7 +703,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -706,7 +731,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -733,7 +759,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -760,7 +787,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -787,7 +815,8 @@ mod tests {
             strike_bps,
             is_call,
             is_linear,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 12_309);
         assert_eq!(res.new_quantity[1], 53_361);
