@@ -13,7 +13,7 @@ import { IRateMockPlugin } from "./plugins/ratePlugin/IRatePlugin";
 import { HaltFlags } from "./HaltFlags";
 import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
 import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
-
+import { InitializationData } from "./TrancheInitData";
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
@@ -21,6 +21,12 @@ export class Vyper {
     trancheId: PublicKey;
     redeemLogicLendingPlugin: IRedeemLogicLendingPlugin;
     rateMockPlugin: IRateMockPlugin;
+    seniorTrancheMint: PublicKey;
+    juniorTrancheMint: PublicKey;
+    trancheAuthority: PublicKey;
+    reserveMint: PublicKey;
+    reserve: PublicKey;
+
 
     static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, rateMockPlugin?: IRateMockPlugin): Vyper {
         const client = new Vyper();
@@ -158,6 +164,63 @@ export class Vyper {
                 redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId
             })
             .instruction();
+    }
+
+    async initialize(
+        initData: InitializationData,
+        reserveMint: PublicKey,
+        redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, 
+        rateMockPlugin?: IRateMockPlugin,
+        owner?: PublicKey
+    ) {
+        
+        if(!rateMockPlugin) {
+            rateMockPlugin = this.rateMockPlugin;
+        }
+        
+        if(!redeemLogicLendingPlugin) {
+            redeemLogicLendingPlugin = this.redeemLogicLendingPlugin;
+        }
+        
+        const juniorTrancheMint = anchor.web3.Keypair.generate();
+        const seniorTrancheMint = anchor.web3.Keypair.generate();
+        const trancheConfig = anchor.web3.Keypair.generate();
+        const [trancheAuthority] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), anchor.utils.bytes.utf8.encode("authority")],
+            this.program.programId
+        );
+        const [reserve] = await anchor.web3.PublicKey.findProgramAddress(
+            [trancheConfig.publicKey.toBuffer(), reserveMint.toBuffer()],
+            this.program.programId
+        );
+
+        await this.program.methods
+            .initialize(initData)
+            .accounts({
+                payer: this.provider.wallet.publicKey,
+                owner: owner ?? this.provider.wallet.publicKey,
+                trancheConfig: trancheConfig.publicKey,
+                trancheAuthority,
+                rateProgram: rateMockPlugin.getProgramId(),
+                rateProgramState: rateMockPlugin.rateMockStateId,
+                redeemLogicProgram: redeemLogicLendingPlugin.getProgramId(),
+                redeemLogicProgramState: redeemLogicLendingPlugin.redeemLendingStateId,
+                reserveMint,
+                reserve,
+                juniorTrancheMint: juniorTrancheMint.publicKey,
+                seniorTrancheMint: seniorTrancheMint.publicKey,
+            })
+            .signers([juniorTrancheMint, seniorTrancheMint, trancheConfig])
+            .rpc();
+
+        this.seniorTrancheMint = seniorTrancheMint.publicKey;
+        this.juniorTrancheMint = juniorTrancheMint.publicKey;
+        this.trancheId = trancheConfig.publicKey;
+        this.trancheAuthority = trancheAuthority;
+        this.reserveMint = reserveMint;
+        this.reserve = reserve;
+        this.rateMockPlugin = rateMockPlugin;
+        this.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
     }
 }
 

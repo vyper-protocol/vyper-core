@@ -13,17 +13,22 @@ describe('Rate Mock Plugin', () => {
     const provider = anchor.AnchorProvider.env();
     const rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
 
+    it("initialize", async () => {
+        await rateMockPlugin.initialize();
+        const rateState = await rateMockPlugin.getRateMockPluginState();
+        expect(rateState.fairValue).to.eql(Array(10).fill(0));
+    });
+    
     it('fetch existing rate mock state', async () => {
-        const accounts = await provider.connection.getProgramAccounts(rateMockPluginId);
-        const rateState = await rateMockPlugin.getRateMockPluginState(accounts[0].pubkey);
+        await rateMockPlugin.initialize();
+        const rateState = await rateMockPlugin.getRateMockPluginState();
         
         assert.ok(rateState.fairValue != undefined);
         assert.ok(rateState.refreshedSlot != undefined);
     })
 
     it('set mock rate', async () => {
-        const accounts = await provider.connection.getProgramAccounts(rateMockPluginId);
-        rateMockPlugin.rateMockStateId=accounts[0].pubkey;
+        await rateMockPlugin.initialize();
         let rateState = await rateMockPlugin.getRateMockPluginState();
         
         // with direct rpc call

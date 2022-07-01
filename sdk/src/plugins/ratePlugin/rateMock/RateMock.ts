@@ -55,4 +55,17 @@ export class RateMockPlugin implements IRateMockPlugin {
             })
             .instruction();
     }
+
+    async initialize() {
+        const rateState = anchor.web3.Keypair.generate();
+        await this.program.methods
+            .initialize()
+            .accounts({
+                rateData: rateState.publicKey,
+                signer: this.provider.wallet.publicKey,
+            })
+            .signers([rateState])
+            .rpc();
+        this.rateMockStateId = rateState.publicKey;
+    }
 }

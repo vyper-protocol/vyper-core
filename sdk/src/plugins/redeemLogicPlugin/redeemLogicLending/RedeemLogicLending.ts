@@ -8,7 +8,7 @@ import { IRedeemLogicLendingPlugin } from "../IReedeemLogicPlugin";
 export class RedeemLogicLendingPlugin implements IRedeemLogicLendingPlugin {
 
     program: anchor.Program<RedeemLogicLending>;
-    provider: anchor.Provider;
+    provider: anchor.AnchorProvider;
     redeemLendingStateId: PublicKey;
 
     getProgramId(): PublicKey {
@@ -36,6 +36,20 @@ export class RedeemLogicLendingPlugin implements IRedeemLogicLendingPlugin {
             redeemLogicLendingState.owner
         )
         return redeemLogicState;
+    }
+
+    async initialize(interestSplit: number, fixedFeePerTranche: number = 0) {
+        const redeemLogicState = anchor.web3.Keypair.generate();
+        await this.program.methods
+            .initialize(interestSplit, new anchor.BN(fixedFeePerTranche))
+            .accounts({
+                redeemLogicConfig: redeemLogicState.publicKey,
+                owner: this.provider.wallet.publicKey,
+                payer: this.provider.wallet.publicKey,
+            })
+            .signers([redeemLogicState])
+            .rpc();
+        this.redeemLendingStateId = redeemLogicState.publicKey;
     }
     
 }
