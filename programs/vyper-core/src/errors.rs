@@ -31,4 +31,7 @@ pub enum VyperErrorCode {
 
     #[msg("cross-program invocation error calling a vyper plugin")]
     PluginCpiError,
+
+    #[msg("bitmask value provided can't be converted")]
+    InvalidBitmask,
 }

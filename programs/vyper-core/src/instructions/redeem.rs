@@ -57,7 +57,7 @@ impl<'info> RedeemContext<'info> {
 
         // check that deposits are not halted
         (!tranche_data
-            .get_halt_flags()
+            .get_halt_flags()?
             .contains(TrancheHaltFlags::HALT_REDEEMS))
         .ok_or(VyperErrorCode::HaltError)?;
 
@@ -70,7 +70,7 @@ impl<'info> RedeemContext<'info> {
 
         // check if the current ix is restricted to owner
         if tranche_data
-            .get_owner_restricted_ixs()
+            .get_owner_restricted_ixs()?
             .contains(OwnerRestrictedIxFlags::REDEEMS)
         {
             require_keys_eq!(
@@ -162,14 +162,14 @@ pub fn handler(ctx: Context<RedeemContext>, input_data: RedeemInput) -> Result<(
             msg!("redeemed_reserve_qty: {}", redeemed_reserve_qty);
         }
 
-        let redeemed_reserve_qty_u64 = redeemed_reserve_qty.floor().to_u64().unwrap();
+        let redeemed_reserve_qty_u64 = redeemed_reserve_qty.floor().to_u64().ok_or(VyperErrorCode::MathError)?;
 
         total_reserve_to_redeem = total_reserve_to_redeem
             .checked_add(redeemed_reserve_qty_u64)
-            .ok_or_else(|| VyperErrorCode::MathError)?;
+            .ok_or(VyperErrorCode::MathError)?;
         tranche_data.deposited_quantity[i] = tranche_data.deposited_quantity[i]
             .checked_sub(redeemed_reserve_qty_u64)
-            .ok_or_else(|| VyperErrorCode::MathError)?;
+            .ok_or(VyperErrorCode::MathError)?;
     }
 
     // transfer token from tranche config token account to source account

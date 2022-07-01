@@ -1,4 +1,7 @@
-use crate::state::{TrancheConfig, TrancheData};
+use crate::{
+    errors::VyperErrorCode,
+    state::{TrancheConfig, TrancheData},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
@@ -84,7 +87,10 @@ pub fn handler(ctx: Context<InitializeContext>, input_data: InitializeInput) -> 
         .set_owner_restricted_instructions(input_data.owner_restricted_ixs)?;
     tranche_config.tranche_authority = ctx.accounts.tranche_authority.key();
     tranche_config.authority_seed = tranche_config.key();
-    tranche_config.authority_bump = [*ctx.bumps.get("tranche_authority").unwrap()];
+    tranche_config.authority_bump = [*ctx
+        .bumps
+        .get("tranche_authority")
+        .ok_or(VyperErrorCode::GenericError)?];
     tranche_config.reserve_mint = ctx.accounts.reserve_mint.key();
     tranche_config.reserve = ctx.accounts.reserve.key();
     tranche_config.rate_program = ctx.accounts.rate_program.key();

@@ -47,13 +47,13 @@ impl<'info> RefreshTrancheFairValue<'info> {
 
         // check that deposits are not halted
         (!tranche_data
-            .get_halt_flags()
+            .get_halt_flags()?
             .contains(TrancheHaltFlags::HALT_REFRESHES))
         .ok_or(VyperErrorCode::HaltError)?;
 
         // check if the current ix is restricted to owner
         if tranche_data
-            .get_owner_restricted_ixs()
+            .get_owner_restricted_ixs()?
             .contains(OwnerRestrictedIxFlags::REFRESHES)
         {
             require_keys_eq!(
@@ -83,7 +83,10 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     let rate_state = RateState::try_deserialize_unchecked(&mut account_data_slice)?;
 
     // check if rate state is stale
-    let elapsed_slot = clock.slot.checked_sub(rate_state.refreshed_slot).unwrap();
+    let elapsed_slot = clock
+        .slot
+        .checked_sub(rate_state.refreshed_slot)
+        .ok_or(VyperErrorCode::MathError)?;
     if elapsed_slot
         >= tranche_data
             .reserve_fair_value
@@ -114,14 +117,14 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             old_quantity: tranche_data.deposited_quantity,
         },
     );
-    let plugin_result = cpi_res.unwrap();
+    let plugin_result = cpi_res?;
     msg!("cpi return result: {:?}", plugin_result);
 
     msg!("updating fee_to_collect_quantity...");
     tranche_data.fee_to_collect_quantity = tranche_data
         .fee_to_collect_quantity
         .checked_add(plugin_result.fee_quantity)
-        .unwrap();
+        .ok_or(VyperErrorCode::MathError)?;
 
     msg!("updating deposited quantity...");
     tranche_data.deposited_quantity = plugin_result.new_quantity;
@@ -137,7 +140,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("senior supply: {:?}", supply);
             msg!("senior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[0] = to_bps(fair_value).unwrap();
+        tranche_data.tranche_fair_value.value[0] =
+            to_bps(fair_value).ok_or(VyperErrorCode::MathError)?;
     }
     if ctx.accounts.junior_tranche_mint.supply > 0 {
         let dep_qty = Decimal::from(tranche_data.deposited_quantity[1]);
@@ -149,7 +153,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("junior supply: {:?}", supply);
             msg!("junior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[1] = to_bps(fair_value).unwrap();
+        tranche_data.tranche_fair_value.value[1] =
+            to_bps(fair_value).ok_or(VyperErrorCode::MathError)?;
     }
     msg!(
         "tranche fair value: {:?}",
@@ -182,7 +187,7 @@ pub fn cpi_plugin(
     input_data: RedeemLogicExecuteInput,
 ) -> Result<RedeemLogicExecuteResult> {
     let mut data = hashv(&[b"global:execute"]).to_bytes()[..8].to_vec();
-    data.append(&mut input_data.try_to_vec().unwrap());
+    data.append(&mut input_data.try_to_vec()?);
 
     let account_metas = vec![AccountMeta::new_readonly(*plugin_state.key, false)];
 
@@ -190,7 +195,8 @@ pub fn cpi_plugin(
     let account_infos = [plugin_state];
     solana_program::program::invoke(&ix, &account_infos)?;
 
-    let (program_key, serialized_result) = solana_program::program::get_return_data().unwrap();
+    let (program_key, serialized_result) =
+        solana_program::program::get_return_data().ok_or(VyperErrorCode::MathError)?;
     require_keys_eq!(program_key, *plugin_program);
 
     let mut serialized_result_slice: &[u8] = &serialized_result;

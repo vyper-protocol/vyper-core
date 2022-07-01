@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_math::bps::{from_bps, BpsRangeValue};
+use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
@@ -17,9 +18,10 @@ pub mod redeem_logic_lending_fee {
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split = BpsRangeValue::new(interest_split).unwrap();
-        let mgmt_fee = BpsRangeValue::new(mgmt_fee).unwrap();
-        let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
+        let interest_split =
+            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
+        let mgmt_fee = BpsRangeValue::new(mgmt_fee).map_err(|_| RedeemLogicErrors::MathError)?;
+        let perf_fee = BpsRangeValue::new(perf_fee).map_err(|_| RedeemLogicErrors::MathError)?;
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
         redeem_logic_config.interest_split = interest_split.get();
@@ -37,9 +39,10 @@ pub mod redeem_logic_lending_fee {
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split = BpsRangeValue::new(interest_split).unwrap();
-        let mgmt_fee = BpsRangeValue::new(mgmt_fee).unwrap();
-        let perf_fee = BpsRangeValue::new(perf_fee).unwrap();
+        let interest_split =
+            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
+        let mgmt_fee = BpsRangeValue::new(mgmt_fee).map_err(|_| RedeemLogicErrors::MathError)?;
+        let perf_fee = BpsRangeValue::new(perf_fee).map_err(|_| RedeemLogicErrors::MathError)?;
 
         redeem_logic_config.interest_split = interest_split.get();
         redeem_logic_config.mgmt_fee = mgmt_fee.get();
@@ -59,7 +62,7 @@ pub mod redeem_logic_lending_fee {
             ctx.accounts.redeem_logic_config.interest_split,
             ctx.accounts.redeem_logic_config.mgmt_fee,
             ctx.accounts.redeem_logic_config.perf_fee,
-        );
+        )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
 
@@ -132,29 +135,32 @@ fn execute_plugin(
     interest_split_bps: u32,
     mgmt_fee_bps: u32,
     perf_fee_bps: u32,
-) -> RedeemLogicExecuteResult {
+) -> Result<RedeemLogicExecuteResult> {
     // ensure fees and split are between 0 and 100%
-    let interest_split = BpsRangeValue::new(interest_split_bps).unwrap();
-    let mgmt_fee = BpsRangeValue::new(mgmt_fee_bps).unwrap();
-    let perf_fee = BpsRangeValue::new(perf_fee_bps).unwrap();
+    let interest_split =
+        BpsRangeValue::new(interest_split_bps).map_err(|_| RedeemLogicErrors::MathError)?;
+    let mgmt_fee = BpsRangeValue::new(mgmt_fee_bps).map_err(|_| RedeemLogicErrors::MathError)?;
+    let perf_fee = BpsRangeValue::new(perf_fee_bps).map_err(|_| RedeemLogicErrors::MathError)?;
 
     let total_old_quantity = old_quantity.iter().sum::<u64>();
 
     // default
     if (old_reserve_fair_value_bps == 0) || (new_reserve_fair_value_bps == 0) {
         let senior_new_quantity = (Decimal::from(old_quantity.iter().sum::<u64>())
-            * (Decimal::ONE - mgmt_fee.get_decimal().unwrap()))
+            * (Decimal::ONE - mgmt_fee.get_decimal().ok_or(RedeemLogicErrors::MathError)?))
         .floor()
         .to_u64()
-        .unwrap();
-        return RedeemLogicExecuteResult {
+        .ok_or(RedeemLogicErrors::MathError)?;
+        return Ok(RedeemLogicExecuteResult {
             new_quantity: [senior_new_quantity, 0u64],
             fee_quantity: total_old_quantity - senior_new_quantity,
-        };
+        });
     }
 
-    let old_reserve_fair_value = from_bps(old_reserve_fair_value_bps).unwrap();
-    let new_reserve_fair_value = from_bps(new_reserve_fair_value_bps).unwrap();
+    let old_reserve_fair_value =
+        from_bps(old_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let new_reserve_fair_value =
+        from_bps(new_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     let old_quantity = old_quantity.map(|x| Decimal::from(x));
 
@@ -179,7 +185,10 @@ fn execute_plugin(
     let senior_new_value = if new_value_perf[0] > old_value_mgmt[0] {
         old_value_mgmt[0]
             + (new_value_perf[0] - old_value_mgmt[0])
-                * (Decimal::ONE - interest_split.get_decimal().unwrap())
+                * (Decimal::ONE
+                    - interest_split
+                        .get_decimal()
+                        .ok_or(RedeemLogicErrors::MathError)?)
     } else {
         old_value_mgmt[0].min(new_value_perf.iter().sum())
     };
@@ -187,20 +196,20 @@ fn execute_plugin(
     let senior_new_quantity = (senior_new_value / new_reserve_fair_value)
         .floor()
         .to_u64()
-        .unwrap();
+        .ok_or(RedeemLogicErrors::MathError)?;
 
     let junior_new_quantity = ((new_value_perf.iter().sum::<Decimal>() - senior_new_value)
         / new_reserve_fair_value)
         .floor()
         .to_u64()
-        .unwrap();
+        .ok_or(RedeemLogicErrors::MathError)?;
 
     let fee_quantity = total_old_quantity - senior_new_quantity - junior_new_quantity;
 
-    return RedeemLogicExecuteResult {
+    return Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity: fee_quantity,
-    };
+    });
 }
 
 #[cfg(test)]
@@ -225,7 +234,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -252,7 +262,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 99_000);
         assert_eq!(res.new_quantity[1], 99_000);
@@ -279,7 +290,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 104_000);
@@ -306,7 +318,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 92_508);
         assert_eq!(res.new_quantity[1], 99_762);
@@ -333,7 +346,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 99_672);
         assert_eq!(res.new_quantity[1], 100_327);
@@ -360,7 +374,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 93_188);
         assert_eq!(res.new_quantity[1], 93_793);
@@ -387,7 +402,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 5_000);
@@ -414,7 +430,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 85_964);
         assert_eq!(res.new_quantity[1], 3_981);
@@ -441,7 +458,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 960);
         assert_eq!(res.new_quantity[1], 100_040);
@@ -468,7 +486,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 887);
         assert_eq!(res.new_quantity[1], 92_528);
@@ -495,7 +514,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 125_000);
         assert_eq!(res.new_quantity[1], 75_000);
@@ -522,7 +542,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 108_337);
         assert_eq!(res.new_quantity[1], 65_002);
@@ -549,7 +570,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 101_694);
         assert_eq!(res.new_quantity[1], 98_305);
@@ -576,7 +598,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_677);
         assert_eq!(res.new_quantity[1], 97_322);
@@ -603,7 +626,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 101_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -630,7 +654,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_495);
         assert_eq!(res.new_quantity[1], 0);
@@ -657,7 +682,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 1_250);
         assert_eq!(res.new_quantity[1], 99_750);
@@ -684,7 +710,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 1_125);
         assert_eq!(res.new_quantity[1], 89_784);
@@ -711,7 +738,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -738,7 +766,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 180_020);
         assert_eq!(res.new_quantity[1], 0);
@@ -765,7 +794,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -792,7 +822,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 197_360);
         assert_eq!(res.new_quantity[1], 0);
@@ -819,7 +850,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -846,7 +878,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 198_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -873,7 +906,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 1_100_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -900,7 +934,8 @@ mod tests {
             interest_split,
             mgmt_fee_bps,
             perf_fee_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 990_000);
         assert_eq!(res.new_quantity[1], 0);

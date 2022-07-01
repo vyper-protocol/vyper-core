@@ -1,4 +1,4 @@
-use crate::state::TrancheConfig;
+use crate::{errors::VyperErrorCode, state::TrancheConfig};
 use anchor_lang::prelude::*;
 
 bitflags::bitflags! {
@@ -42,37 +42,33 @@ pub fn handler(
 
     let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
 
+    let update_bitmask = input_data
+        .get_update_tranche_bitmask()
+        .ok_or(VyperErrorCode::InvalidBitmask)?;
+
     // halt flags
 
-    if input_data
-        .get_update_tranche_bitmask()
-        .unwrap()
-        .contains(UpdateTrancheConfigFlags::HALT_FLAGS)
-    {
+    if update_bitmask.contains(UpdateTrancheConfigFlags::HALT_FLAGS) {
         msg!("update tranche_data halt_flags");
 
         #[cfg(feature = "debug")]
-        msg!("+ old value: {}", tranche_data.get_halt_flags().bits());
+        msg!("+ old value: {}", tranche_data.get_halt_flags()?.bits());
 
         tranche_data.set_halt_flags(input_data.halt_flags)?;
 
         #[cfg(feature = "debug")]
-        msg!("+ new value: {}", tranche_data.get_halt_flags().bits());
+        msg!("+ new value: {}", tranche_data.get_halt_flags()?.bits());
     }
 
     // owner restricted ixs
 
-    if input_data
-        .get_update_tranche_bitmask()
-        .unwrap()
-        .contains(UpdateTrancheConfigFlags::OWNER_RESTRICTED_IXS)
-    {
+    if update_bitmask.contains(UpdateTrancheConfigFlags::OWNER_RESTRICTED_IXS) {
         msg!("update tranche_data owner_restricted_ixs");
 
         #[cfg(feature = "debug")]
         msg!(
             "+ old value: {}",
-            tranche_data.get_owner_restricted_ixs().bits()
+            tranche_data.get_owner_restricted_ixs()?.bits()
         );
 
         tranche_data.set_owner_restricted_instructions(input_data.owner_restricted_ixs)?;
@@ -80,17 +76,13 @@ pub fn handler(
         #[cfg(feature = "debug")]
         msg!(
             "+ new value: {}",
-            tranche_data.get_owner_restricted_ixs().bits()
+            tranche_data.get_owner_restricted_ixs()?.bits()
         );
     }
 
     // reserve fair value stale slot th
 
-    if input_data
-        .get_update_tranche_bitmask()
-        .unwrap()
-        .contains(UpdateTrancheConfigFlags::RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD)
-    {
+    if update_bitmask.contains(UpdateTrancheConfigFlags::RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD) {
         msg!("update tranche_data reserve_fair_value stale_slot_threashold");
 
         #[cfg(feature = "debug")]
@@ -119,11 +111,7 @@ pub fn handler(
 
     // tranche fair value stale slot th
 
-    if input_data
-        .get_update_tranche_bitmask()
-        .unwrap()
-        .contains(UpdateTrancheConfigFlags::TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD)
-    {
+    if update_bitmask.contains(UpdateTrancheConfigFlags::TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD) {
         msg!("update tranche_data tranche_fair_value stale_slot_threashold");
 
         #[cfg(feature = "debug")]

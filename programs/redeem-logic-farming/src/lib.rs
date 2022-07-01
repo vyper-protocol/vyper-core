@@ -1,18 +1,22 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_math::bps::{from_bps, BpsRangeValue};
+use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 
 #[program]
 pub mod redeem_logic_farming {
 
+    use vyper_utils::redeem_logic_common::RedeemLogicErrors;
+
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split = BpsRangeValue::new(interest_split).unwrap();
+        let interest_split =
+            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
         redeem_logic_config.interest_split = interest_split.get();
@@ -23,7 +27,8 @@ pub mod redeem_logic_farming {
     pub fn update(ctx: Context<UpdateContext>, interest_split: u32) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split = BpsRangeValue::new(interest_split).unwrap();
+        let interest_split =
+            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
 
         redeem_logic_config.interest_split = interest_split.get();
 
@@ -41,7 +46,7 @@ pub mod redeem_logic_farming {
             input_data.new_reserve_fair_value_bps[0],
             input_data.new_reserve_fair_value_bps[1],
             ctx.accounts.redeem_logic_config.interest_split,
-        );
+        )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
 
@@ -112,14 +117,15 @@ fn execute_plugin(
     new_lp_fair_value_bps: u32,
     new_ul_fair_value_bps: u32,
     interest_split_bps: u32,
-) -> RedeemLogicExecuteResult {
+) -> Result<RedeemLogicExecuteResult> {
     // split is between 0 and 100%
-    let interest_split = BpsRangeValue::new(interest_split_bps).unwrap();
+    let interest_split =
+        BpsRangeValue::new(interest_split_bps).map_err(|_| RedeemLogicErrors::MathError)?;
 
-    let old_lp_fair_value = from_bps(old_lp_fair_value_bps).unwrap();
-    let old_ul_fair_value = from_bps(old_ul_fair_value_bps).unwrap();
-    let new_lp_fair_value = from_bps(new_lp_fair_value_bps).unwrap();
-    let new_ul_fair_value = from_bps(new_ul_fair_value_bps).unwrap();
+    let old_lp_fair_value = from_bps(old_lp_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let old_ul_fair_value = from_bps(old_ul_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let new_lp_fair_value = from_bps(new_lp_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    let new_ul_fair_value = from_bps(new_ul_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     // default
     if (old_lp_fair_value_bps == 0)
@@ -128,10 +134,10 @@ fn execute_plugin(
         || (new_ul_fair_value_bps == 0)
     {
         let senior_new_quantity = old_quantity.iter().sum::<u64>();
-        return RedeemLogicExecuteResult {
+        return Ok(RedeemLogicExecuteResult {
             new_quantity: [senior_new_quantity, 0],
             fee_quantity: 0,
-        };
+        });
     }
 
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
@@ -139,16 +145,23 @@ fn execute_plugin(
     // half of LP token is quote ccy
     let lp_delta = (new_ul_fair_value - old_ul_fair_value)
         * old_lp_fair_value
-        * Decimal::from_f64(0.5f64).unwrap()
+        * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?
         / old_ul_fair_value;
-    let lp_il = Decimal::from(2u64) * (old_ul_fair_value * new_ul_fair_value).sqrt().unwrap()
+    let lp_il = Decimal::from(2u64)
+        * (old_ul_fair_value * new_ul_fair_value)
+            .sqrt()
+            .ok_or(RedeemLogicErrors::MathError)?
         - old_ul_fair_value
         - new_ul_fair_value;
     let lp_no_accrued = old_lp_fair_value + lp_delta + lp_il;
 
     let accrued = Decimal::ZERO.max(new_lp_fair_value - lp_no_accrued);
 
-    let net_value = accrued * (Decimal::ONE - interest_split.get_decimal().unwrap())
+    let net_value = accrued
+        * (Decimal::ONE
+            - interest_split
+                .get_decimal()
+                .ok_or(RedeemLogicErrors::MathError)?)
         + old_lp_fair_value
         + lp_delta;
 
@@ -156,14 +169,20 @@ fn execute_plugin(
         total_old_quantity.min(Decimal::from(old_quantity[0]) * net_value / new_lp_fair_value);
     let junior_new_quantity = Decimal::ZERO.max(total_old_quantity - senior_new_quantity);
 
-    let senior_new_quantity = senior_new_quantity.floor().to_u64().unwrap();
-    let junior_new_quantity = junior_new_quantity.floor().to_u64().unwrap();
+    let senior_new_quantity = senior_new_quantity
+        .floor()
+        .to_u64()
+        .ok_or(RedeemLogicErrors::MathError)?;
+    let junior_new_quantity = junior_new_quantity
+        .floor()
+        .to_u64()
+        .ok_or(RedeemLogicErrors::MathError)?;
     let fee_quantity = old_quantity.iter().sum::<u64>() - senior_new_quantity - junior_new_quantity;
 
-    return RedeemLogicExecuteResult {
+    return Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity,
-    };
+    });
 }
 
 #[cfg(test)]
@@ -188,7 +207,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 10_000);
@@ -215,7 +235,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_000);
         assert_eq!(res.new_quantity[1], 11_000);
@@ -242,7 +263,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_166);
         assert_eq!(res.new_quantity[1], 10_833);
@@ -269,7 +291,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_404);
         assert_eq!(res.new_quantity[1], 10_595);
@@ -296,7 +319,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_404);
         assert_eq!(res.new_quantity[1], 1_595);
@@ -323,7 +347,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 940);
         assert_eq!(res.new_quantity[1], 10_059);
@@ -350,7 +375,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 10_606);
         assert_eq!(res.new_quantity[1], 0_393);
@@ -377,7 +403,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_885);
         assert_eq!(res.new_quantity[1], 1_114);
@@ -404,7 +431,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 11_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -431,7 +459,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 11_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -458,7 +487,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 1_000);
@@ -485,7 +515,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_307);
         assert_eq!(res.new_quantity[1], 1_692);
@@ -512,7 +543,8 @@ mod tests {
             new_lp_fair_value_bps,
             new_ul_fair_value_bps,
             interest_split_bps,
-        );
+        )
+        .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_610);
         assert_eq!(res.new_quantity[1], 1_389);
