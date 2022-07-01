@@ -27,7 +27,7 @@ describe('TrancheConfig', () => {
         const reserveMint = await createMint(provider);
 
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
-        redeemLogicLendingPlugin.initialize(5000);
+        await redeemLogicLendingPlugin.initialize(5000);
 
         let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
         await rateMockPlugin.initialize();
@@ -161,30 +161,26 @@ describe('TrancheConfig', () => {
 
     it('refresh tranche fair value', async () => {
         
-        let vyper = Vyper.create(provider,vyperCoreId);
-        const accounts = await provider.connection.getProgramAccounts(vyperCoreId);
-        vyper.trancheId = new PublicKey(accounts[0].pubkey);
-        let trancheConfig = await vyper.getTrancheConfiguration();
+        const trancheMintDecimals = 6;
+        const reserveMint = await createMint(provider);
 
-        let rateMockPlugin = RateMockPlugin.create(provider,rateMockPluginId);
-        rateMockPlugin.rateMockStateId=trancheConfig.rateProgramState;
+        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
+        await redeemLogicLendingPlugin.initialize(5000);
 
-        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId)
-        redeemLogicLendingPlugin.redeemLendingStateId=trancheConfig.redeemLogicProgramState;
+        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        await rateMockPlugin.initialize();
 
-        // creating vyper with all plugins
-        vyper = Vyper.create(provider,
-            vyperCoreId,
-            redeemLogicLendingPlugin,
-            rateMockPlugin
-        )
-        vyper.trancheId = new PublicKey(accounts[0].pubkey);
+        let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
+        await vyper.initialize(
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
+            reserveMint,
+        );
         
         
         // with rpc call
         await rateMockPlugin.setFairValue(1500);
         await vyper.refreshTrancheFairValue();
-        trancheConfig = await vyper.getTrancheConfiguration();
+        let trancheConfig = await vyper.getTrancheConfiguration();
         expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(1500);
         expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
 
