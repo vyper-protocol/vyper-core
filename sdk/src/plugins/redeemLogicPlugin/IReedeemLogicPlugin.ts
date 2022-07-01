@@ -11,5 +11,5 @@ export interface IRedeemLogicLendingPlugin {
 
     getProgramId(): PublicKey;
     getRedeemLogicLendingState(redeemLogicLendingStateId?: PublicKey): Promise<RedeemLogicLendingState>;
-
+    initialize(interestSplit: number, fixedFeePerTranche: number): Promise<void>;
 }
