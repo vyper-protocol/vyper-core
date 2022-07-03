@@ -11,4 +11,5 @@ export interface IRateMockPlugin {
     getRateMockPluginState(rateMockStateId?: PublicKey): Promise<RateState>;
     setFairValue(fairValue: number): Promise<void>;
     getSetFairValueIX(fairValue: number): Promise<anchor.web3.TransactionInstruction>;
+    initialize(): Promise<void>;
 }
