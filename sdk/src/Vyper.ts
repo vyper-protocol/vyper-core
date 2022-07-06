@@ -222,5 +222,31 @@ export class Vyper {
         this.rateMockPlugin = rateMockPlugin;
         this.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
     }
+
+    async getDepositIx(
+        seniorDepositAmount: number,
+        juniorDepositAmount: number,
+        userReserveToken: PublicKey,
+        userSeniorTrancheTokenAccount: PublicKey,
+        userJuniorTrancheTokenAccount: PublicKey
+    ): Promise<anchor.web3.TransactionInstruction>{
+        return await this.program.methods
+        .deposit({
+            reserveQuantity: [new anchor.BN(seniorDepositAmount), new anchor.BN(juniorDepositAmount)],
+        })
+        .accounts({
+            signer: this.provider.wallet.publicKey,
+            trancheConfig: this.trancheId,
+            trancheAuthority: this.trancheAuthority,
+            reserve: this.reserve,
+            userReserveToken,
+            seniorTrancheMint: this.seniorTrancheMint,
+            juniorTrancheMint: this.juniorTrancheMint,
+            seniorTrancheDest: userSeniorTrancheTokenAccount,
+            juniorTrancheDest: userJuniorTrancheTokenAccount,
+        })
+        .instruction();
+    }
+
 }
 
