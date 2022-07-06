@@ -1,15 +1,13 @@
 import * as anchor from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { RateMock } from "../../../../../target/types/rate_mock";
-import { RateState } from "./rateMock/RateMockState";
+import { RateState } from "./rateMock/RateState";
 
-export interface IRateMockPlugin {
+export interface IRatePlugin {
     program: anchor.Program<RateMock>;
     provider: anchor.AnchorProvider;
-    rateMockStateId: PublicKey;
+    rateStateId: PublicKey;
     getProgramId(): PublicKey;
-    getRateMockPluginState(rateMockStateId?: PublicKey): Promise<RateState>;
-    setFairValue(fairValue: number): Promise<void>;
-    getSetFairValueIX(fairValue: number): Promise<anchor.web3.TransactionInstruction>;
+    getRatePluginState(rateStateId?: PublicKey): Promise<RateState>;
     initialize(): Promise<void>;
 }
