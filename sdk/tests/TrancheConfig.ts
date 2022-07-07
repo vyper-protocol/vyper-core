@@ -9,7 +9,7 @@ import {UpdateTrancheConfigFlags} from '../src/UpdateTrancheConfigFlags'
 import {HaltFlags} from '../src/HaltFlags'
 import { OwnerRestrictedIxFlags } from "../src/OwnerRestrictedIxFlags";
 import { getMint } from "@solana/spl-token";
-import {createMint} from "../../tests/utils"
+import {createMint, createMintAndVault, createTokenAccount, getTokenAccountAmount} from "../../tests/utils"
 
 dotenv.config();
 
@@ -194,6 +194,70 @@ describe('TrancheConfig', () => {
         trancheConfig = await vyper.getTrancheConfiguration();
         expect(trancheConfig.trancheData.reserveFairValue.value[0]).to.eq(2500);
         expect(trancheConfig.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+    })
+
+
+    it("deposit with reserve fair value 1", async() => {
+        console.log("1")
+        const trancheMintDecimals = 6;
+        const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
+        const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            10 * (seniorDepositAmount + juniorDepositAmount)
+        );
+
+        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
+        await redeemLogicLendingPlugin.initialize(5000);
+
+        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        await rateMockPlugin.initialize();
+
+        let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
+        await vyper.initialize(
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
+            reserveMint,
+            redeemLogicLendingPlugin,  
+            rateMockPlugin,
+            //owner
+        );
+        console.log("2")
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.seniorTrancheMint,
+            provider.wallet.publicKey
+        );
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.juniorTrancheMint,
+            provider.wallet.publicKey
+        );
+
+        const tx = new anchor.web3.Transaction();
+        tx.add(await rateMockPlugin.getSetFairValueIX(500));
+        tx.add(await vyper.getRefreshTrancheFairValueIX());
+        tx.add(
+            await vyper.getDepositIx(
+                seniorDepositAmount,
+                juniorDepositAmount,
+                userReserveToken,
+                seniorTrancheTokenAccount,
+                juniorTrancheTokenAccount
+            )
+        );
+        console.log("3")
+        await provider.sendAndConfirm(tx)
+
+       let trancheConfigAccount = await vyper.getTrancheConfiguration()
+       expect(trancheConfigAccount.trancheData.depositedQuantity).to.eql([
+        seniorDepositAmount,
+        juniorDepositAmount,
+       ]);
+
+       console.log("4")
+        // we have a tranche fair value of 1, so the amount of tranches is the same as the amount of reserve token deposited
+        expect(await getTokenAccountAmount(provider, seniorTrancheTokenAccount)).to.eql(seniorDepositAmount);
+        expect(await getTokenAccountAmount(provider, juniorTrancheTokenAccount)).to.eql(juniorDepositAmount);
     })
 
 });
