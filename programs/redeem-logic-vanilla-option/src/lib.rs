@@ -13,7 +13,7 @@ declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
 // the premium is senior_qty and paid at expiry
 
 #[program]
-pub mod redeem_logic_lending {
+pub mod redeem_logic_vanilla_option {
 
     use super::*;
 
