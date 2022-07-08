@@ -12,4 +12,5 @@ export interface IRateMockPlugin {
     setFairValue(fairValue: number): Promise<void>;
     getSetFairValueIX(fairValue: number): Promise<anchor.web3.TransactionInstruction>;
     initialize(): Promise<void>;
+    getRefreshIX(): Promise<anchor.web3.TransactionInstruction>
 }

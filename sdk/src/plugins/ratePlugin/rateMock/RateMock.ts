@@ -56,6 +56,16 @@ export class RateMockPlugin implements IRateMockPlugin {
             .instruction();
     }
 
+    async getRefreshIX(): Promise<anchor.web3.TransactionInstruction> {
+        return await this.program.methods
+        .refresh()
+        .accounts({
+            rateData: this.rateMockStateId,
+            signer: this.provider.wallet.publicKey,
+        })
+        .instruction();
+    }
+
     async initialize() {
         const rateState = anchor.web3.Keypair.generate();
         await this.program.methods
@@ -68,4 +78,6 @@ export class RateMockPlugin implements IRateMockPlugin {
             .rpc();
         this.rateMockStateId = rateState.publicKey;
     }
+
+
 }
