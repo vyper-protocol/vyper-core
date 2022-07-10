@@ -1,7 +1,7 @@
 import * as anchor from "@project-serum/anchor";
 import { Program, Wallet } from "@project-serum/anchor";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { RedeemLogicLendingFee, IDL } from "../target/types/redeem_logic_lending_fee";
+import { RedeemLogicLendingFee, IDL } from "../../target/types/redeem_logic_lending_fee";
 
 const PLUGIN_PROGRAM_ID = new PublicKey("3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS");
 
