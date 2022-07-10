@@ -3,7 +3,7 @@ use rust_decimal::prelude::*;
 use vyper_math::bps::{from_bps, BpsRangeValue};
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
+declare_id!("Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN");
 
 #[program]
 pub mod redeem_logic_farming {
