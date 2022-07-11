@@ -9,7 +9,7 @@ import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
 import { IRedeemLogicLendingPlugin } from "./plugins/redeemLogicPlugin/IReedeemLogicPlugin";
-import { IRateMockPlugin } from "./plugins/ratePlugin/IRatePlugin";
+import { IRatePlugin } from "./plugins/ratePlugin/IRatePlugin";
 import { HaltFlags } from "./HaltFlags";
 import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
 import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
@@ -20,7 +20,7 @@ export class Vyper {
     provider: anchor.AnchorProvider;
     trancheId: PublicKey;
     redeemLogicLendingPlugin: IRedeemLogicLendingPlugin;
-    rateMockPlugin: IRateMockPlugin;
+    ratePlugin: IRatePlugin;
     seniorTrancheMint: PublicKey;
     juniorTrancheMint: PublicKey;
     trancheAuthority: PublicKey;
@@ -28,7 +28,7 @@ export class Vyper {
     reserve: PublicKey;
 
 
-    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, rateMockPlugin?: IRateMockPlugin): Vyper {
+    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, ratePlugin?: IRatePlugin): Vyper {
         const client = new Vyper();
         const program = new anchor.Program(idlVyperCore as any, vyperCoreId, provider) as anchor.Program<VyperCore>;
         client.program = program;
@@ -37,8 +37,8 @@ export class Vyper {
         if (redeemLogicLendingPlugin) {
             client.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
         }
-        if (rateMockPlugin) {
-            client.rateMockPlugin = rateMockPlugin;
+        if (ratePlugin) {
+            client.ratePlugin = ratePlugin;
         }
         return client;
     }
@@ -139,7 +139,7 @@ export class Vyper {
                 trancheConfig: trancheId,
                 seniorTrancheMint: trancheConfig.seniorTrancheMint,
                 juniorTrancheMint: trancheConfig.juniorTrancheMint,
-                rateProgramState: this.rateMockPlugin.rateMockStateId,
+                rateProgramState: this.ratePlugin.rateStateId,
                 redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
                 redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId,
             })
@@ -159,7 +159,7 @@ export class Vyper {
                 trancheConfig: trancheId,
                 seniorTrancheMint: trancheConfig.seniorTrancheMint,
                 juniorTrancheMint: trancheConfig.juniorTrancheMint,
-                rateProgramState: this.rateMockPlugin.rateMockStateId,
+                rateProgramState: this.ratePlugin.rateStateId,
                 redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
                 redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId
             })
@@ -170,12 +170,12 @@ export class Vyper {
         initData: InitializationData,
         reserveMint: PublicKey,
         redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, 
-        rateMockPlugin?: IRateMockPlugin,
+        ratePlugin?: IRatePlugin,
         owner?: PublicKey
     ) {
         
-        if(!rateMockPlugin) {
-            rateMockPlugin = this.rateMockPlugin;
+        if(!ratePlugin) {
+            ratePlugin = this.ratePlugin;
         }
         
         if(!redeemLogicLendingPlugin) {
@@ -201,8 +201,8 @@ export class Vyper {
                 owner: owner ?? this.provider.wallet.publicKey,
                 trancheConfig: trancheConfig.publicKey,
                 trancheAuthority,
-                rateProgram: rateMockPlugin.getProgramId(),
-                rateProgramState: rateMockPlugin.rateMockStateId,
+                rateProgram: ratePlugin.getProgramId(),
+                rateProgramState: ratePlugin.rateStateId,
                 redeemLogicProgram: redeemLogicLendingPlugin.getProgramId(),
                 redeemLogicProgramState: redeemLogicLendingPlugin.redeemLendingStateId,
                 reserveMint,
@@ -219,7 +219,7 @@ export class Vyper {
         this.trancheAuthority = trancheAuthority;
         this.reserveMint = reserveMint;
         this.reserve = reserve;
-        this.rateMockPlugin = rateMockPlugin;
+        this.ratePlugin = ratePlugin;
         this.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
     }
 }
