@@ -18,6 +18,7 @@ describe("rate_mock", async () => {
             .initialize()
             .accounts({
                 signer: provider.wallet.publicKey,
+                authority: provider.wallet.publicKey,
                 rateData: rateData.publicKey,
             })
             .signers([rateData])
@@ -33,6 +34,7 @@ describe("rate_mock", async () => {
             .initialize()
             .accounts({
                 signer: provider.wallet.publicKey,
+                authority: provider.wallet.publicKey,
                 rateData: rateData.publicKey,
             })
             .signers([rateData])
@@ -41,7 +43,7 @@ describe("rate_mock", async () => {
         await programRateMock.methods
             .setFairValue(1500)
             .accounts({
-                signer: provider.wallet.publicKey,
+                authority: provider.wallet.publicKey,
                 rateData: rateData.publicKey,
             })
             .rpc();
@@ -51,7 +53,7 @@ describe("rate_mock", async () => {
         await programRateMock.methods
             .setFairValue(2500)
             .accounts({
-                signer: provider.wallet.publicKey,
+                authority: provider.wallet.publicKey,
                 rateData: rateData.publicKey,
             })
             .rpc();

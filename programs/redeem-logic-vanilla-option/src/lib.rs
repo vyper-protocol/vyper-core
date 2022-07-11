@@ -3,7 +3,7 @@ use rust_decimal::prelude::*;
 use vyper_math::bps::from_bps;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
+declare_id!("8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe");
 
 // showcasing Vyper reedem logic for vanilla options
 // supports both linear and inverse settlement (=self quanto) e.g. SOL/USDC option settled in USDC vs SOL

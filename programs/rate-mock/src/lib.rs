@@ -16,9 +16,11 @@ pub mod rate_mock {
         let rate_data = &mut ctx.accounts.rate_data;
         rate_data.fair_value = [0; 10];
         rate_data.refreshed_slot = clock.slot;
+        rate_data.authority = ctx.accounts.authority.key();
 
         msg!("rate_data.fair_value: {:?}", rate_data.fair_value);
         msg!("rate_data.refreshed_slot: {}", rate_data.refreshed_slot);
+        msg!("rate_data.authority: {}", rate_data.authority);
 
         Ok(())
     }
@@ -68,7 +70,11 @@ pub struct InitializeContext<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(init, payer = signer, space = 8+4*10+8)]
+    /// CHECK:
+    #[account()]
+    pub authority: AccountInfo<'info>,
+
+    #[account(init, payer = signer, space = 8+4*10+8+32)]
     pub rate_data: Account<'info, RateState>,
 
     pub system_program: Program<'info, System>,
@@ -77,11 +83,11 @@ pub struct InitializeContext<'info> {
 #[derive(Accounts)]
 pub struct RefreshRateContext<'info> {
     /// Signer account
-    #[account(mut)]
-    pub signer: Signer<'info>,
+    #[account()]
+    pub authority: Signer<'info>,
 
     /// CHECK:
-    #[account(mut)]
+    #[account(mut, has_one = authority)]
     pub rate_data: Account<'info, RateState>,
 }
 
@@ -89,4 +95,5 @@ pub struct RefreshRateContext<'info> {
 pub struct RateState {
     pub fair_value: [u32; 10],
     pub refreshed_slot: u64,
+    pub authority: Pubkey,
 }

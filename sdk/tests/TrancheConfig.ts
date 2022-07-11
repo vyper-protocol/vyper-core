@@ -4,7 +4,7 @@ import { PublicKey} from "@solana/web3.js";
 import * as dotenv from 'dotenv';
 import { assert, expect } from "chai";
 import {RedeemLogicLendingPlugin} from "../src/plugins/redeemLogicPlugin/redeemLogicLending/RedeemLogicLending";
-import {RateMockPlugin} from "../src/plugins/ratePlugin/rateMock/RateMock";
+import {RatePlugin} from "../src/plugins/ratePlugin/rateMock/Rate";
 import {UpdateTrancheConfigFlags} from '../src/UpdateTrancheConfigFlags'
 import {HaltFlags} from '../src/HaltFlags'
 import { OwnerRestrictedIxFlags } from "../src/OwnerRestrictedIxFlags";
@@ -29,7 +29,7 @@ describe('TrancheConfig', () => {
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
         await redeemLogicLendingPlugin.initialize(5000);
 
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         await rateMockPlugin.initialize();
 
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
@@ -53,7 +53,7 @@ describe('TrancheConfig', () => {
         expect(trancheConfig.trancheAuthority.toBase58()).to.eql(vyper.trancheAuthority.toBase58());
         expect(trancheConfig.owner.toBase58()).to.eql(provider.wallet.publicKey.toBase58());
         expect(trancheConfig.rateProgram.toBase58()).to.eql(rateMockPlugin.getProgramId().toBase58());
-        expect(trancheConfig.rateProgramState.toBase58()).to.eql(rateMockPlugin.rateMockStateId.toBase58());
+        expect(trancheConfig.rateProgramState.toBase58()).to.eql(rateMockPlugin.rateStateId.toBase58());
         expect(trancheConfig.redeemLogicProgram.toBase58()).to.eql(redeemLogicLendingPlugin.getProgramId().toBase58());
         expect(trancheConfig.redeemLogicProgramState.toBase58()).to.eql(redeemLogicLendingPlugin.redeemLendingStateId.toBase58());
         expect(trancheConfig.createdAt).to.be.greaterThan(0);
@@ -75,9 +75,9 @@ describe('TrancheConfig', () => {
         const reserveMint = await createMint(provider);
 
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
-        redeemLogicLendingPlugin.initialize(5000);
+        await redeemLogicLendingPlugin.initialize(5000);
 
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         await rateMockPlugin.initialize();
 
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
@@ -126,9 +126,9 @@ describe('TrancheConfig', () => {
         const reserveMint = await createMint(provider);
 
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
-        redeemLogicLendingPlugin.initialize(5000);
+        await redeemLogicLendingPlugin.initialize(5000);
 
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         await rateMockPlugin.initialize();
 
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
@@ -168,7 +168,7 @@ describe('TrancheConfig', () => {
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
         await redeemLogicLendingPlugin.initialize(5000);
 
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         await rateMockPlugin.initialize();
 
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);

@@ -2,36 +2,36 @@ import * as anchor from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { RateMock } from "../../../../../target/types/rate_mock";
 import idlRateMock from "../../../../../target/idl/rate_mock.json";
-import { RateState } from "./RateMockState";
-import { IRateMockPlugin } from "../IRatePlugin";
+import { RateState } from "./RateState";
+import { IRatePlugin } from "../IRatePlugin";
 
-export class RateMockPlugin implements IRateMockPlugin {
+export class RatePlugin implements IRatePlugin {
 
     program: anchor.Program<RateMock>;
     provider: anchor.AnchorProvider;
-    rateMockStateId: PublicKey;
+    rateStateId: PublicKey;
 
     getProgramId(): PublicKey {
         return this.program.programId;
     }
 
-    static create(provider: anchor.AnchorProvider, rateMockId: PublicKey): RateMockPlugin {
-        const client = new RateMockPlugin();
-        const program = new anchor.Program(idlRateMock as any, rateMockId, provider) as anchor.Program<RateMock>;
+    static create(provider: anchor.AnchorProvider, ratePluginId: PublicKey): RatePlugin {
+        const client = new RatePlugin();
+        const program = new anchor.Program(idlRateMock as any, ratePluginId, provider) as anchor.Program<RateMock>;
         client.program = program;
         client.provider = provider;
         return client;
     }
 
-    async getRateMockPluginState(rateMockStateId?: PublicKey) {
+    async getRatePluginState(rateStateId?: PublicKey) {
 
-        if (!rateMockStateId) {
-            rateMockStateId = this.rateMockStateId;
+        if (!rateStateId) {
+            rateStateId = this.rateStateId;
         }
-        const rateMockState = await this.program.account.rateState.fetch(rateMockStateId);
+        const ratePluginState = await this.program.account.rateState.fetch(rateStateId);
         const rateState = new RateState(
-            rateMockState.fairValue,
-            rateMockState.refreshedSlot.toNumber(),
+            ratePluginState.fairValue,
+            ratePluginState.refreshedSlot.toNumber(),
         )
         return rateState;
     }
@@ -40,7 +40,7 @@ export class RateMockPlugin implements IRateMockPlugin {
         await this.program.methods
             .setFairValue(fairValue)
             .accounts({
-                rateData: this.rateMockStateId,
+                rateData: this.rateStateId,
                 signer: this.provider.wallet.publicKey,
             })
             .rpc();
@@ -50,7 +50,7 @@ export class RateMockPlugin implements IRateMockPlugin {
         return await this.program.methods
             .setFairValue(fairValue)
             .accounts({
-                rateData: this.rateMockStateId,
+                rateData: this.rateStateId,
                 signer: this.provider.wallet.publicKey,
             })
             .instruction();
@@ -76,7 +76,7 @@ export class RateMockPlugin implements IRateMockPlugin {
             })
             .signers([rateState])
             .rpc();
-        this.rateMockStateId = rateState.publicKey;
+        this.rateStateId = rateState.publicKey;
     }
 
 

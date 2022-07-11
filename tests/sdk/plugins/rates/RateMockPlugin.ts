@@ -24,6 +24,7 @@ export class RateMockPlugin {
             .initialize()
             .accounts({
                 rateData: rateState.publicKey,
+                authority: this.provider.wallet.publicKey,
                 signer: this.provider.wallet.publicKey,
             })
             .signers([rateState])
@@ -36,7 +37,7 @@ export class RateMockPlugin {
             .setFairValue(fairValue)
             .accounts({
                 rateData: this.state,
-                signer: this.provider.wallet.publicKey,
+                authority: this.provider.wallet.publicKey,
             })
             .rpc();
     }
@@ -46,7 +47,7 @@ export class RateMockPlugin {
             .setFairValue(fairValue)
             .accounts({
                 rateData: this.state,
-                signer: this.provider.wallet.publicKey,
+                authority: this.provider.wallet.publicKey,
             })
             .instruction();
     }
@@ -56,7 +57,7 @@ export class RateMockPlugin {
             .refresh()
             .accounts({
                 rateData: this.state,
-                signer: this.provider.wallet.publicKey,
+                authority: this.provider.wallet.publicKey,
             })
             .instruction();
     }
