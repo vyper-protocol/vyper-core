@@ -56,16 +56,29 @@ export class RatePlugin implements IRatePlugin {
             .instruction();
     }
 
+    async getRefreshIX(): Promise<anchor.web3.TransactionInstruction> {
+        return await this.program.methods
+        .refresh()
+        .accounts({
+            rateData: this.rateStateId,
+            signer: this.provider.wallet.publicKey,
+        })
+        .instruction();
+    }
+
     async initialize() {
         const rateState = anchor.web3.Keypair.generate();
         await this.program.methods
             .initialize()
             .accounts({
                 rateData: rateState.publicKey,
+                authority: this.provider.wallet.publicKey,
                 signer: this.provider.wallet.publicKey,
             })
             .signers([rateState])
             .rpc();
         this.rateStateId = rateState.publicKey;
     }
+
+
 }

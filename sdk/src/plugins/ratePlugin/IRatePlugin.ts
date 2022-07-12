@@ -10,4 +10,5 @@ export interface IRatePlugin {
     getProgramId(): PublicKey;
     getRatePluginState(rateStateId?: PublicKey): Promise<RateState>;
     initialize(): Promise<void>;
+    getRefreshIX(): Promise<anchor.web3.TransactionInstruction>
 }
