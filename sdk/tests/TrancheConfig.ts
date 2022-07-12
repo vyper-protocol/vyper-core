@@ -208,7 +208,7 @@ describe('TrancheConfig', () => {
         );
 
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
 
         await redeemLogicLendingPlugin.initialize(5000);
@@ -268,7 +268,7 @@ describe('TrancheConfig', () => {
         );
 
         let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
-        let rateMockPlugin = RateMockPlugin.create(provider, rateMockPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
         let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
 
         await redeemLogicLendingPlugin.initialize(5000);

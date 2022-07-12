@@ -60,7 +60,7 @@ export class RatePlugin implements IRatePlugin {
         return await this.program.methods
         .refresh()
         .accounts({
-            rateData: this.rateMockStateId,
+            rateData: this.rateStateId,
             signer: this.provider.wallet.publicKey,
         })
         .instruction();
@@ -72,6 +72,7 @@ export class RatePlugin implements IRatePlugin {
             .initialize()
             .accounts({
                 rateData: rateState.publicKey,
+                authority: this.provider.wallet.publicKey,
                 signer: this.provider.wallet.publicKey,
             })
             .signers([rateState])
