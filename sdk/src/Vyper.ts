@@ -248,5 +248,37 @@ export class Vyper {
         .instruction();
     }
 
+    async getRedeemIx(
+        seniorDepositAmount: number,
+        juniorDepositAmount: number,
+        userReserveToken: anchor.web3.PublicKey,
+        seniorTrancheTokenAccount: anchor.web3.PublicKey,
+        juniorTrancheTokenAccount: anchor.web3.PublicKey
+    ): Promise<anchor.web3.Transaction> {
+       
+        const redeemIx = new anchor.web3.Transaction();
+        redeemIx.add(await this.ratePlugin.getRefreshIX());
+        redeemIx.add(await this.getRefreshTrancheFairValueIX());
+        redeemIx.add(
+            await this.program.methods
+            .redeem({
+                trancheQuantity: [new anchor.BN(seniorDepositAmount), new anchor.BN(juniorDepositAmount)],
+            })
+            .accounts({
+                signer: this.provider.wallet.publicKey,
+                trancheConfig: this.trancheId,
+                trancheAuthority: this.trancheAuthority,
+                reserve: this.reserve,
+                userReserveToken,
+                seniorTrancheMint: this.seniorTrancheMint,
+                juniorTrancheMint: this.juniorTrancheMint,
+                seniorTrancheSource: seniorTrancheTokenAccount,
+                juniorTrancheSource: juniorTrancheTokenAccount,
+            })
+            .instruction()
+        );
+       
+        return redeemIx;
+    }
 }
 
