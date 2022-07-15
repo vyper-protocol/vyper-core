@@ -8,18 +8,19 @@ import { LastUpdate } from "./LastUpdate";
 import { ReserveFairValue } from "./ReserveFairValue";
 import { TrancheData } from "./TrancheData";
 import { TrancheFairValue } from "./TrancheFairValue";
-import { IRedeemLogicLendingPlugin } from "./plugins/redeemLogicPlugin/IReedeemLogicPlugin";
+import { IRedeemLogicPlugin} from "./plugins/redeemLogicPlugin/IReedeemLogicPlugin";
 import { IRatePlugin } from "./plugins/ratePlugin/IRatePlugin";
 import { HaltFlags } from "./HaltFlags";
 import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
 import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
 import { InitializationData } from "./TrancheInitData";
+
 export class Vyper {
 
     program: anchor.Program<VyperCore>;
     provider: anchor.AnchorProvider;
     trancheId: PublicKey;
-    redeemLogicLendingPlugin: IRedeemLogicLendingPlugin;
+    redeemLogicPlugin: IRedeemLogicPlugin;
     ratePlugin: IRatePlugin;
     seniorTrancheMint: PublicKey;
     juniorTrancheMint: PublicKey;
@@ -27,19 +28,19 @@ export class Vyper {
     reserveMint: PublicKey;
     reserve: PublicKey;
 
-
-    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, ratePlugin?: IRatePlugin): Vyper {
+    static create(provider: anchor.AnchorProvider, vyperCoreId: PublicKey, redeemLogicPlugin?: IRedeemLogicPlugin, ratePlugin?: IRatePlugin): Vyper {
         const client = new Vyper();
         const program = new anchor.Program(idlVyperCore as any, vyperCoreId, provider) as anchor.Program<VyperCore>;
         client.program = program;
         client.provider = provider;
 
-        if (redeemLogicLendingPlugin) {
-            client.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
+        if (redeemLogicPlugin) {
+            client.redeemLogicPlugin = redeemLogicPlugin;
         }
         if (ratePlugin) {
             client.ratePlugin = ratePlugin;
         }
+        
         return client;
     }
 
@@ -140,8 +141,8 @@ export class Vyper {
                 seniorTrancheMint: trancheConfig.seniorTrancheMint,
                 juniorTrancheMint: trancheConfig.juniorTrancheMint,
                 rateProgramState: this.ratePlugin.rateStateId,
-                redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
-                redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId,
+                redeemLogicProgram: this.redeemLogicPlugin.getProgramId(),
+                redeemLogicProgramState: this.redeemLogicPlugin.redeemLogicStateId,
             })
             .rpc();
     }
@@ -160,8 +161,8 @@ export class Vyper {
                 seniorTrancheMint: trancheConfig.seniorTrancheMint,
                 juniorTrancheMint: trancheConfig.juniorTrancheMint,
                 rateProgramState: this.ratePlugin.rateStateId,
-                redeemLogicProgram: this.redeemLogicLendingPlugin.getProgramId(),
-                redeemLogicProgramState: this.redeemLogicLendingPlugin.redeemLendingStateId
+                redeemLogicProgram: this.redeemLogicPlugin.getProgramId(),
+                redeemLogicProgramState: this.redeemLogicPlugin.redeemLogicStateId
             })
             .instruction();
     }
@@ -169,7 +170,7 @@ export class Vyper {
     async initialize(
         initData: InitializationData,
         reserveMint: PublicKey,
-        redeemLogicLendingPlugin?: IRedeemLogicLendingPlugin, 
+        redeemLogicPlugin?: IRedeemLogicPlugin, 
         ratePlugin?: IRatePlugin,
         owner?: PublicKey
     ) {
@@ -178,8 +179,8 @@ export class Vyper {
             ratePlugin = this.ratePlugin;
         }
         
-        if(!redeemLogicLendingPlugin) {
-            redeemLogicLendingPlugin = this.redeemLogicLendingPlugin;
+        if(!redeemLogicPlugin) {
+            redeemLogicPlugin = this.redeemLogicPlugin;
         }
         
         const juniorTrancheMint = anchor.web3.Keypair.generate();
@@ -203,8 +204,8 @@ export class Vyper {
                 trancheAuthority,
                 rateProgram: ratePlugin.getProgramId(),
                 rateProgramState: ratePlugin.rateStateId,
-                redeemLogicProgram: redeemLogicLendingPlugin.getProgramId(),
-                redeemLogicProgramState: redeemLogicLendingPlugin.redeemLendingStateId,
+                redeemLogicProgram: redeemLogicPlugin.getProgramId(),
+                redeemLogicProgramState: redeemLogicPlugin.redeemLogicStateId,
                 reserveMint,
                 reserve,
                 juniorTrancheMint: juniorTrancheMint.publicKey,
@@ -220,7 +221,8 @@ export class Vyper {
         this.reserveMint = reserveMint;
         this.reserve = reserve;
         this.ratePlugin = ratePlugin;
-        this.redeemLogicLendingPlugin = redeemLogicLendingPlugin;
+        this.redeemLogicPlugin = redeemLogicPlugin;
+        
     }
 
     async getDepositIx(

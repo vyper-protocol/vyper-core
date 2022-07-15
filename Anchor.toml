@@ -5,6 +5,7 @@ seeds = false
 vyper_core = "mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U"
 rate_mock = "FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG"
 redeem_logic_lending = "Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA"
+redeem_logic_vanilla_option="8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -55,7 +55,7 @@ describe('TrancheConfig', () => {
         expect(trancheConfig.rateProgram.toBase58()).to.eql(rateMockPlugin.getProgramId().toBase58());
         expect(trancheConfig.rateProgramState.toBase58()).to.eql(rateMockPlugin.rateStateId.toBase58());
         expect(trancheConfig.redeemLogicProgram.toBase58()).to.eql(redeemLogicLendingPlugin.getProgramId().toBase58());
-        expect(trancheConfig.redeemLogicProgramState.toBase58()).to.eql(redeemLogicLendingPlugin.redeemLendingStateId.toBase58());
+        expect(trancheConfig.redeemLogicProgramState.toBase58()).to.eql(redeemLogicLendingPlugin.redeemLogicStateId.toBase58());
         expect(trancheConfig.createdAt).to.be.greaterThan(0);
 
         const juniorTrancheMintInfo = await getMint(provider.connection, vyper.juniorTrancheMint);
