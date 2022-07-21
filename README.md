@@ -4,9 +4,9 @@
   </a>
 </p>
 
-Currently Vyper Core works as a set of smart contract which can take any SPL token and a custom payoff function, and redistribute the tokens to match the payoff upon certain conditions. For example, people can deposit farming LP tokens, which after some time (e.g. a week) are redistributed to reflect the the impermanent loss vs fees generated.
+Vyper Core works as a set of smart contract which can take any SPL token and a custom payoff function, and redistribute the tokens to match the payoff upon certain conditions. For example, people can deposit farming LP tokens, which after some time (e.g. a week) are redistributed to reflect the the impermanent loss vs fees generated.
 
-Currently there are three main smart contracts:
+There are three main smart contracts:
 
 - **Vyper Core**: manages position IOUs creation and redemption, accepts only fungible tokens (e.g. LP tokens or cTokens). It redistributes collateral deposited consuming data from the rate calculator and redeem logic contracts
 - **Rate Calculator**: updates the fair price of the collateral deposited (e.g. USD value of LP token). Supports up to 10 different underlyings for sophisticated payoffs
