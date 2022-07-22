@@ -313,8 +313,63 @@ describe('TrancheConfig', () => {
         );
     })
 
-    it('redeem assests', async () => {
+    it("collect fees",async () => {
+        const trancheMintDecimals = 6;
+        const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
+        const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            seniorDepositAmount + juniorDepositAmount
+        );
 
+        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
+        let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
+
+        await redeemLogicLendingPlugin.initialize(5000, 15); // with fee
+        await rateMockPlugin.initialize();
+        await vyper.initialize(
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
+            reserveMint,
+            redeemLogicLendingPlugin,  
+            rateMockPlugin,
+        );
+
+        await rateMockPlugin.setFairValue(1000);
+
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.seniorTrancheMint,
+            provider.wallet.publicKey
+        );
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.juniorTrancheMint,
+            provider.wallet.publicKey
+        );
+
+        const depositTx = new anchor.web3.Transaction();
+        depositTx.add(await rateMockPlugin.getRefreshIX());
+        depositTx.add(await vyper.getRefreshTrancheFairValueIX());
+        depositTx.add(
+            await vyper.getDepositIx(
+                seniorDepositAmount,
+                juniorDepositAmount,
+                userReserveToken,
+                seniorTrancheTokenAccount,
+                juniorTrancheTokenAccount
+            )
+        );
+        const signature = await provider.sendAndConfirm(depositTx);
+
+        await vyper.refreshTrancheFairValue();
+        const trancheConfigAccount = await vyper.getTrancheConfiguration()
+
+        expect(trancheConfigAccount.trancheData.feeToCollectQuantity).to.eql(30)
+        await vyper.getCollectFee()
+})
+
+    it('redeem assests', async () => {
         const trancheMintDecimals = 6;
         const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
         const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
