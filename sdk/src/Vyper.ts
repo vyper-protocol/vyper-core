@@ -248,5 +248,18 @@ export class Vyper {
         .instruction();
     }
 
+    async getCollectFee(): Promise<anchor.web3.TransactionInstruction>{
+        return await this.program.methods
+        .collectFee()
+        .accounts({
+            trancheConfig: this.trancheId,
+            trancheAuthority: this.trancheAuthority,
+            reserve: this.reserve,
+            destReserve: this.reserve,
+            owner: this.provider.wallet.publicKey,
+            tokenProgram: this.program.programId
+        }).instruction();
+    }
+
 }
 
