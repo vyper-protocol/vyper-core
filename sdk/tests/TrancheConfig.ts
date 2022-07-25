@@ -55,7 +55,7 @@ describe('TrancheConfig', () => {
         expect(trancheConfig.rateProgram.toBase58()).to.eql(rateMockPlugin.getProgramId().toBase58());
         expect(trancheConfig.rateProgramState.toBase58()).to.eql(rateMockPlugin.rateStateId.toBase58());
         expect(trancheConfig.redeemLogicProgram.toBase58()).to.eql(redeemLogicLendingPlugin.getProgramId().toBase58());
-        expect(trancheConfig.redeemLogicProgramState.toBase58()).to.eql(redeemLogicLendingPlugin.redeemLendingStateId.toBase58());
+        expect(trancheConfig.redeemLogicProgramState.toBase58()).to.eql(redeemLogicLendingPlugin.redeemLogicStateId.toBase58());
         expect(trancheConfig.createdAt).to.be.greaterThan(0);
 
         const juniorTrancheMintInfo = await getMint(provider.connection, vyper.juniorTrancheMint);
@@ -311,6 +311,74 @@ describe('TrancheConfig', () => {
         expect(await getTokenAccountAmount(provider, vyper.reserve)).to.eq(
             depositCount * (seniorDepositAmount + juniorDepositAmount)
         );
+    })
+
+    it('redeem assests', async () => {
+
+        const trancheMintDecimals = 6;
+        const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
+        const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            seniorDepositAmount + juniorDepositAmount
+        );
+
+        let redeemLogicLendingPlugin = RedeemLogicLendingPlugin.create(provider,redeemLogicLendingPluginId);
+        await redeemLogicLendingPlugin.initialize(5000);
+
+        let rateMockPlugin = RatePlugin.create(provider, rateMockPluginId);
+        await rateMockPlugin.initialize();
+
+        let vyper = Vyper.create(provider,vyperCoreId,redeemLogicLendingPlugin,rateMockPlugin);
+        await vyper.initialize(
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
+            reserveMint,
+        );
+
+        await rateMockPlugin.setFairValue(1000);
+
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.seniorTrancheMint,
+            provider.wallet.publicKey
+        );
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.juniorTrancheMint,
+            provider.wallet.publicKey
+        );
+
+        const depositTx = new anchor.web3.Transaction();
+        depositTx.add(await rateMockPlugin.getRefreshIX());
+        depositTx.add(await vyper.getRefreshTrancheFairValueIX());
+        depositTx.add(
+            await vyper.getDepositIx(
+                seniorDepositAmount,
+                juniorDepositAmount,
+                userReserveToken,
+                seniorTrancheTokenAccount,
+                juniorTrancheTokenAccount
+            )
+        );
+        await provider.sendAndConfirm(depositTx);
+
+        const redeemTx = await vyper.getRedeemIx(
+            await getTokenAccountAmount(provider, seniorTrancheTokenAccount),
+            await getTokenAccountAmount(provider, juniorTrancheTokenAccount),
+            userReserveToken,
+            seniorTrancheTokenAccount,
+            juniorTrancheTokenAccount
+        )
+        await provider.sendAndConfirm(redeemTx);
+
+        const trancheConfig = await vyper.getTrancheConfiguration();
+        expect(trancheConfig.trancheData.depositedQuantity).to.eql([0, 0]);
+
+        expect(await getTokenAccountAmount(provider, userReserveToken)).to.eq(
+            seniorDepositAmount + juniorDepositAmount
+        );
+        expect(await getTokenAccountAmount(provider, seniorTrancheTokenAccount)).to.eq(0);
+        expect(await getTokenAccountAmount(provider, juniorTrancheTokenAccount)).to.eq(0);
     })
 
 });
