@@ -6,7 +6,7 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 # rate mock plugin
 # anchor deploy -p rate-mock --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
-# rate mock plugin
+# redeem logic fee plugin
 # anchor deploy -p redeem-logic-lending-fee --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
 # # # # # # # # # # # # # # # # # # 
