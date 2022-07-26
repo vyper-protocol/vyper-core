@@ -114,10 +114,11 @@ fn set_data_from_aggregators(
 
             // load and deserialize feed
             let feed = AggregatorAccountData::new(aggr)?;
-            let val: f64 = feed.previous_confirmed_round_result.try_into()?;
+            let latest_confirmed_round = feed.latest_confirmed_round;
+            let val: f64 = latest_confirmed_round.result.try_into()?;
 
-            if oldest_slot.is_none() || oldest_slot > Some(feed.previous_confirmed_round_slot) {
-                oldest_slot = Some(feed.previous_confirmed_round_slot);
+            if oldest_slot.is_none() || oldest_slot > Some(latest_confirmed_round.round_open_slot) {
+                oldest_slot = Some(latest_confirmed_round.round_open_slot);
             }
 
             match std::str::from_utf8(&feed.name) {
@@ -125,8 +126,8 @@ fn set_data_from_aggregators(
                 _ => msg!("switchboard aggregator"),
             };
             msg!("+ val: {}", val,);
-            let previous_confirmed_round_slot = feed.previous_confirmed_round_slot;
-            msg!("+ confirmed_round_slot: {}", previous_confirmed_round_slot);
+            let latest_confirmed_round_slot = latest_confirmed_round.round_open_slot;
+            msg!("+ confirmed_round_slot: {}", latest_confirmed_round_slot);
 
             let val_dec = Decimal::from_f64(val).ok_or(RateSwitchboardErrorCode::MathError)?;
             let val_bps = to_bps(val_dec).ok_or(RateSwitchboardErrorCode::MathError)?;
