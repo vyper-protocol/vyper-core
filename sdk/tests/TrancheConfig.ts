@@ -8,7 +8,7 @@ import {RatePlugin} from "../src/plugins/ratePlugin/rateMock/Rate";
 import {UpdateTrancheConfigFlags} from '../src/UpdateTrancheConfigFlags'
 import {HaltFlags} from '../src/HaltFlags'
 import { OwnerRestrictedIxFlags } from "../src/OwnerRestrictedIxFlags";
-import { getMint } from "@solana/spl-token";
+import { getAccount, getMint } from "@solana/spl-token";
 import {createMint, createMintAndVault, createTokenAccount, getTokenAccountAmount} from "../../tests/utils"
 
 dotenv.config();
@@ -313,7 +313,7 @@ describe('TrancheConfig', () => {
         );
     })
 
-    it("collect fees",async () => {
+    it.only("collect fees",async () => {
         const trancheMintDecimals = 6;
         const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
         const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
@@ -360,14 +360,26 @@ describe('TrancheConfig', () => {
                 juniorTrancheTokenAccount
             )
         );
-        const signature = await provider.sendAndConfirm(depositTx);
 
+        await provider.sendAndConfirm(depositTx);
         await vyper.refreshTrancheFairValue();
-        const trancheConfigAccount = await vyper.getTrancheConfiguration()
+        expect(await getTokenAccountAmount(provider, userReserveToken)).to.eql(0)
 
+        let trancheConfigAccount = await vyper.getTrancheConfiguration()
         expect(trancheConfigAccount.trancheData.feeToCollectQuantity).to.eql(30)
-        await vyper.getCollectFee()
-})
+    
+        await vyper.getCollectFee(userReserveToken)
+
+        //refresh new data
+        trancheConfigAccount = await vyper.getTrancheConfiguration()
+
+        expect(trancheConfigAccount.trancheData.feeToCollectQuantity).to.eql(0)
+        expect(await getTokenAccountAmount(provider, userReserveToken)).to.eql(30)
+
+        //check if eql 0
+        //check account so it gets funds 
+
+    })
 
     it('redeem assests', async () => {
         const trancheMintDecimals = 6;
