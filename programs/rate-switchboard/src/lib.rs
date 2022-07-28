@@ -7,7 +7,7 @@ use rust_decimal::Decimal;
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
 use vyper_math::bps::to_bps;
 
-declare_id!("B97awSfAvfqicTnTpDbRLq8JauxS9UuvTdwVyx3nDxTF");
+declare_id!("2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1");
 
 #[program]
 pub mod rate_switchboard {
