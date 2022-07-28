@@ -25,7 +25,7 @@ pub mod rate_mock {
         Ok(())
     }
 
-    pub fn set_random_fair_value(ctx: Context<RefreshRateContext>) -> Result<()> {
+    pub fn set_random_fair_value(ctx: Context<SetFairValueContext>) -> Result<()> {
         // random rate
         let clock = Clock::get()?;
         ctx.accounts.rate_data.fair_value[0] = clock
@@ -37,7 +37,7 @@ pub mod rate_mock {
         Ok(())
     }
 
-    pub fn set_fair_value(ctx: Context<RefreshRateContext>, fair_value: u32) -> Result<()> {
+    pub fn set_fair_value(ctx: Context<SetFairValueContext>, fair_value: u32) -> Result<()> {
         msg!("rate-mock: set_fair_value");
 
         let clock = Clock::get()?;
@@ -81,13 +81,24 @@ pub struct InitializeContext<'info> {
 }
 
 #[derive(Accounts)]
-pub struct RefreshRateContext<'info> {
+pub struct SetFairValueContext<'info> {
     /// Signer account
     #[account()]
     pub authority: Signer<'info>,
 
     /// CHECK:
     #[account(mut, has_one = authority)]
+    pub rate_data: Account<'info, RateState>,
+}
+
+#[derive(Accounts)]
+pub struct RefreshRateContext<'info> {
+    /// Signer account
+    #[account()]
+    pub authority: Signer<'info>,
+
+    /// CHECK:
+    #[account(mut)]
     pub rate_data: Account<'info, RateState>,
 }
 

@@ -1,0 +1,26 @@
+[package]
+name = "rate-switchboard"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "rate_switchboard"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[profile.release]
+overflow-checks = true
+
+[dependencies]
+anchor-lang = "0.24.2"
+switchboard-v2 = "^0.1.11"
+rust_decimal = "1.24"
+rust_decimal_macros = "1.24"
+vyper-math  = { path = "../../libs/vyper-math" }
