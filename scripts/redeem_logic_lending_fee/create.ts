@@ -31,7 +31,7 @@ const main = async () => {
         .rpc();
 
     console.log("tx: " + tx);
-    console.log("redeem logic plugin state: " + stateAccount.publicKey);
+    console.log("redeem logic lending plugin state: " + stateAccount.publicKey);
 };
 
 main();
