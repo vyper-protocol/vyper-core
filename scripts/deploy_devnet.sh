@@ -6,6 +6,9 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 # rate mock plugin
 # anchor deploy -p rate-mock --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
+# rate switchboard
+# anchor deploy -p rate-switchboard --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+
 # redeem logic fee plugin
 # anchor deploy -p redeem-logic-lending-fee --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
@@ -20,4 +23,4 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 # # # # # # # # # # # # # # # # # # 
 
 # solana-keygen recover -o ./ephemeral-kp.json prompt:// 
-# solana program deploy --buffer ./ephemeral-kp.json --upgrade-authority ~/Dev/VyperWallets/vyper-core-program-authority/authority.json -k ~/Dev/VyperWallets/vyper-core-program-authority/authority.json ./target/deploy/vyper_core.so
+# solana program deploy --buffer ./ephemeral-kp.json --upgrade-authority ~/Dev/VyperWallets/vyper-program-authority/authority.json -k ~/Dev/VyperWallets/vyper-program-authority/authority.json ./target/deploy/rate_switchboard.so
