@@ -60,6 +60,9 @@ pub mod rate_switchboard {
 
         set_data_from_aggregators(rate_data, aggregators)?;
 
+        let clock = Clock::get()?;
+        rate_data.refreshed_slot = clock.slot;
+
         Ok(())
     }
 }
