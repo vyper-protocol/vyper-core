@@ -15,9 +15,6 @@ no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = []
 
-[profile.release]
-overflow-checks = true
-
 [dependencies]
 anchor-lang = "0.24.2"
 switchboard-v2 = "^0.1.11"
