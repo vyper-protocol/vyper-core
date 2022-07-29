@@ -313,7 +313,7 @@ describe('TrancheConfig', () => {
         );
     })
 
-    it.only("collect fees",async () => {
+    it("collect fees",async () => {
         const trancheMintDecimals = 6;
         const seniorDepositAmount = 1000 * 10 ** trancheMintDecimals;
         const juniorDepositAmount = 500 * 10 ** trancheMintDecimals;
