@@ -138,6 +138,8 @@ pub struct RedeemLogicConfig {
     pub owner: Pubkey,
 }
 
+// TODO fix len
+
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     1 + 1 + 4 + 32;

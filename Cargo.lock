@@ -967,8 +967,8 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
+ "rust_decimal_macros",
  "vyper-macros",
- "vyper-math",
  "vyper-utils",
 ]
 

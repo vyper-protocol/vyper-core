@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_math::bps::from_bps;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
@@ -18,21 +17,31 @@ pub mod redeem_logic_fila {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, strike: u32, notional: u32) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeContext>, strike: f64, notional: f64) -> Result<()> {
+        require!(strike >= 0., RedeemLogicErrors::InvalidInput);
+        require!(notional >= 0., RedeemLogicErrors::InvalidInput);
+
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike = strike;
-        redeem_logic_config.notional = notional;
+        redeem_logic_config.strike =
+            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.notional =
+            Decimal::from_f64(notional).ok_or(RedeemLogicErrors::MathError)?;
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, strike: u32, notional: u32) -> Result<()> {
+    pub fn update(ctx: Context<UpdateContext>, strike: f64, notional: f64) -> Result<()> {
+        require!(strike >= 0., RedeemLogicErrors::InvalidInput);
+        require!(notional >= 0., RedeemLogicErrors::InvalidInput);
+
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        redeem_logic_config.strike = strike;
-        redeem_logic_config.notional = notional;
+        redeem_logic_config.strike =
+            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.notional =
+            Decimal::from_f64(notional).ok_or(RedeemLogicErrors::MathError)?;
 
         Ok(())
     }
@@ -41,10 +50,11 @@ pub mod redeem_logic_fila {
         ctx: Context<ExecuteContext>,
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
+        input_data.is_valid()?;
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            // input_data.old_reserve_fair_value_bps[0],
-            input_data.new_reserve_fair_value_bps[0],
+            // input_data.old_reserve_fair_value[0],
+            input_data.new_reserve_fair_value[0],
             ctx.accounts.redeem_logic_config.strike,
             ctx.accounts.redeem_logic_config.notional,
         )?;
@@ -58,8 +68,22 @@ pub mod redeem_logic_fila {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: [u32; 10],
-    pub new_reserve_fair_value_bps: [u32; 10],
+    pub old_reserve_fair_value: [Decimal; 10],
+    pub new_reserve_fair_value: [Decimal; 10],
+}
+
+impl RedeemLogicExecuteInput {
+    fn is_valid(&self) -> Result<()> {
+        for r in self.old_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+        }
+
+        for r in self.new_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+        }
+
+        return Result::Ok(());
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -102,10 +126,12 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub strike: u32,
-    pub notional: u32,
+    pub strike: Decimal,
+    pub notional: Decimal,
     pub owner: Pubkey,
 }
+
+// TODO fix len
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
@@ -114,17 +140,19 @@ impl RedeemLogicConfig {
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    // old_reserve_fair_value_bps: u32,
-    new_spot_value_bps: u32,
-    strike_bps: u32,
-    notional: u32,
+    // old_spot: Decimal,
+    new_spot: Decimal,
+    strike: Decimal,
+    notional: Decimal,
 ) -> Result<RedeemLogicExecuteResult> {
+    // TODO check overflow
+
+    require!(new_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(strike >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(notional >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+
     let junior_old_quantity = Decimal::from(old_quantity[1]);
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
-    let notional = Decimal::from(notional);
-
-    let new_spot = from_bps(new_spot_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let strike = from_bps(strike_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     let payoff = strike + new_spot - Decimal::TWO * (new_spot * strike).sqrt().unwrap();
 
@@ -150,18 +178,18 @@ fn execute_plugin(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use rust_decimal_macros::dec;
 
-    // TODO check overflow
+    use super::*;
 
     #[test]
     fn test_flat_returns() {
         let old_quantity = [100_000; 2];
-        let new_spot_value_bps = 10_000; // 100%
-        let strike_bps = 10_000; // 100%
-        let notional = 1;
+        let new_spot_value = dec!(1);
+        let strike = dec!(1);
+        let notional = dec!(1);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 0);
         assert_eq!(res.new_quantity[1], 200_000);
@@ -175,11 +203,11 @@ mod tests {
     #[test]
     fn test_il_down() {
         let old_quantity = [100_000; 2];
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 10_000; // 100%
-        let notional = 100_000;
+        let new_spot_value = dec!(50);
+        let strike = dec!(100);
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 8_578);
         assert_eq!(res.new_quantity[1], 191_421);
@@ -193,11 +221,11 @@ mod tests {
     #[test]
     fn test_il_up() {
         let old_quantity = [100_000; 2];
-        let new_spot_value_bps = 15_000; // 150%
-        let strike_bps = 10_000; // 100%
-        let notional = 100_000;
+        let new_spot_value = dec!(150);
+        let strike = dec!(100);
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 5_051);
         assert_eq!(res.new_quantity[1], 194_948);
@@ -211,11 +239,11 @@ mod tests {
     #[test]
     fn test_range_bottom() {
         let old_quantity = [100_000, 10_000];
-        let new_spot_value_bps = 4_675; // 46.75%
-        let strike_bps = 10_000; // 100%
-        let notional = 100_000;
+        let new_spot_value = dec!(46.75);
+        let strike = dec!(100);
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -229,11 +257,11 @@ mod tests {
     #[test]
     fn test_range_top() {
         let old_quantity = [100_000, 10_000];
-        let new_spot_value_bps = 17_325; // 173.25%
-        let strike_bps = 10_000; // 100%
-        let notional = 100_000;
+        let new_spot_value = dec!(173.25);
+        let strike = dec!(100);
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -247,11 +275,11 @@ mod tests {
     #[test]
     fn test_zero_new() {
         let old_quantity = [100_000, 10_000];
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 10_000; // 100%
-        let notional = 100_000;
+        let new_spot_value = Decimal::ZERO;
+        let strike = dec!(100);
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 10_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -265,11 +293,11 @@ mod tests {
     #[test]
     fn test_zero_strike() {
         let old_quantity = [100_000; 2];
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 0; // 0%
-        let notional = 100_000;
+        let new_spot_value = dec!(50);
+        let strike = Decimal::ZERO;
+        let notional = dec!(1_000);
 
-        let res = execute_plugin(old_quantity, new_spot_value_bps, strike_bps, notional).unwrap();
+        let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
         assert_eq!(res.new_quantity[0], 50_000);
         assert_eq!(res.new_quantity[1], 150_000);
