@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use boolinator::Boolinator;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
