@@ -3,14 +3,14 @@ pub mod errors;
 use crate::errors::RateMockErrorCode;
 
 use anchor_lang::prelude::*;
+use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 declare_id!("FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG");
 
 #[program]
 pub mod rate_mock {
-
-    use rust_decimal::prelude::FromPrimitive;
 
     use super::*;
 
@@ -19,7 +19,7 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [Decimal::ONE; 10];
+        rate_data.fair_value = [dec!(1); 10];
         rate_data.refreshed_slot = clock.slot;
         rate_data.authority = ctx.accounts.authority.key();
 
