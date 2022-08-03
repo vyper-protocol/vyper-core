@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 use crate::errors::VyperErrorCode;
 
@@ -36,11 +36,11 @@ impl TrancheData {
         Self {
             deposited_quantity: [0; 2],
             reserve_fair_value: ReserveFairValue {
-                value: [Decimal::ONE; 10],
+                value: [dec!(1); 10],
                 slot_tracking: SlotTracking::new(slot),
             },
             tranche_fair_value: TrancheFairValue {
-                value: [Decimal::ONE; 2],
+                value: [dec!(1); 2],
                 slot_tracking: SlotTracking::new(slot),
             },
             halt_flags: 0,
