@@ -227,22 +227,24 @@ fn execute_plugin(
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal_macros::dec;
+
     use super::*;
 
     #[test]
     fn test_linear_call_otm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 7_000; // 70%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(7);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -260,17 +262,17 @@ mod tests {
     #[test]
     fn test_linear_call_atm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(5);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -288,17 +290,17 @@ mod tests {
     #[test]
     fn test_linear_call_itm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 10_000; // 100%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(10);
+        let strike = dec!(5);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -316,17 +318,17 @@ mod tests {
     #[test]
     fn test_linear_put_otm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 6_000; // 50%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(6);
+        let strike = dec!(5);
         let is_call = false;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -344,17 +346,17 @@ mod tests {
     #[test]
     fn test_linear_put_atm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(5);
         let is_call = false;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -372,17 +374,17 @@ mod tests {
     #[test]
     fn test_linear_put_itm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 3_000; // 30%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(3);
+        let strike = dec!(5);
         let is_call = false;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -400,17 +402,17 @@ mod tests {
     #[test]
     fn test_inverse_call_otm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 7_000; // 70%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(7);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -428,17 +430,17 @@ mod tests {
     #[test]
     fn test_inverse_call_atm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(5);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -456,17 +458,17 @@ mod tests {
     #[test]
     fn test_inverse_call_itm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 10_000; // 100%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(10);
+        let strike = dec!(5);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -484,17 +486,17 @@ mod tests {
     #[test]
     fn test_inverse_put_otm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 3_000; // 30%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(3);
         let is_call = false;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -512,17 +514,17 @@ mod tests {
     #[test]
     fn test_inverse_put_atm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 5_000; // 50%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(5);
+        let strike = dec!(5);
         let is_call = false;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -540,17 +542,17 @@ mod tests {
     #[test]
     fn test_inverse_put_itm() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 2_500; // 25%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(2.5);
+        let strike = dec!(5);
         let is_call = false;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -568,17 +570,17 @@ mod tests {
     #[test]
     fn test_zero_old_spot() {
         let old_quantity = [100_000, 200_000];
-        let old_spot_value_bps = 0_000; // 50%
-        let new_spot_value_bps = 2_500; // 25%
-        let strike_bps = 5_000; // 50%
+        let old_spot_value = dec!(0);
+        let new_spot_value = dec!(2.5);
+        let strike = dec!(5);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -596,17 +598,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_linear_call() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 500; // 5%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0.5);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -624,17 +626,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_inverse_call() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 500; // 5%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0.5);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -652,17 +654,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_linear_put() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 500; // 5%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0.5);
         let is_call = false;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -680,17 +682,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_inverse_put() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 500; // 5%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0.5);
         let is_call = false;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -708,17 +710,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_zero_strike_linear_call() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 0; // 0%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0);
         let is_call = true;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -736,17 +738,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_zero_strike_inverse_call() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 0; // 0%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -764,17 +766,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_zero_strike_linear_put() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 0; // 0%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0);
         let is_call = false;
         let is_linear = true;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -792,17 +794,17 @@ mod tests {
     #[test]
     fn test_zero_new_spot_zero_strike_inverse_put() {
         let old_quantity = [100_000; 2];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 0; // 0%
-        let strike_bps = 0; // 0%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(0);
+        let strike = dec!(0);
         let is_call = false;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
@@ -820,17 +822,17 @@ mod tests {
     #[test]
     fn test_rounding() {
         let old_quantity = [13_456, 52_215];
-        let old_spot_value_bps = 5_000; // 50%
-        let new_spot_value_bps = 6_698; // 66.98%
-        let strike_bps = 5_119; // 51.19%
+        let old_spot_value = dec!(5);
+        let new_spot_value = dec!(6.698);
+        let strike = dec!(5.119);
         let is_call = true;
         let is_linear = false;
 
         let res = execute_plugin(
             old_quantity,
-            old_spot_value_bps,
-            new_spot_value_bps,
-            strike_bps,
+            old_spot_value,
+            new_spot_value,
+            strike,
             is_call,
             is_linear,
         )
