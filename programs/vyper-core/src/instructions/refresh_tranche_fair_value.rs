@@ -1,6 +1,6 @@
 use crate::{
     errors::VyperErrorCode,
-    state::{OwnerRestrictedIxFlags, TrancheConfig, TrancheHaltFlags},
+    state::{DecimalWrapper, OwnerRestrictedIxFlags, TrancheConfig, TrancheHaltFlags},
 };
 use anchor_lang::{
     prelude::*,
@@ -96,8 +96,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
     }
 
     // get old and new reserve fair value
-    let old_reserve_fair_value = tranche_data.reserve_fair_value.value;
-    let new_reserve_fair_value = rate_state.fair_value;
+    let old_reserve_fair_value = tranche_data.reserve_fair_value.value.map(|c| c.get());
+    let new_reserve_fair_value = rate_state.fair_value.map(|c| c.get());
     msg!("+ old_reserve_fair_value: {:?}", old_reserve_fair_value);
     msg!("+ new_reserve_fair_value: {:?}", new_reserve_fair_value);
     msg!(
@@ -111,8 +111,10 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
         ctx.accounts.redeem_logic_program.key,
         ctx.accounts.redeem_logic_program_state.to_account_info(),
         RedeemLogicExecuteInput {
-            old_reserve_fair_value: old_reserve_fair_value,
-            new_reserve_fair_value: new_reserve_fair_value,
+            old_reserve_fair_value: old_reserve_fair_value
+                .map(|c| vyper_utils::decimal_wrapper::DecimalWrapper::new(c)),
+            new_reserve_fair_value: new_reserve_fair_value
+                .map(|c| vyper_utils::decimal_wrapper::DecimalWrapper::new(c)),
             old_quantity: tranche_data.deposited_quantity,
         },
     );
@@ -139,7 +141,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("senior supply: {:?}", supply);
             msg!("senior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[0] = fair_value;
+        tranche_data.tranche_fair_value.value[0].set(fair_value);
     }
     if ctx.accounts.junior_tranche_mint.supply > 0 {
         let dep_qty = Decimal::from(tranche_data.deposited_quantity[1]);
@@ -151,7 +153,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("junior supply: {:?}", supply);
             msg!("junior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[1] = fair_value;
+        tranche_data.tranche_fair_value.value[1].set(fair_value);
     }
     msg!(
         "tranche fair value: {:?}",
@@ -174,7 +176,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [Decimal; 10],
+    pub fair_value: [DecimalWrapper; 10],
     pub refreshed_slot: u64,
 }
 

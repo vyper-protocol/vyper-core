@@ -1,5 +1,7 @@
 pub mod errors;
 
+pub mod decimal_wrapper;
+use crate::decimal_wrapper::DecimalWrapper;
 use crate::errors::RateMockErrorCode;
 
 use anchor_lang::prelude::*;
@@ -19,7 +21,7 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [dec!(1); 10];
+        rate_data.fair_value = [DecimalWrapper::new(dec!(1)); 10];
         rate_data.refreshed_slot = clock.slot;
         rate_data.authority = ctx.accounts.authority.key();
 
@@ -35,8 +37,8 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value[0] =
-            Decimal::from_f64(fair_value).ok_or(RateMockErrorCode::MathError)?;
+        rate_data.fair_value[0]
+            .set(Decimal::from_f64(fair_value).ok_or(RateMockErrorCode::MathError)?);
         rate_data.refreshed_slot = clock.slot;
 
         msg!("rate_data.fair_value: {:?}", rate_data.fair_value);
@@ -98,14 +100,14 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [Decimal; 10],
+    pub fair_value: [DecimalWrapper; 10],
     pub refreshed_slot: u64,
     pub authority: Pubkey,
 }
 
 impl RateState {
     pub const LEN: usize = 8 + // discriminator
-    16*10 + // pub fair_value: [Decimal; 10],
+    16*10 + // pub fair_value: [DecimalWrapper; 10],
     8 + // pub refreshed_slot: u64,
     32 // pub authority: Pubkey,
     ;

@@ -168,7 +168,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
                 .tranche_config
                 .tranche_data
                 .tranche_fair_value
-                .value[i];
+                .value[i].get();
         let dep_qty = Decimal::from(input_data.reserve_quantity[i]);
 
         msg!("tranche_fv: {}", tranche_fv);

@@ -21,3 +21,6 @@ pub use slot_tracking::*;
 
 pub mod last_update;
 pub use last_update::*;
+
+pub mod decimal_wrapper;
+pub use decimal_wrapper::*;

@@ -1,3 +1,7 @@
+pub mod decimal_wrapper;
+
+use crate::decimal_wrapper::DecimalWrapper;
+
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
@@ -27,12 +31,15 @@ pub mod redeem_logic_lending_fee {
         require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split =
-            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.mgmt_fee =
-            Decimal::from_f64(mgmt_fee).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.perf_fee =
-            Decimal::from_f64(perf_fee).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config
+            .interest_split
+            .set(Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?);
+        redeem_logic_config
+            .mgmt_fee
+            .set(Decimal::from_f64(mgmt_fee).ok_or(RedeemLogicErrors::MathError)?);
+        redeem_logic_config
+            .perf_fee
+            .set(Decimal::from_f64(perf_fee).ok_or(RedeemLogicErrors::MathError)?);
 
         Ok(())
     }
@@ -54,12 +61,15 @@ pub mod redeem_logic_lending_fee {
         require!(perf_fee >= 0., RedeemLogicErrors::InvalidInput);
         require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.interest_split =
-            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.mgmt_fee =
-            Decimal::from_f64(mgmt_fee).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.perf_fee =
-            Decimal::from_f64(perf_fee).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config
+            .interest_split
+            .set(Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?);
+        redeem_logic_config
+            .mgmt_fee
+            .set(Decimal::from_f64(mgmt_fee).ok_or(RedeemLogicErrors::MathError)?);
+        redeem_logic_config
+            .perf_fee
+            .set(Decimal::from_f64(perf_fee).ok_or(RedeemLogicErrors::MathError)?);
 
         Ok(())
     }
@@ -71,11 +81,11 @@ pub mod redeem_logic_lending_fee {
         input_data.is_valid()?;
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value[0],
-            input_data.new_reserve_fair_value[0],
-            ctx.accounts.redeem_logic_config.interest_split,
-            ctx.accounts.redeem_logic_config.mgmt_fee,
-            ctx.accounts.redeem_logic_config.perf_fee,
+            input_data.old_reserve_fair_value[0].get(),
+            input_data.new_reserve_fair_value[0].get(),
+            ctx.accounts.redeem_logic_config.interest_split.get(),
+            ctx.accounts.redeem_logic_config.mgmt_fee.get(),
+            ctx.accounts.redeem_logic_config.perf_fee.get(),
         )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -87,20 +97,18 @@ pub mod redeem_logic_lending_fee {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value: [Decimal; 10],
-    pub new_reserve_fair_value: [Decimal; 10],
+    pub old_reserve_fair_value: [DecimalWrapper; 10],
+    pub new_reserve_fair_value: [DecimalWrapper; 10],
 }
 
 impl RedeemLogicExecuteInput {
     fn is_valid(&self) -> Result<()> {
         for r in self.old_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+            require!(r.get() >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
         }
 
         for r in self.new_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+            require!(r.get() >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
         }
 
         return Result::Ok(());
@@ -147,17 +155,17 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub interest_split: Decimal,
-    pub mgmt_fee: Decimal,
-    pub perf_fee: Decimal,
+    pub interest_split: DecimalWrapper,
+    pub mgmt_fee: DecimalWrapper,
+    pub perf_fee: DecimalWrapper,
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    16 + // pub interest_split: Decimal,
-    16 + // pub mgmt_fee: Decimal,
-    16 + // pub perf_fee: Decimal,
+    16 + // pub interest_split: DecimalWrapper,
+    16 + // pub mgmt_fee: DecimalWrapper,
+    16 + // pub perf_fee: DecimalWrapper,
     32 // pub owner: Pubkey,
     ;
 }

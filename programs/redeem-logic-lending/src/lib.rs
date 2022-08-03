@@ -1,3 +1,7 @@
+pub mod decimal_wrapper;
+
+use crate::decimal_wrapper::DecimalWrapper;
+
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
@@ -20,8 +24,9 @@ pub mod redeem_logic_lending {
         require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split =
-            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config
+            .interest_split
+            .set(Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?);
         redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
 
         Ok(())
@@ -37,8 +42,9 @@ pub mod redeem_logic_lending {
         require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
         require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.interest_split =
-            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config
+            .interest_split
+            .set(Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?);
         redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
 
         Ok(())
@@ -52,9 +58,9 @@ pub mod redeem_logic_lending {
 
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value[0],
-            input_data.new_reserve_fair_value[0],
-            ctx.accounts.redeem_logic_config.interest_split,
+            input_data.old_reserve_fair_value[0].get(),
+            input_data.new_reserve_fair_value[0].get(),
+            ctx.accounts.redeem_logic_config.interest_split.get(),
             ctx.accounts.redeem_logic_config.fixed_fee_per_tranche,
         )?;
 
@@ -67,20 +73,18 @@ pub mod redeem_logic_lending {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value: [Decimal; 10],
-    pub new_reserve_fair_value: [Decimal; 10],
+    pub old_reserve_fair_value: [DecimalWrapper; 10],
+    pub new_reserve_fair_value: [DecimalWrapper; 10],
 }
 
 impl RedeemLogicExecuteInput {
     fn is_valid(&self) -> Result<()> {
         for r in self.old_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+            require!(r.get() >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
         }
 
         for r in self.new_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+            require!(r.get() >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
         }
 
         return Result::Ok(());
@@ -127,14 +131,14 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub interest_split: Decimal,
+    pub interest_split: DecimalWrapper,
     pub fixed_fee_per_tranche: u64,
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    16 + // pub interest_split: Decimal,
+    16 + // pub interest_split: DecimalWrapper,
     8 + // pub fixed_fee_per_tranche: u64,
     32 // pub owner: Pubkey,
     ;

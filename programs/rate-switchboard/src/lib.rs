@@ -1,10 +1,13 @@
 pub mod errors;
 
+pub mod decimal_wrapper;
+
+use crate::decimal_wrapper::DecimalWrapper;
 use crate::errors::RateSwitchboardErrorCode;
+
 use anchor_lang::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
-
 declare_id!("2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1");
 
 #[program]
@@ -30,7 +33,7 @@ pub mod rate_switchboard {
 
         // build the rate data state
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [Decimal::ZERO; 10];
+        rate_data.fair_value = [DecimalWrapper::new(Decimal::ZERO); 10];
         rate_data.switchboard_aggregators = [None; 10];
         for (i, aggr) in aggregators.iter().enumerate() {
             rate_data.switchboard_aggregators[i] = Some(aggr.key());
@@ -89,14 +92,14 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [Decimal; 10],
+    pub fair_value: [DecimalWrapper; 10],
     pub refreshed_slot: u64,
     pub switchboard_aggregators: [Option<Pubkey>; 10],
 }
 
 impl RateState {
     pub const LEN: usize = 8 + // discriminator
-    16*10 +     // pub fair_value: [Decimal; 10],
+    16*10 +     // pub fair_value: [DecimalWrapper; 10],
     8 +         // pub refreshed_slot: u64,
     10*(1+32)   // pub switchboard_aggregators: [Option<Pubkey>; 10],
     ;
@@ -130,8 +133,8 @@ fn set_data_from_aggregators(
             let latest_confirmed_round_slot = latest_confirmed_round.round_open_slot;
             msg!("+ confirmed_round_slot: {}", latest_confirmed_round_slot);
 
-            rate_data.fair_value[i] =
-                Decimal::from_f64(val).ok_or(RateSwitchboardErrorCode::MathError)?;
+            rate_data.fair_value[i]
+                .set(Decimal::from_f64(val).ok_or(RateSwitchboardErrorCode::MathError)?);
         } else {
             return Err(error!(RateSwitchboardErrorCode::InvalidAggregatorsNumber));
         }
