@@ -2,10 +2,8 @@ pub mod errors;
 
 use crate::errors::RateSwitchboardErrorCode;
 use anchor_lang::prelude::*;
-use rust_decimal::prelude::FromPrimitive;
-use rust_decimal::Decimal;
+use rust_decimal::{prelude::FromPrimitive, Decimal};
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
-use vyper_math::bps::to_bps;
 
 declare_id!("2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1");
 
@@ -32,7 +30,7 @@ pub mod rate_switchboard {
 
         // build the rate data state
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [0; 10];
+        rate_data.fair_value = [Decimal::ZERO; 10];
         rate_data.switchboard_aggregators = [None; 10];
         for (i, aggr) in aggregators.iter().enumerate() {
             rate_data.switchboard_aggregators[i] = Some(aggr.key());
@@ -91,7 +89,7 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [u32; 10],
+    pub fair_value: [Decimal; 10],
     pub refreshed_slot: u64,
     pub switchboard_aggregators: [Option<Pubkey>; 10],
 }
@@ -132,10 +130,8 @@ fn set_data_from_aggregators(
             let latest_confirmed_round_slot = latest_confirmed_round.round_open_slot;
             msg!("+ confirmed_round_slot: {}", latest_confirmed_round_slot);
 
-            let val_dec = Decimal::from_f64(val).ok_or(RateSwitchboardErrorCode::MathError)?;
-            let val_bps = to_bps(val_dec).ok_or(RateSwitchboardErrorCode::MathError)?;
-
-            rate_data.fair_value[i] = val_bps;
+            rate_data.fair_value[i] =
+                Decimal::from_f64(val).ok_or(RateSwitchboardErrorCode::MathError)?;
         } else {
             return Err(error!(RateSwitchboardErrorCode::InvalidAggregatorsNumber));
         }

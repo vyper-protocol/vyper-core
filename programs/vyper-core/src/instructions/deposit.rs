@@ -6,8 +6,7 @@ use crate::{
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount, Transfer};
 use boolinator::Boolinator;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
-use vyper_math::bps::from_bps;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 
 #[derive(Accounts)]
 pub struct DepositContext<'info> {
@@ -165,13 +164,11 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
 
     let mut mint_count: [u64; 2] = [0; 2];
     for i in 0..mint_count.len() {
-        let tranche_fv = from_bps(
-            ctx.accounts
+        let tranche_fv = ctx.accounts
                 .tranche_config
                 .tranche_data
                 .tranche_fair_value
-                .value[i],
-        ).ok_or(VyperErrorCode::MathError)?;
+                .value[i];
         let dep_qty = Decimal::from(input_data.reserve_quantity[i]);
 
         msg!("tranche_fv: {}", tranche_fv);

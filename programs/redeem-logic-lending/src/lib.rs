@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_math::bps::from_bps;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA");
@@ -12,13 +11,17 @@ pub mod redeem_logic_lending {
 
     pub fn initialize(
         ctx: Context<InitializeContext>,
-        interest_split: u32,
+        interest_split: f64,
         fixed_fee_per_tranche: u64,
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
+
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = interest_split;
+        redeem_logic_config.interest_split =
+            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
         redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
 
         Ok(())
@@ -26,12 +29,16 @@ pub mod redeem_logic_lending {
 
     pub fn update(
         ctx: Context<UpdateContext>,
-        interest_split: u32,
+        interest_split: f64,
         fixed_fee_per_tranche: u64,
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        redeem_logic_config.interest_split = interest_split;
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
+
+        redeem_logic_config.interest_split =
+            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
         redeem_logic_config.fixed_fee_per_tranche = fixed_fee_per_tranche;
 
         Ok(())
@@ -41,10 +48,12 @@ pub mod redeem_logic_lending {
         ctx: Context<ExecuteContext>,
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
+        input_data.is_valid()?;
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value_bps[0],
-            input_data.new_reserve_fair_value_bps[0],
+            input_data.old_reserve_fair_value[0],
+            input_data.new_reserve_fair_value[0],
             ctx.accounts.redeem_logic_config.interest_split,
             ctx.accounts.redeem_logic_config.fixed_fee_per_tranche,
         )?;
@@ -58,8 +67,24 @@ pub mod redeem_logic_lending {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: [u32; 10],
-    pub new_reserve_fair_value_bps: [u32; 10],
+    pub old_reserve_fair_value: [Decimal; 10],
+    pub new_reserve_fair_value: [Decimal; 10],
+}
+
+impl RedeemLogicExecuteInput {
+    fn is_valid(&self) -> Result<()> {
+        for r in self.old_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+        }
+
+        for r in self.new_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+        }
+
+        return Result::Ok(());
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -102,7 +127,7 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub interest_split: u32,
+    pub interest_split: Decimal,
     pub fixed_fee_per_tranche: u64,
     pub owner: Pubkey,
 }
@@ -114,13 +139,13 @@ impl RedeemLogicConfig {
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    old_reserve_fair_value_bps: u32,
-    new_reserve_fair_value_bps: u32,
-    interest_split_bps: u32,
+    old_reserve_fair_value: Decimal,
+    new_reserve_fair_value: Decimal,
+    interest_split: Decimal,
     fixed_fee_per_tranche: u64,
 ) -> Result<RedeemLogicExecuteResult> {
     // default in the past
-    if old_reserve_fair_value_bps == 0 {
+    if old_reserve_fair_value == Decimal::ZERO {
         return Ok(RedeemLogicExecuteResult {
             new_quantity: old_quantity,
             fee_quantity: 0,
@@ -131,11 +156,6 @@ fn execute_plugin(
         .map(|u| Decimal::from(u))
         .iter()
         .sum::<Decimal>();
-    let old_reserve_fair_value =
-        from_bps(old_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let interest_split = from_bps(interest_split_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let new_reserve_fair_value =
-        from_bps(new_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     // positive return, share proceeds
     let senior_new_quantity = if new_reserve_fair_value > old_reserve_fair_value {
@@ -197,23 +217,19 @@ fn execute_plugin(
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal_macros::dec;
+
     use super::*;
 
     #[test]
     fn test_flat_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 10_000; // 100%
-        let interest_split = 2_000; // 20%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = Decimal::ONE; // 100%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 100_000);
         assert_eq!(res.new_quantity[1], 100_000);
@@ -223,18 +239,12 @@ mod tests {
     #[test]
     fn test_positive_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 104_000);
@@ -244,18 +254,12 @@ mod tests {
     #[test]
     fn test_positive_returns_rounding() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 6_100; // 61%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.61); // 61%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 99_672);
         assert_eq!(res.new_quantity[1], 100_328);
@@ -265,18 +269,12 @@ mod tests {
     #[test]
     fn test_positive_returns_senior_imbalance() {
         let old_quantity = [100_000, 1000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 96_000);
         assert_eq!(res.new_quantity[1], 5_000);
@@ -286,18 +284,12 @@ mod tests {
     #[test]
     fn test_positive_returns_junior_imbalance() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 12_500; // 125%
-        let interest_split = 2_000; // 20%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(1.25); // 125%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 960);
         assert_eq!(res.new_quantity[1], 100_040);
@@ -307,18 +299,12 @@ mod tests {
     #[test]
     fn test_negative_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 8_000; // 80%
-        let new_reserve_bps = 6_400; // 64%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.8); // 80%
+        let new_reserve = dec!(0.64); // 64%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 125_000);
         assert_eq!(res.new_quantity[1], 75_000);
@@ -328,18 +314,12 @@ mod tests {
     #[test]
     fn test_negative_returns_rounding() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 5_900; // 59%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.59); // 59%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 101_695);
         assert_eq!(res.new_quantity[1], 98_305);
@@ -349,18 +329,12 @@ mod tests {
     #[test]
     fn test_negative_returns_senior_imbalance() {
         let old_quantity = [100_000, 1000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 4_800; // 48%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.48); // 48%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 101_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -370,18 +344,11 @@ mod tests {
     #[test]
     fn test_negative_returns_junior_imbalance() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 8_000; // 80%
-        let interest_split = 2_000; // 20%
+        let old_reserv = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.8); // 80%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res = execute_plugin(old_quantity, old_reserv, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 1_250);
         assert_eq!(res.new_quantity[1], 99_750);
@@ -391,18 +358,12 @@ mod tests {
     #[test]
     fn test_junior_wipeout() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 5_000; // 50%
-        let interest_split = 2_000; // 20%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.5); // 50%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -412,18 +373,12 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_partial() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 2_500; // 25%
-        let interest_split = 2_000; // 20%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.25); // 25%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -433,18 +388,12 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_wipeout() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 13_000; // 130%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
+        let old_reserve = dec!(1.3); // 130%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 200_000);
         assert_eq!(res.new_quantity[1], 0);
@@ -454,18 +403,12 @@ mod tests {
     #[test]
     fn test_past_wipeout() {
         let old_quantity = [1_000_000, 100_000];
-        let old_reserve_bps = 0; // 0%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
+        let old_reserve = Decimal::ZERO; // 0%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
 
-        let res = execute_plugin(
-            old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
-            interest_split,
-            0,
-        )
-        .unwrap();
+        let res =
+            execute_plugin(old_quantity, old_reserve, new_reserve, interest_split, 0).unwrap();
 
         assert_eq!(res.new_quantity[0], 1_000_000);
         assert_eq!(res.new_quantity[1], 100_000);

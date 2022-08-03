@@ -1,11 +1,16 @@
+pub mod errors;
+
+use crate::errors::RateMockErrorCode;
+
 use anchor_lang::prelude::*;
+use rust_decimal::Decimal;
 
 declare_id!("FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG");
 
 #[program]
 pub mod rate_mock {
 
-    use vyper_utils::rate_common::RateErrors;
+    use rust_decimal::prelude::FromPrimitive;
 
     use super::*;
 
@@ -14,7 +19,7 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [0; 10];
+        rate_data.fair_value = [Decimal::ONE; 10];
         rate_data.refreshed_slot = clock.slot;
         rate_data.authority = ctx.accounts.authority.key();
 
@@ -25,24 +30,13 @@ pub mod rate_mock {
         Ok(())
     }
 
-    pub fn set_random_fair_value(ctx: Context<SetFairValueContext>) -> Result<()> {
-        // random rate
-        let clock = Clock::get()?;
-        ctx.accounts.rate_data.fair_value[0] = clock
-            .unix_timestamp
-            .checked_rem(10000)
-            .ok_or(RateErrors::MathError)? as u32;
-        ctx.accounts.rate_data.refreshed_slot = clock.slot;
-
-        Ok(())
-    }
-
-    pub fn set_fair_value(ctx: Context<SetFairValueContext>, fair_value: u32) -> Result<()> {
+    pub fn set_fair_value(ctx: Context<SetFairValueContext>, fair_value: f64) -> Result<()> {
         msg!("rate-mock: set_fair_value");
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value[0] = fair_value;
+        rate_data.fair_value[0] =
+            Decimal::from_f64(fair_value).ok_or(RateMockErrorCode::MathError)?;
         rate_data.refreshed_slot = clock.slot;
 
         msg!("rate_data.fair_value: {:?}", rate_data.fair_value);
@@ -104,7 +98,7 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [u32; 10],
+    pub fair_value: [Decimal; 10],
     pub refreshed_slot: u64,
     pub authority: Pubkey,
 }
