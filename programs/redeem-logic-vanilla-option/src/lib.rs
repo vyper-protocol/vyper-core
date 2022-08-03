@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_math::bps::from_bps;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe");
@@ -19,14 +18,16 @@ pub mod redeem_logic_vanilla_option {
 
     pub fn initialize(
         ctx: Context<InitializeContext>,
-        strike: u32,
+        strike: f64,
         is_call: bool,
         is_linear: bool,
     ) -> Result<()> {
-        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
+        require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
+        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike = strike;
+        redeem_logic_config.strike =
+            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
         redeem_logic_config.is_call = is_call;
         redeem_logic_config.is_linear = is_linear;
 
@@ -35,13 +36,15 @@ pub mod redeem_logic_vanilla_option {
 
     pub fn update(
         ctx: Context<UpdateContext>,
-        strike: u32,
+        strike: f64,
         is_call: bool,
         is_linear: bool,
     ) -> Result<()> {
-        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
+        require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.strike = strike;
+        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
+        redeem_logic_config.strike =
+            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
         redeem_logic_config.is_call = is_call;
         redeem_logic_config.is_linear = is_linear;
 
@@ -52,10 +55,11 @@ pub mod redeem_logic_vanilla_option {
         ctx: Context<ExecuteContext>,
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
+        input_data.is_valid()?;
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value_bps[0],
-            input_data.new_reserve_fair_value_bps[0],
+            input_data.old_reserve_fair_value[0],
+            input_data.new_reserve_fair_value[0],
             ctx.accounts.redeem_logic_config.strike,
             ctx.accounts.redeem_logic_config.is_call,
             ctx.accounts.redeem_logic_config.is_linear,
@@ -70,8 +74,22 @@ pub mod redeem_logic_vanilla_option {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: [u32; 10],
-    pub new_reserve_fair_value_bps: [u32; 10],
+    pub old_reserve_fair_value: [Decimal; 10],
+    pub new_reserve_fair_value: [Decimal; 10],
+}
+
+impl RedeemLogicExecuteInput {
+    fn is_valid(&self) -> Result<()> {
+        for r in self.old_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+        }
+
+        for r in self.new_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+        }
+
+        return Result::Ok(());
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -116,7 +134,7 @@ pub struct ExecuteContext<'info> {
 pub struct RedeemLogicConfig {
     pub is_call: bool,   // true if call, false if put
     pub is_linear: bool, // true if linear, false if inverse
-    pub strike: u32,
+    pub strike: Decimal,
     pub owner: Pubkey,
 }
 
@@ -127,15 +145,19 @@ impl RedeemLogicConfig {
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    old_spot_value_bps: u32,
-    new_spot_value_bps: u32,
-    strike_bps: u32,
+    old_spot: Decimal,
+    new_spot: Decimal,
+    strike: Decimal,
     is_call: bool,
     is_linear: bool,
 ) -> Result<RedeemLogicExecuteResult> {
+    require!(old_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(new_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(strike >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+
     // TODO: CHECK OVERFLOW
 
-    if old_spot_value_bps == 0 {
+    if old_spot == Decimal::ZERO {
         return Ok(RedeemLogicExecuteResult {
             new_quantity: old_quantity,
             fee_quantity: 0,
@@ -145,10 +167,6 @@ fn execute_plugin(
     // let senior_old_quantity = Decimal::from(old_quantity[0]);
     let junior_old_quantity = Decimal::from(old_quantity[1]);
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
-
-    let old_spot = from_bps(old_spot_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let new_spot = from_bps(new_spot_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let strike = from_bps(strike_bps).ok_or(RedeemLogicErrors::MathError)?;
 
     let notional = if is_linear {
         junior_old_quantity / old_spot
