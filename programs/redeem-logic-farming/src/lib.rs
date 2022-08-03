@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
+use boolinator::Boolinator;
 use rust_decimal::prelude::*;
-use vyper_math::bps::{from_bps, BpsRangeValue};
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN");
@@ -12,25 +12,27 @@ pub mod redeem_logic_farming {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, interest_split: u32) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeContext>, interest_split: f64) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split =
-            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = interest_split.get();
+        redeem_logic_config.interest_split =
+            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, interest_split: u32) -> Result<()> {
+    pub fn update(ctx: Context<UpdateContext>, interest_split: f64) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split =
-            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.interest_split = interest_split.get();
+        redeem_logic_config.interest_split =
+            Decimal::from_f64(interest_split).ok_or(RedeemLogicErrors::MathError)?;
 
         Ok(())
     }
@@ -39,12 +41,14 @@ pub mod redeem_logic_farming {
         ctx: Context<ExecuteContext>,
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
+        input_data.is_valid()?;
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value_bps[0],
-            input_data.old_reserve_fair_value_bps[1],
-            input_data.new_reserve_fair_value_bps[0],
-            input_data.new_reserve_fair_value_bps[1],
+            input_data.old_reserve_fair_value[0],
+            input_data.old_reserve_fair_value[1],
+            input_data.new_reserve_fair_value[0],
+            input_data.new_reserve_fair_value[1],
             ctx.accounts.redeem_logic_config.interest_split,
         )?;
 
@@ -57,8 +61,24 @@ pub mod redeem_logic_farming {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: [u32; 10],
-    pub new_reserve_fair_value_bps: [u32; 10],
+    pub old_reserve_fair_value: [Decimal; 10],
+    pub new_reserve_fair_value: [Decimal; 10],
+}
+
+impl RedeemLogicExecuteInput {
+    fn is_valid(&self) -> Result<()> {
+        for r in self.old_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+        }
+
+        for r in self.new_reserve_fair_value {
+            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(r <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+        }
+
+        return Result::Ok(());
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -101,7 +121,7 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub interest_split: u32,
+    pub interest_split: Decimal,
     pub owner: Pubkey,
 }
 
@@ -112,26 +132,27 @@ impl RedeemLogicConfig {
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    old_lp_fair_value_bps: u32,
-    old_ul_fair_value_bps: u32,
-    new_lp_fair_value_bps: u32,
-    new_ul_fair_value_bps: u32,
-    interest_split_bps: u32,
+    old_lp_fair_value: Decimal,
+    old_ul_fair_value: Decimal,
+    new_lp_fair_value: Decimal,
+    new_ul_fair_value: Decimal,
+    interest_split: Decimal,
 ) -> Result<RedeemLogicExecuteResult> {
     // split is between 0 and 100%
-    let interest_split =
-        BpsRangeValue::new(interest_split_bps).map_err(|_| RedeemLogicErrors::MathError)?;
-
-    let old_lp_fair_value = from_bps(old_lp_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let old_ul_fair_value = from_bps(old_ul_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let new_lp_fair_value = from_bps(new_lp_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let new_ul_fair_value = from_bps(new_ul_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
+    require!(
+        interest_split >= Decimal::ZERO,
+        RedeemLogicErrors::InvalidInput
+    );
+    require!(
+        interest_split <= Decimal::ONE,
+        RedeemLogicErrors::InvalidInput
+    );
 
     // default
-    if (old_lp_fair_value_bps == 0)
-        || (old_ul_fair_value_bps == 0)
-        || (new_lp_fair_value_bps == 0)
-        || (new_ul_fair_value_bps == 0)
+    if (old_lp_fair_value == Decimal::ZERO)
+        || (old_ul_fair_value == Decimal::ZERO)
+        || (new_lp_fair_value == Decimal::ZERO)
+        || (new_ul_fair_value == Decimal::ZERO)
     {
         let senior_new_quantity = old_quantity.iter().sum::<u64>();
         return Ok(RedeemLogicExecuteResult {
@@ -157,13 +178,7 @@ fn execute_plugin(
 
     let accrued = Decimal::ZERO.max(new_lp_fair_value - lp_no_accrued);
 
-    let net_value = accrued
-        * (Decimal::ONE
-            - interest_split
-                .get_decimal()
-                .ok_or(RedeemLogicErrors::MathError)?)
-        + old_lp_fair_value
-        + lp_delta;
+    let net_value = accrued * (Decimal::ONE - interest_split) + old_lp_fair_value + lp_delta;
 
     let senior_new_quantity =
         total_old_quantity.min(Decimal::from(old_quantity[0]) * net_value / new_lp_fair_value);
@@ -189,24 +204,26 @@ fn execute_plugin(
 mod tests {
     use super::*;
 
+    use rust_decimal_macros::dec;
+
     // TODO check errors
 
     #[test]
     fn test_flat_returns() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 20_000; // 200%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 0; // 0%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = Decimal::TWO; // 200%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -222,19 +239,19 @@ mod tests {
     #[test]
     fn test_positive_returns_no_il() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 30_000; // 300%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(3); // 300%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -250,19 +267,19 @@ mod tests {
     #[test]
     fn test_positive_returns_no_il_rounding() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 30_000; // 300%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 2_500; // 25%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(3); // 300%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = dec!(0.25); // 25%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -278,19 +295,19 @@ mod tests {
     #[test]
     fn test_positive_returns_il() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 21_213; // 212.13%
-        let new_ul_fair_value_bps = 5_000; // 50%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(2.1213); // 212.13%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -306,19 +323,19 @@ mod tests {
     #[test]
     fn test_positive_returns_senior_imbalance() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 21_213; // 212.13%
-        let new_ul_fair_value_bps = 5_000; // 50%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(2.1213); // 212.13%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -334,19 +351,19 @@ mod tests {
     #[test]
     fn test_positive_returns_junior_imbalance() {
         let old_quantity = [1_000, 10_000];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 21_213; // 212.13%
-        let new_ul_fair_value_bps = 5_000; // 50%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(2.1213); // 212.13%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -362,19 +379,19 @@ mod tests {
     #[test]
     fn test_negative_returns_no_fees() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 14_142; // 141.42%
-        let new_ul_fair_value_bps = 5_000; // 50%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(1.4142); // 141.42%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -390,19 +407,19 @@ mod tests {
     #[test]
     fn test_negative_returns_fees() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 17_678; // 176.78%
-        let new_ul_fair_value_bps = 5_000; // 50%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(1.7678); // 176.78%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -418,19 +435,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 20_000; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 2_000; // 20%
-        let new_ul_fair_value_bps = 100; // 1%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::TWO; // 200%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(0.2); // 20%
+        let new_ul_fair_value = dec!(0.01); // 1%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -446,19 +463,19 @@ mod tests {
     #[test]
     fn test_default() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 0; // 200%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 20_000; // 200%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = Decimal::ZERO; // 0%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = Decimal::TWO; // 200%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -474,19 +491,19 @@ mod tests {
     #[test]
     fn test_lp_accrued_flat() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 40_000; // 400%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 40_000; // 400%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = dec!(4); // 400%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(4); // 400%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -502,19 +519,19 @@ mod tests {
     #[test]
     fn test_lp_accrued_positive_returns() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 40_000; // 400%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 52_000; // 520%
-        let new_ul_fair_value_bps = 10_000; // 100%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = dec!(4); // 400%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(5.2); // 520%
+        let new_ul_fair_value = Decimal::ONE; // 100%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 
@@ -530,19 +547,19 @@ mod tests {
     #[test]
     fn test_lp_accrued_negative_returns() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value_bps = 40_000; // 400%
-        let old_ul_fair_value_bps = 10_000; // 100%
-        let new_lp_fair_value_bps = 36_770; // 367.70%
-        let new_ul_fair_value_bps = 5_000; // 100%
-        let interest_split_bps = 3_000; // 30%
+        let old_lp_fair_value = dec!(4); // 400%
+        let old_ul_fair_value = Decimal::ONE; // 100%
+        let new_lp_fair_value = dec!(3.677); // 367.70%
+        let new_ul_fair_value = dec!(0.5); // 50%
+        let interest_split = dec!(0.3); // 30%
 
         let res = execute_plugin(
             old_quantity,
-            old_lp_fair_value_bps,
-            old_ul_fair_value_bps,
-            new_lp_fair_value_bps,
-            new_ul_fair_value_bps,
-            interest_split_bps,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
         )
         .unwrap();
 

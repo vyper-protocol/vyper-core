@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use vyper_math::bps::ONE_BPS;
+use rust_decimal::Decimal;
 
 use crate::errors::VyperErrorCode;
 
@@ -36,11 +36,11 @@ impl TrancheData {
         Self {
             deposited_quantity: [0; 2],
             reserve_fair_value: ReserveFairValue {
-                value: [ONE_BPS; 10],
+                value: [Decimal::ONE; 10],
                 slot_tracking: SlotTracking::new(slot),
             },
             tranche_fair_value: TrancheFairValue {
-                value: [ONE_BPS; 2],
+                value: [Decimal::ONE; 2],
                 slot_tracking: SlotTracking::new(slot),
             },
             halt_flags: 0,

@@ -150,7 +150,7 @@ pub fn handler(ctx: Context<RedeemContext>, input_data: RedeemInput) -> Result<(
     let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
     let mut total_reserve_to_redeem = 0u64;
     for i in 0..input_data.tranche_quantity.len() {
-        let cur_tranche_fv = tranche_data.tranche_fair_value.get_decimals()[i];
+        let cur_tranche_fv = tranche_data.tranche_fair_value.value[i];
         let redeemed_tranche_qty = Decimal::from(input_data.tranche_quantity[i]);
         let redeemed_reserve_qty = redeemed_tranche_qty * cur_tranche_fv;
 
