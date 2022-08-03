@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe");
+declare_id!("Fz5JL6g8itRdw4nZtYjuScJZx2JATLE5SHNm1NwW87XV");
 
 // showcasing Vyper reedem logic for vanilla options
 // supports both linear and inverse settlement (=self quanto) e.g. SOL/USDC option settled in USDC vs SOL

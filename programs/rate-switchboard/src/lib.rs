@@ -8,7 +8,7 @@ use crate::errors::RateSwitchboardErrorCode;
 use anchor_lang::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
-declare_id!("2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1");
+declare_id!("EMg9whXe9Yk1vdmEwBmEfnucRAaombxC4HW1LyRy1tWD");
 
 #[program]
 pub mod rate_switchboard {
