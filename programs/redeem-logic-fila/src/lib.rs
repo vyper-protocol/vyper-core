@@ -131,11 +131,12 @@ pub struct RedeemLogicConfig {
     pub owner: Pubkey,
 }
 
-// TODO fix len
-
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4+4+32;
+    16 + // pub strike: Decimal,
+    16 + // pub notional: Decimal,
+    32 // pub owner: Pubkey,
+    ;
 }
 
 fn execute_plugin(
