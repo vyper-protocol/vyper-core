@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use super::TrancheData;
 
+#[repr(C, align(8))]
 #[account]
 pub struct TrancheConfig {
     pub reserve_mint: Pubkey,

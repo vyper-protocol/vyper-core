@@ -7,6 +7,7 @@ use super::{
     OwnerRestrictedIxFlags, ReserveFairValue, SlotTracking, TrancheFairValue, TrancheHaltFlags,
 };
 
+#[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct TrancheData {
     /// Current deposited quantities, for senior and junior cUSDC

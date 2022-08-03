@@ -3,6 +3,7 @@ use rust_decimal::Decimal;
 
 use super::SlotTracking;
 
+#[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug, Default)]
 pub struct TrancheFairValue {
     /// tranches [senior, junior] fair values expressed in bps
