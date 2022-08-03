@@ -140,7 +140,11 @@ pub struct RedeemLogicConfig {
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    1 + 1 + 4 + 32;
+    1 + // pub is_call: bool,
+    1 + // pub is_linear: bool,
+    16 + // pub strike: Decimal,
+    32 // pub owner: Pubkey,
+    ;
 }
 
 fn execute_plugin(

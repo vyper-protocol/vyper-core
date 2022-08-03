@@ -68,7 +68,7 @@ pub struct InitializeContext<'info> {
     #[account()]
     pub authority: AccountInfo<'info>,
 
-    #[account(init, payer = signer, space = 8+4*10+8+32)]
+    #[account(init, payer = signer, space = RateState::LEN)]
     pub rate_data: Account<'info, RateState>,
 
     pub system_program: Program<'info, System>,
@@ -101,4 +101,12 @@ pub struct RateState {
     pub fair_value: [Decimal; 10],
     pub refreshed_slot: u64,
     pub authority: Pubkey,
+}
+
+impl RateState {
+    pub const LEN: usize = 8 + // discriminator
+    16*10 + // pub fair_value: [Decimal; 10],
+    8 + // pub refreshed_slot: u64,
+    32 // pub authority: Pubkey,
+    ;
 }

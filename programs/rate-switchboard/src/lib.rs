@@ -96,7 +96,7 @@ pub struct RateState {
 
 impl RateState {
     pub const LEN: usize = 8 + // discriminator
-    4*10 +      // pub fair_value: [u32; 10],
+    16*10 +     // pub fair_value: [Decimal; 10],
     8 +         // pub refreshed_slot: u64,
     10*(1+32)   // pub switchboard_aggregators: [Option<Pubkey>; 10],
     ;

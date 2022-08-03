@@ -126,7 +126,9 @@ pub struct RedeemLogicConfig {
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4+32;
+    16 + // pub interest_split: Decimal,
+    32 // pub owner: Pubkey,
+    ;
 }
 
 fn execute_plugin(
