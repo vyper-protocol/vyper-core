@@ -46,4 +46,55 @@ describe('Rate Switch Board Plugin', () => {
         expect(rateState.refreshedSlot).to.be.gt(0);
     })
 
-}); 
+    it("cannot change aggregators order", async () => {
+        await rateSwitchboardPlugin.initialize();
+
+        const tx = new anchor.web3.Transaction();
+        const instruction = await rateSwitchboardPlugin.getRefreshIX();
+        tx.add(instruction);
+        await provider.sendAndConfirm(tx);
+
+        try {
+            await rateSwitchboardPlugin.program.methods
+            .refresh()
+            .accounts({
+                rateData: rateSwitchboardPlugin.rateStateId
+            }).remainingAccounts(
+                SWITCHBOARD_AGGREGATORS.reverse().map((c) => ({
+                    pubkey: c, isSigner: false, isWritable: false}))
+            )
+            .rpc()
+
+            expect(true).to.be.eq(false);
+        } catch(err) {
+            expect(err.error.errorCode.code).to.be.eql("RequireKeysEqViolated");
+        }
+    });
+
+    it("cannot provide less aggregators", async () => {
+        await rateSwitchboardPlugin.initialize();
+
+        const tx = new anchor.web3.Transaction();
+        const instruction = await rateSwitchboardPlugin.getRefreshIX();
+        tx.add(instruction);
+        await provider.sendAndConfirm(tx);
+
+        try {
+            await rateSwitchboardPlugin.program.methods
+            .refresh()
+            .accounts({
+                rateData: rateSwitchboardPlugin.rateStateId
+            }).remainingAccounts(
+                [SWITCHBOARD_AGGREGATORS[0], SWITCHBOARD_AGGREGATORS[1]].map((c) => ({
+                    pubkey: c, isSigner: false, isWritable: false
+                }))
+            )
+            .rpc();
+
+            expect(true).to.be.eq(false);
+        } catch(err) {
+            expect(err.error.errorCode.code).to.be.eql("InvalidAggregatorsNumber");
+        }
+    }); 
+
+});

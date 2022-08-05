@@ -14,7 +14,7 @@ const SWITCHBOARD_AGGREGATORS = [
     XTZ_USD_SWITCHBOARD_AGGREGATOR,
 ];
 
-describe.only("rate_switchboard", async () => {
+describe("rate_switchboard", async () => {
     const provider = anchor.AnchorProvider.env();
 
     // Configure the client to use the local cluster.
