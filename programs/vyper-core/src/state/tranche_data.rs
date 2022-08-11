@@ -4,8 +4,7 @@ use rust_decimal_macros::dec;
 use crate::errors::VyperErrorCode;
 
 use super::{
-    DecimalWrapper, OwnerRestrictedIxFlags, ReserveFairValue, SlotTracking, TrancheFairValue,
-    TrancheHaltFlags,
+    OwnerRestrictedIxFlags, ReserveFairValue, SlotTracking, TrancheFairValue, TrancheHaltFlags,
 };
 
 #[repr(C, align(8))]
@@ -38,11 +37,11 @@ impl TrancheData {
         Self {
             deposited_quantity: [0; 2],
             reserve_fair_value: ReserveFairValue {
-                value: [DecimalWrapper::new(dec!(1)); 10],
+                value: [dec!(1).serialize(); 10],
                 slot_tracking: SlotTracking::new(slot),
             },
             tranche_fair_value: TrancheFairValue {
-                value: [DecimalWrapper::new(dec!(1)); 2],
+                value: [dec!(1).serialize(); 2],
                 slot_tracking: SlotTracking::new(slot),
             },
             halt_flags: 0,
