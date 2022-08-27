@@ -14,6 +14,8 @@ import { HaltFlags } from "./HaltFlags";
 import {UpdateTrancheConfigFlags} from "./UpdateTrancheConfigFlags"
 import { OwnerRestrictedIxFlags } from "./OwnerRestrictedIxFlags";
 import { InitializationData } from "./TrancheInitData";
+import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 export class Vyper {
 
@@ -250,6 +252,21 @@ export class Vyper {
         .instruction();
     }
 
+    async getCollectFee(
+        destinationAccount: PublicKey,
+    ){
+        return await this.program.methods
+        .collectFee()
+        .accounts({
+            trancheConfig: this.trancheId,
+            trancheAuthority: this.trancheAuthority,
+            reserve: this.reserve,
+            destReserve: destinationAccount, 
+            owner: this.provider.wallet.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        }).rpc();
+    }
+
     async getRedeemIx(
         seniorDepositAmount: number,
         juniorDepositAmount: number,
@@ -279,8 +296,9 @@ export class Vyper {
             })
             .instruction()
         );
-       
+
         return redeemIx;
     }
+
 }
 
