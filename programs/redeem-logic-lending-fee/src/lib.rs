@@ -326,7 +326,7 @@ mod tests {
         let old_quantity = [100_000; 2];
         let old_reserve = dec!(0.6); // 60%
         let new_reserve = dec!(0.75); // 75%
-        let interest_split = dec!(0.02); // 20%
+        let interest_split = dec!(0.2); // 20%
         let mgmt_fee = Decimal::ZERO; // 0%
         let perf_fee = Decimal::ZERO; // 0%
 
@@ -524,7 +524,7 @@ mod tests {
         let new_reserve = dec!(1.25); // 125%
         let interest_split = dec!(0.2); // 20%
         let mgmt_fee = dec!(0.0749); // 7.49%
-        let perf_fee = dec!(0.1); // 0.10%
+        let perf_fee = dec!(0.001); // 0.1%
 
         let res = execute_plugin(
             old_quantity,
@@ -691,7 +691,7 @@ mod tests {
         let old_reserve = dec!(0.6); // 60%
         let new_reserve = dec!(0.48); // 48%
         let interest_split = dec!(0.2); // 20%
-        let mgmt_fee = dec!(0.05); // 0.5%
+        let mgmt_fee = dec!(0.005); // 0.5%
         let perf_fee = dec!(0.0567); // 5.67%
 
         let res = execute_plugin(
