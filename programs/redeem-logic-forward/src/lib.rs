@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("BrpV1re8MshA8qskKVxcEG8zXG3vf2uLX6myeTKAyhsK");
 
 // Vyper reedem logic for forward contracts
 // supports both linear and inverse settlement (=self quanto) e.g. SOL/USDC forward settled in USDC (linear) vs SOL (inverse)
