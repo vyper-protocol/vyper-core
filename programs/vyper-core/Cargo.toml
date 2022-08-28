@@ -21,7 +21,7 @@ debug = ["anchor-lang/anchor-debug"]
 
 [dependencies]
 anchor-lang = "0.24.2"
-anchor-spl = { version = "0.24.2" }
+anchor-spl = "0.24.2"
 vyper-utils = { path = "../../libs/vyper-utils" }
 vyper-macros = { path = "../../libs/vyper-macros" }
 bitflags = "1.3"

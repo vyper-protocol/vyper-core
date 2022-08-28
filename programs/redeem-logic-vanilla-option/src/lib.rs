@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe");
+declare_id!("Fz5JL6g8itRdw4nZtYjuScJZx2JATLE5SHNm1NwW87XV");
 
 // showcasing Vyper reedem logic for vanilla options
 // supports both linear and inverse settlement (=self quanto) e.g. SOL/USDC option settled in USDC vs SOL
@@ -26,8 +26,9 @@ pub mod redeem_logic_vanilla_option {
 
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike =
-            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.strike = Decimal::from_f64(strike)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
         redeem_logic_config.is_call = is_call;
         redeem_logic_config.is_linear = is_linear;
 
@@ -43,8 +44,9 @@ pub mod redeem_logic_vanilla_option {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
-        redeem_logic_config.strike =
-            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.strike = Decimal::from_f64(strike)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
         redeem_logic_config.is_call = is_call;
         redeem_logic_config.is_linear = is_linear;
 
@@ -58,9 +60,9 @@ pub mod redeem_logic_vanilla_option {
         input_data.is_valid()?;
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value[0],
-            input_data.new_reserve_fair_value[0],
-            ctx.accounts.redeem_logic_config.strike,
+            Decimal::deserialize(input_data.old_reserve_fair_value[0]),
+            Decimal::deserialize(input_data.new_reserve_fair_value[0]),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.strike),
             ctx.accounts.redeem_logic_config.is_call,
             ctx.accounts.redeem_logic_config.is_linear,
         )?;
@@ -74,18 +76,24 @@ pub mod redeem_logic_vanilla_option {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value: [Decimal; 10],
-    pub new_reserve_fair_value: [Decimal; 10],
+    pub old_reserve_fair_value: [[u8; 16]; 10],
+    pub new_reserve_fair_value: [[u8; 16]; 10],
 }
 
 impl RedeemLogicExecuteInput {
     fn is_valid(&self) -> Result<()> {
         for r in self.old_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
         }
 
         for r in self.new_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
         }
 
         return Result::Ok(());
@@ -134,7 +142,7 @@ pub struct ExecuteContext<'info> {
 pub struct RedeemLogicConfig {
     pub is_call: bool,   // true if call, false if put
     pub is_linear: bool, // true if linear, false if inverse
-    pub strike: Decimal,
+    pub strike: [u8; 16],
     pub owner: Pubkey,
 }
 
@@ -142,7 +150,11 @@ pub struct RedeemLogicConfig {
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    1 + 1 + 4 + 32;
+    1 + // pub is_call: bool,
+    1 + // pub is_linear: bool,
+    16 + // pub strike: [u8; 16],
+    32 // pub owner: Pubkey,
+    ;
 }
 
 fn execute_plugin(

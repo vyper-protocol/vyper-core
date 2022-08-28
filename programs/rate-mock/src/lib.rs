@@ -3,14 +3,14 @@ pub mod errors;
 use crate::errors::RateMockErrorCode;
 
 use anchor_lang::prelude::*;
+use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 declare_id!("FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG");
 
 #[program]
 pub mod rate_mock {
-
-    use rust_decimal::prelude::FromPrimitive;
 
     use super::*;
 
@@ -19,7 +19,7 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value = [Decimal::ONE; 10];
+        rate_data.fair_value = [dec!(1).serialize(); 10];
         rate_data.refreshed_slot = clock.slot;
         rate_data.authority = ctx.accounts.authority.key();
 
@@ -35,8 +35,9 @@ pub mod rate_mock {
 
         let clock = Clock::get()?;
         let rate_data = &mut ctx.accounts.rate_data;
-        rate_data.fair_value[0] =
-            Decimal::from_f64(fair_value).ok_or(RateMockErrorCode::MathError)?;
+        rate_data.fair_value[0] = Decimal::from_f64(fair_value)
+            .ok_or(RateMockErrorCode::MathError)?
+            .serialize();
         rate_data.refreshed_slot = clock.slot;
 
         msg!("rate_data.fair_value: {:?}", rate_data.fair_value);
@@ -68,7 +69,7 @@ pub struct InitializeContext<'info> {
     #[account()]
     pub authority: AccountInfo<'info>,
 
-    #[account(init, payer = signer, space = 8+4*10+8+32)]
+    #[account(init, payer = signer, space = RateState::LEN)]
     pub rate_data: Account<'info, RateState>,
 
     pub system_program: Program<'info, System>,
@@ -98,7 +99,15 @@ pub struct RefreshRateContext<'info> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [Decimal; 10],
+    pub fair_value: [[u8; 16]; 10],
     pub refreshed_slot: u64,
     pub authority: Pubkey,
+}
+
+impl RateState {
+    pub const LEN: usize = 8 + // discriminator
+    16*10 + // pub fair_value: [[u8; 16]; 10],
+    8 + // pub refreshed_slot: u64,
+    32 // pub authority: Pubkey,
+    ;
 }

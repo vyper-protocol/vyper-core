@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 use crate::errors::VyperErrorCode;
 
@@ -7,6 +7,7 @@ use super::{
     OwnerRestrictedIxFlags, ReserveFairValue, SlotTracking, TrancheFairValue, TrancheHaltFlags,
 };
 
+#[repr(C, align(8))]
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
 pub struct TrancheData {
     /// Current deposited quantities, for senior and junior cUSDC
@@ -36,11 +37,11 @@ impl TrancheData {
         Self {
             deposited_quantity: [0; 2],
             reserve_fair_value: ReserveFairValue {
-                value: [Decimal::ONE; 10],
+                value: [dec!(1).serialize(); 10],
                 slot_tracking: SlotTracking::new(slot),
             },
             tranche_fair_value: TrancheFairValue {
-                value: [Decimal::ONE; 2],
+                value: [dec!(1).serialize(); 2],
                 slot_tracking: SlotTracking::new(slot),
             },
             halt_flags: 0,

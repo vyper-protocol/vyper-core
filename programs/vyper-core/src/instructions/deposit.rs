@@ -164,11 +164,11 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
 
     let mut mint_count: [u64; 2] = [0; 2];
     for i in 0..mint_count.len() {
-        let tranche_fv = ctx.accounts
+        let tranche_fv = Decimal::deserialize(ctx.accounts
                 .tranche_config
                 .tranche_data
                 .tranche_fair_value
-                .value[i];
+                .value[i]);
         let dep_qty = Decimal::from(input_data.reserve_quantity[i]);
 
         msg!("tranche_fv: {}", tranche_fv);

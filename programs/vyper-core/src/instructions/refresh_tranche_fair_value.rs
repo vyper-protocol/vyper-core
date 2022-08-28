@@ -139,7 +139,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("senior supply: {:?}", supply);
             msg!("senior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[0] = fair_value;
+        tranche_data.tranche_fair_value.value[0] = fair_value.serialize();
     }
     if ctx.accounts.junior_tranche_mint.supply > 0 {
         let dep_qty = Decimal::from(tranche_data.deposited_quantity[1]);
@@ -151,7 +151,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
             msg!("junior supply: {:?}", supply);
             msg!("junior fair value: {:?}", fair_value);
         }
-        tranche_data.tranche_fair_value.value[1] = fair_value;
+        tranche_data.tranche_fair_value.value[1] = fair_value.serialize();
     }
     msg!(
         "tranche fair value: {:?}",
@@ -174,7 +174,7 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
 
 #[account]
 pub struct RateState {
-    pub fair_value: [Decimal; 10],
+    pub fair_value: [[u8; 16]; 10],
     pub refreshed_slot: u64,
 }
 
