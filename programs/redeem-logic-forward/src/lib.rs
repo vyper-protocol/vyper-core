@@ -138,15 +138,15 @@ pub struct ExecuteContext<'info> {
 #[account]
 pub struct RedeemLogicConfig {
     pub notional: u64,
-    pub is_linear: bool, // true if linear, false if inverse
-    // TODO double check array size
+    /// true if linear, false if inverse
+    pub is_linear: bool,
     pub strike: [u8; 16],
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4 + // pub notional: u64,
+    8 + // pub notional: u64,
     1 + // pub is_linear: bool,
     16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
@@ -162,8 +162,6 @@ fn execute_plugin(
 ) -> Result<RedeemLogicExecuteResult> {
     require!(new_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
     require!(strike >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-
-    // TODO: CHECK OVERFLOW
 
     if new_spot == Decimal::ZERO && !is_linear && strike > Decimal::ZERO {
         return Ok(RedeemLogicExecuteResult {
