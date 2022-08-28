@@ -10,38 +10,36 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 // junior ([1]) is IL payer (i.e. providing IL protection), receives the premium (senior_qty) at expiry and any residual collateral
 // collateral should be the quote asset, e.g. USDC for SOL/USDC (i.e. no quanto)
 // fully collateralized payoff, which amounts to the IL protection being active only in a range around the strike, see link above for more details
-// notional is in base asset (e.g. SOL for SOL/USDC) and the equivalent USDC (determined by the strike)
+// notional is in base asset (e.g. SOL for SOL/USDC) and the equivalent USDC (determined by the strike). It can be converted to notional_quote as  notional_quote = 2 * notional * spot_price
 
 #[program]
 pub mod redeem_logic_fila {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, strike: f64, notional: f64) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeContext>, strike: f64, notional: u64) -> Result<()> {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
-        require!(notional >= 0., RedeemLogicErrors::InvalidInput);
 
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike =
-            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.notional =
-            Decimal::from_f64(notional).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.strike = Decimal::from_f64(strike)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.notional = notional;
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, strike: f64, notional: f64) -> Result<()> {
+    pub fn update(ctx: Context<UpdateContext>, strike: f64, notional: u64) -> Result<()> {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
-        require!(notional >= 0., RedeemLogicErrors::InvalidInput);
 
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        redeem_logic_config.strike =
-            Decimal::from_f64(strike).ok_or(RedeemLogicErrors::MathError)?;
-        redeem_logic_config.notional =
-            Decimal::from_f64(notional).ok_or(RedeemLogicErrors::MathError)?;
+        redeem_logic_config.strike = Decimal::from_f64(strike)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.notional = notional;
 
         Ok(())
     }
@@ -54,8 +52,8 @@ pub mod redeem_logic_fila {
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             // input_data.old_reserve_fair_value[0],
-            input_data.new_reserve_fair_value[0],
-            ctx.accounts.redeem_logic_config.strike,
+            Decimal::deserialize(input_data.new_reserve_fair_value[0]),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.strike),
             ctx.accounts.redeem_logic_config.notional,
         )?;
 
@@ -68,18 +66,24 @@ pub mod redeem_logic_fila {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value: [Decimal; 10],
-    pub new_reserve_fair_value: [Decimal; 10],
+    pub old_reserve_fair_value: [[u8; 16]; 10],
+    pub new_reserve_fair_value: [[u8; 16]; 10],
 }
 
 impl RedeemLogicExecuteInput {
     fn is_valid(&self) -> Result<()> {
         for r in self.old_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
         }
 
         for r in self.new_reserve_fair_value {
-            require!(r >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
         }
 
         return Result::Ok(());
@@ -126,34 +130,31 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub strike: Decimal,
-    pub notional: Decimal,
+    pub notional: u64,
+    pub strike: [u8; 16],
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    16 + // pub strike: Decimal,
-    16 + // pub notional: Decimal,
+    8 + // pub notional: u64,
+    16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
     ;
 }
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    // old_spot: Decimal,
     new_spot: Decimal,
     strike: Decimal,
-    notional: Decimal,
+    notional: u64,
 ) -> Result<RedeemLogicExecuteResult> {
-    // TODO check overflow
-
     require!(new_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
     require!(strike >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-    require!(notional >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
 
     let junior_old_quantity = Decimal::from(old_quantity[1]);
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
+    let notional = Decimal::from(notional);
 
     let payoff = strike + new_spot - Decimal::TWO * (new_spot * strike).sqrt().unwrap();
 
@@ -188,7 +189,7 @@ mod tests {
         let old_quantity = [100_000; 2];
         let new_spot_value = dec!(1);
         let strike = dec!(1);
-        let notional = dec!(1);
+        let notional = 1;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -206,7 +207,7 @@ mod tests {
         let old_quantity = [100_000; 2];
         let new_spot_value = dec!(50);
         let strike = dec!(100);
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -224,7 +225,7 @@ mod tests {
         let old_quantity = [100_000; 2];
         let new_spot_value = dec!(150);
         let strike = dec!(100);
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -242,7 +243,7 @@ mod tests {
         let old_quantity = [100_000, 10_000];
         let new_spot_value = dec!(46.75);
         let strike = dec!(100);
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -260,7 +261,7 @@ mod tests {
         let old_quantity = [100_000, 10_000];
         let new_spot_value = dec!(173.25);
         let strike = dec!(100);
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -278,7 +279,7 @@ mod tests {
         let old_quantity = [100_000, 10_000];
         let new_spot_value = Decimal::ZERO;
         let strike = dec!(100);
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
@@ -296,7 +297,7 @@ mod tests {
         let old_quantity = [100_000; 2];
         let new_spot_value = dec!(50);
         let strike = Decimal::ZERO;
-        let notional = dec!(1_000);
+        let notional = 1_000;
 
         let res = execute_plugin(old_quantity, new_spot_value, strike, notional).unwrap();
 
