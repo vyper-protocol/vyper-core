@@ -140,13 +140,15 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub is_call: bool,   // true if call, false if put
-    pub is_linear: bool, // true if linear, false if inverse
+    /// true if call, false if put
+    pub is_call: bool,
+
+    /// true if linear, false if inverse
+    pub is_linear: bool,
+
     pub strike: [u8; 16],
     pub owner: Pubkey,
 }
-
-// TODO fix len
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
@@ -168,8 +170,6 @@ fn execute_plugin(
     require!(old_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
     require!(new_spot >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
     require!(strike >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
-
-    // TODO: CHECK OVERFLOW
 
     if old_spot == Decimal::ZERO {
         return Ok(RedeemLogicExecuteResult {
