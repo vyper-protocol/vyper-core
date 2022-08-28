@@ -963,6 +963,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redeem-logic-forward"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "vyper-macros",
+ "vyper-utils",
+]
+
+[[package]]
 name = "redeem-logic-lending"
 version = "0.1.0"
 dependencies = [

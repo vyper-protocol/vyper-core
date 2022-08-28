@@ -18,14 +18,16 @@ Following the Vyper suite
 
 ## Solana Programs
 
-| Name                            | Type                | Version | Path                                |
-| ------------------------------- | ------------------- | ------- | ----------------------------------- |
-| **Vyper Core**                  | Core Primitive      | `0.1.0` | `programs/vyper-core`               |
-| **Rate Mock**                   | Rate Plugin         | `0.1.0` | `programs/rate-mock`                |
-| **Redeem Logic Lending**        | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending`     |
-| **Redeem Logic Lending Fee**    | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending-fee` |
-| **Redeem Logic Farming**        | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-farming`     |
-| **Redeem Logic Vanilla Option** | Redeem Logic Plugin | `0.1.0` | `programs/redeem-vanilla-option`    |
+| Name                            | Type                | Version | Path                                    |
+| ------------------------------- | ------------------- | ------- | -----------------------------------     |
+| **Vyper Core**                  | Core Primitive      | `0.1.0` | `programs/vyper-core`                   |
+| **Rate Mock**                   | Rate Plugin         | `0.1.0` | `programs/rate-mock`                    |
+| **Rate Switchboard**            | Rate Plugin         | `0.1.0` | `programs/rate-switchboard`             |
+| **Redeem Logic Lending**        | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending`         |
+| **Redeem Logic Lending Fee**    | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending-fee`     |
+| **Redeem Logic Farming**        | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-farming`         |
+| **Redeem Logic Vanilla Option** | Redeem Logic Plugin | `0.1.0` | `programs/redeem--logic-vanilla-option` |
+| **Redeem Logic Forward**        | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-forward`         |
 
 ## Rust Libraries
 
