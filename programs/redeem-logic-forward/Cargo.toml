@@ -1,12 +1,12 @@
 [package]
-name = "redeem-logic-vanilla-option"
+name = "redeem-logic-forward"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "redeem_logic_vanilla_option"
+name = "redeem_logic_forward"
 
 [features]
 no-entrypoint = []
@@ -21,4 +21,3 @@ rust_decimal = { version="1.24", features=[ "maths", "borsh"] }
 rust_decimal_macros = "1.24"
 vyper-utils = { path = "../../libs/vyper-utils" }
 vyper-macros = { path = "../../libs/vyper-macros" }
-

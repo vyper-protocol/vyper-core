@@ -18,6 +18,9 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 # redeem logic vanilla option
 # anchor deploy -p redeem-logic-vanilla-option --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
+# redeem logic forward
+# anchor deploy -p redeem-logic-forward --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+
 # # # # # # # # # # # # # # # # # # 
 # RECOVERY
 # # # # # # # # # # # # # # # # # # 

@@ -1,6 +1,7 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { getAccount, getMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { RustDecimalWrapper } from "@vyper-protocol/rust-decimal-wrapper";
 import { assert, expect } from "chai";
 import { OwnerRestrictedIxFlags } from "../sdk/src/OwnerRestrictedIxFlags";
 import { RateMock } from "../target/types/rate_mock";
@@ -21,7 +22,7 @@ import {
     UPDATE_TRANCHE_CONFIG_FLAGS,
 } from "./utils";
 
-describe("vyper_core", async () => {
+describe("vyper_core", () => {
     const provider = anchor.AnchorProvider.env();
     // Configure the client to use the local cluster.
     anchor.setProvider(provider);
@@ -39,7 +40,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000);
+        await redeemLogic.initialize(0.5);
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -53,14 +54,23 @@ describe("vyper_core", async () => {
         expect(trancheConfigAccount.trancheData.haltFlags).to.eql(0);
         expect(trancheConfigAccount.trancheData.ownerRestrictedIx).to.eql(0);
         expect(trancheConfigAccount.trancheData.depositedQuantity.map((c) => c.toNumber())).to.eql([0, 0]);
-        //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value).to.eql(Array(10).fill(10000));
+
+        expect(
+            //@ts-expect-error
+            trancheConfigAccount.trancheData.reserveFairValue.value.map((c) =>
+                new RustDecimalWrapper(new Uint8Array(c)).toNumber()
+            )
+        ).to.eql(Array(10).fill(1));
         expect(
             //@ts-expect-error
             trancheConfigAccount.trancheData.reserveFairValue.slotTracking.lastUpdate.slot.toNumber()
         ).to.greaterThan(0);
-        //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+        expect(
+            //@ts-expect-error
+            trancheConfigAccount.trancheData.trancheFairValue.value.map((c) =>
+                new RustDecimalWrapper(new Uint8Array(c)).toNumber()
+            )
+        ).to.eql(Array(2).fill(1));
         expect(
             //@ts-expect-error
             trancheConfigAccount.trancheData.trancheFairValue.slotTracking.lastUpdate.slot.toNumber()
@@ -101,7 +111,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000, 15); // with fee
+        await redeemLogic.initialize(0.5, 15); // with fee
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -347,7 +357,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000);
+        await redeemLogic.initialize(0.5);
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -357,15 +367,23 @@ describe("vyper_core", async () => {
             redeemLogic.state
         );
 
-        await rateMock.setFairValue(1500);
+        await rateMock.setFairValue(1.5);
         await vyper.refreshTrancheFairValue();
 
         const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(vyper.trancheConfig);
 
-        //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.reserveFairValue.value[0]).to.eq(1500);
-        //@ts-expect-error
-        expect(trancheConfigAccount.trancheData.trancheFairValue.value).to.eql([10000, 10000]);
+        expect(
+            new RustDecimalWrapper(
+                //@ts-expect-error
+                new Uint8Array(trancheConfigAccount.trancheData.reserveFairValue.value[0])
+            ).toNumber()
+        ).to.eq(1.5);
+        expect(
+            //@ts-expect-error
+            trancheConfigAccount.trancheData.trancheFairValue.value.map((c) =>
+                new RustDecimalWrapper(new Uint8Array(c)).toNumber()
+            )
+        ).to.eql(Array(2).fill(1));
     });
 
     it("deposit with reserve fair value 1", async () => {
@@ -382,7 +400,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000);
+        await redeemLogic.initialize(0.5);
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -441,7 +459,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000);
+        await redeemLogic.initialize(0.5);
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -451,7 +469,7 @@ describe("vyper_core", async () => {
             redeemLogic.state
         );
 
-        await rateMock.setFairValue(10000);
+        await rateMock.setFairValue(1);
 
         const seniorTrancheTokenAccount = await createTokenAccount(
             provider,
@@ -499,7 +517,7 @@ describe("vyper_core", async () => {
         let vyper = Vyper.create(programVyperCore, provider);
 
         await rateMock.initialize();
-        await redeemLogic.initialize(5000);
+        await redeemLogic.initialize(0.5);
         await vyper.initialize(
             { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
             reserveMint,
@@ -509,7 +527,7 @@ describe("vyper_core", async () => {
             redeemLogic.state
         );
 
-        await rateMock.setFairValue(1000);
+        await rateMock.setFairValue(1);
 
         const seniorTrancheTokenAccount = await createTokenAccount(
             provider,
