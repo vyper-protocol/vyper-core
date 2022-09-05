@@ -17,7 +17,7 @@ security_txt! {
     policy: "https://github.com/vyper-protocol/blob/master/SECURITY.md"
 }
 
-declare_id!("mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U");
+declare_id!("vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp");
 
 #[program]
 pub mod vyper_core {

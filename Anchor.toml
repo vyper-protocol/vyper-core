@@ -2,7 +2,7 @@
 seeds = false
 
 [programs.localnet]
-vyper_core = "mb9NrZKiC3ZYUutgGhXwwkAL6Jkvmu5WLDbxWRZ8L9U"
+vyper_core = "vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp"
 rate_mock = "FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG"
 rate_switchboard = "2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1"
 redeem_logic_lending = "Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA"
