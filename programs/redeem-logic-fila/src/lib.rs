@@ -49,6 +49,8 @@ pub mod redeem_logic_fila {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             // input_data.old_reserve_fair_value[0],
@@ -141,6 +143,12 @@ impl RedeemLogicConfig {
     16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!("redeem logic config:");
+        msg!("+ notional: {:?}", self.notional);
+        msg!("+ strike: {:?}", Decimal::deserialize(self.strike))
+    }
 }
 
 fn execute_plugin(

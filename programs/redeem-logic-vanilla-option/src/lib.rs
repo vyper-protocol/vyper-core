@@ -58,6 +58,8 @@ pub mod redeem_logic_vanilla_option {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             Decimal::deserialize(input_data.old_reserve_fair_value[0]),
@@ -157,6 +159,13 @@ impl RedeemLogicConfig {
     16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!("redeem logic config:");
+        msg!("+ is_call: {:?}", self.is_call);
+        msg!("+ is_linear: {:?}", self.is_linear);
+        msg!("+ strike: {:?}", Decimal::deserialize(self.strike))
+    }
 }
 
 fn execute_plugin(

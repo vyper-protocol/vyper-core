@@ -75,6 +75,8 @@ pub mod redeem_logic_lending_fee {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             Decimal::deserialize(input_data.old_reserve_fair_value[0]),
@@ -170,6 +172,16 @@ impl RedeemLogicConfig {
     16 + // pub perf_fee: DecimalWrapper,
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!("redeem logic config:");
+        msg!(
+            "+ interest_split: {:?}",
+            Decimal::deserialize(self.interest_split)
+        );
+        msg!("+ mgmt_fee: {:?}", Decimal::deserialize(self.mgmt_fee));
+        msg!("+ perf_fee: {:?}", Decimal::deserialize(self.perf_fee))
+    }
 }
 
 fn execute_plugin(
