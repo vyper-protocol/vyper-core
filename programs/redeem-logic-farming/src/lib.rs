@@ -171,19 +171,8 @@ fn execute_plugin(
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
 
     // half of LP token is quote ccy
-    // let lp_delta = (new_ul_fair_value - old_ul_fair_value)
-    //     * old_lp_fair_value
-    //     * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?
-    //     / old_ul_fair_value;
-    // let lp_il = Decimal::TWO
-    //     * (old_ul_fair_value * new_ul_fair_value)
-    //         .sqrt()
-    //         .ok_or(RedeemLogicErrors::MathError)?
-    //     - old_ul_fair_value
-    //     - new_ul_fair_value;
-
     let base_in_lp = old_lp_fair_value / old_ul_fair_value
-        * Decimal::from_f64_retain(0.5f64).ok_or(RedeemLogicErrors::MathError)?;
+        * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?;
     let lp_delta = base_in_lp * (new_ul_fair_value - old_ul_fair_value);
     let lp_il = base_in_lp
         * (Decimal::TWO
