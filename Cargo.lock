@@ -977,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "rate-mock"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -997,7 +997,7 @@ dependencies = [
 
 [[package]]
 name = "rate-switchboard"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1008,7 +1008,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-farming"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1019,7 +1019,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-fila"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1030,7 +1030,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-forward"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1041,7 +1041,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-lending"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1052,7 +1052,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-lending-fee"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1063,7 +1063,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-vanilla-option"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
