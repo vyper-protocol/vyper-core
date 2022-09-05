@@ -145,9 +145,20 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
     // check if input is valid
     msg!("check if input is valid");
     input_data.is_valid()?;
+    
+    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
+
+    // check if deposits exceeded cap
+    msg!("check deposit cap");
+    for i in 0..input_data.reserve_quantity.len() {
+        if let Some(deposit_cap) = tranche_data.deposit_cap[i] {
+            if tranche_data.deposited_quantity[i] + input_data.reserve_quantity[i] > deposit_cap {
+                return err!(VyperErrorCode::DepositExceededCap);
+            }
+        }    
+    }
 
     // increase deposited_quantity
-    let tranche_data = &mut ctx.accounts.tranche_config.tranche_data;
     for i in 0..input_data.reserve_quantity.len() {
         tranche_data.deposited_quantity[i] = tranche_data.deposited_quantity[i]
             .checked_add(input_data.reserve_quantity[i])

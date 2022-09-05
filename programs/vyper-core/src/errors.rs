@@ -34,4 +34,7 @@ pub enum VyperErrorCode {
 
     #[msg("bitmask value provided can't be converted")]
     InvalidBitmask,
+
+    #[msg("current deposit exceeded cap")]
+    DepositExceededCap,
 }
