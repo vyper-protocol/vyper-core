@@ -147,11 +147,12 @@ impl RedeemLogicConfig {
     ;
 
     fn dump(&self) {
+        msg!("redeem logic config:");
         msg!(
-            "interest_split: {:?}",
+            "+ interest_split: {:?}",
             Decimal::deserialize(self.interest_split)
         );
-        msg!("fixed_fee_per_tranche: {:?}", self.fixed_fee_per_tranche);
+        msg!("+ fixed_fee_per_tranche: {:?}", self.fixed_fee_per_tranche);
     }
 }
 

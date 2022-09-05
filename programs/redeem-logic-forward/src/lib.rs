@@ -157,9 +157,10 @@ impl RedeemLogicConfig {
     ;
 
     fn dump(&self) {
-        msg!("notional: {:?}", self.notional);
-        msg!("is_linear: {:?}", self.is_linear);
-        msg!("strike: {:?}", Decimal::deserialize(self.strike))
+        msg!("redeem logic config:");
+        msg!("+ notional: {:?}", self.notional);
+        msg!("+ is_linear: {:?}", self.is_linear);
+        msg!("+ strike: {:?}", Decimal::deserialize(self.strike))
     }
 }
 
