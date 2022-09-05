@@ -51,6 +51,7 @@ pub mod redeem_logic_lending {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
 
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
@@ -144,6 +145,14 @@ impl RedeemLogicConfig {
     8 + // pub fixed_fee_per_tranche: u64,
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!(
+            "interest_split: {:?}",
+            Decimal::deserialize(self.interest_split)
+        );
+        msg!("fixed_fee_per_tranche: {:?}", self.fixed_fee_per_tranche);
+    }
 }
 
 fn execute_plugin(

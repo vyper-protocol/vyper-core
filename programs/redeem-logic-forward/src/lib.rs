@@ -56,6 +56,8 @@ pub mod redeem_logic_forward {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
+
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
             Decimal::deserialize(input_data.new_reserve_fair_value[0]),
@@ -138,8 +140,10 @@ pub struct ExecuteContext<'info> {
 #[account]
 pub struct RedeemLogicConfig {
     pub notional: u64,
+
     /// true if linear, false if inverse
     pub is_linear: bool,
+
     pub strike: [u8; 16],
     pub owner: Pubkey,
 }
@@ -151,6 +155,12 @@ impl RedeemLogicConfig {
     16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!("notional: {:?}", self.notional);
+        msg!("is_linear: {:?}", self.is_linear);
+        msg!("strike: {:?}", Decimal::deserialize(self.strike))
+    }
 }
 
 fn execute_plugin(
