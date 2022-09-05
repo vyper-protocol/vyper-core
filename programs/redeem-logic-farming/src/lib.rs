@@ -132,7 +132,7 @@ pub struct RedeemLogicConfig {
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    16 + // pub interest_split: Decimal,
+    16 + // pub interest_split: [u8; 16],
     32 // pub owner: Pubkey,
     ;
 }
@@ -171,16 +171,28 @@ fn execute_plugin(
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
 
     // half of LP token is quote ccy
-    let lp_delta = (new_ul_fair_value - old_ul_fair_value)
-        * old_lp_fair_value
-        * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?
-        / old_ul_fair_value;
-    let lp_il = Decimal::from(2u64)
-        * (old_ul_fair_value * new_ul_fair_value)
-            .sqrt()
-            .ok_or(RedeemLogicErrors::MathError)?
-        - old_ul_fair_value
-        - new_ul_fair_value;
+    // let lp_delta = (new_ul_fair_value - old_ul_fair_value)
+    //     * old_lp_fair_value
+    //     * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?
+    //     / old_ul_fair_value;
+    // let lp_il = Decimal::TWO
+    //     * (old_ul_fair_value * new_ul_fair_value)
+    //         .sqrt()
+    //         .ok_or(RedeemLogicErrors::MathError)?
+    //     - old_ul_fair_value
+    //     - new_ul_fair_value;
+
+    let base_in_lp = old_lp_fair_value / old_ul_fair_value
+        * Decimal::from_f64_retain(0.5f64).ok_or(RedeemLogicErrors::MathError)?;
+    let lp_delta = base_in_lp * (new_ul_fair_value - old_ul_fair_value);
+    let lp_il = base_in_lp
+        * (Decimal::TWO
+            * (old_ul_fair_value * new_ul_fair_value)
+                .sqrt()
+                .ok_or(RedeemLogicErrors::MathError)?
+            - old_ul_fair_value
+            - new_ul_fair_value);
+
     let lp_no_accrued = old_lp_fair_value + lp_delta + lp_il;
 
     let accrued = Decimal::ZERO.max(new_lp_fair_value - lp_no_accrued);
@@ -213,16 +225,14 @@ mod tests {
 
     use rust_decimal_macros::dec;
 
-    // TODO check errors
-
     #[test]
     fn test_flat_returns() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = Decimal::TWO; // 200%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = Decimal::ZERO; // 0%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = Decimal::TWO;
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = Decimal::ZERO;
 
         let res = execute_plugin(
             old_quantity,
@@ -246,11 +256,11 @@ mod tests {
     #[test]
     fn test_positive_returns_no_il() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(3); // 300%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(3);
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -274,11 +284,11 @@ mod tests {
     #[test]
     fn test_positive_returns_no_il_rounding() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(3); // 300%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = dec!(0.25); // 25%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(3);
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = dec!(0.25);
 
         let res = execute_plugin(
             old_quantity,
@@ -302,11 +312,11 @@ mod tests {
     #[test]
     fn test_positive_returns_il() {
         let old_quantity = [10_000; 2];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(2.1213); // 212.13%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(2.1213);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -330,11 +340,11 @@ mod tests {
     #[test]
     fn test_positive_returns_senior_imbalance() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(2.1213); // 212.13%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(2.1213);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -358,11 +368,11 @@ mod tests {
     #[test]
     fn test_positive_returns_junior_imbalance() {
         let old_quantity = [1_000, 10_000];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(2.1213); // 212.13%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(2.1213);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -386,11 +396,11 @@ mod tests {
     #[test]
     fn test_negative_returns_no_fees() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(1.4142); // 141.42%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(1.4142);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -403,7 +413,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(res.new_quantity[0], 10_606);
-        assert_eq!(res.new_quantity[1], 0_393);
+        assert_eq!(res.new_quantity[1], 393);
         assert_eq!(res.fee_quantity, 1);
         assert_eq!(
             old_quantity.iter().sum::<u64>(),
@@ -414,11 +424,11 @@ mod tests {
     #[test]
     fn test_negative_returns_fees() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(1.7678); // 176.78%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(1.7678);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -442,11 +452,11 @@ mod tests {
     #[test]
     fn test_junior_wipeout() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = Decimal::TWO; // 200%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(0.2); // 20%
-        let new_ul_fair_value = dec!(0.01); // 1%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::TWO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(0.2);
+        let new_ul_fair_value = dec!(0.01);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -470,11 +480,11 @@ mod tests {
     #[test]
     fn test_default() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = Decimal::ZERO; // 0%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = Decimal::TWO; // 200%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = Decimal::ZERO;
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = Decimal::TWO;
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -498,11 +508,11 @@ mod tests {
     #[test]
     fn test_lp_accrued_flat() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = dec!(4); // 400%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(4); // 400%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(4);
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -526,11 +536,11 @@ mod tests {
     #[test]
     fn test_lp_accrued_positive_returns() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = dec!(4); // 400%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(5.2); // 520%
-        let new_ul_fair_value = Decimal::ONE; // 100%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(5.2);
+        let new_ul_fair_value = Decimal::ONE;
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -554,11 +564,11 @@ mod tests {
     #[test]
     fn test_lp_accrued_negative_returns() {
         let old_quantity = [10_000, 1_000];
-        let old_lp_fair_value = dec!(4); // 400%
-        let old_ul_fair_value = Decimal::ONE; // 100%
-        let new_lp_fair_value = dec!(3.677); // 367.70%
-        let new_ul_fair_value = dec!(0.5); // 50%
-        let interest_split = dec!(0.3); // 30%
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(3.677);
+        let new_ul_fair_value = dec!(0.5);
+        let interest_split = dec!(0.3);
 
         let res = execute_plugin(
             old_quantity,
@@ -570,8 +580,8 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(res.new_quantity[0], 9_610);
-        assert_eq!(res.new_quantity[1], 1_389);
+        assert_eq!(res.new_quantity[0], 9_774);
+        assert_eq!(res.new_quantity[1], 1_225);
         assert_eq!(res.fee_quantity, 1);
         assert_eq!(
             old_quantity.iter().sum::<u64>(),
