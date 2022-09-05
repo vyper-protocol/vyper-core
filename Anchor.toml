@@ -4,7 +4,7 @@ seeds = false
 [programs.localnet]
 vyper_core = "vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp"
 rate_mock = "FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG"
-rate_switchboard = "EMg9whXe9Yk1vdmEwBmEfnucRAaombxC4HW1LyRy1tWD"
+rate_switchboard = "2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1"
 rate_pyth = "3mxtC2cGVhHucUg4p58MVzVqUKLyiy1zWqRkRQdgUBPT"
 redeem_logic_farming = "Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN"
 redeem_logic_fila = "9pPodGZL2EWjkj3c7yWjfWrVDfn8Jxss9tEXTEmKLTmM"
