@@ -43,6 +43,7 @@ pub mod redeem_logic_farming {
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
         input_data.is_valid()?;
+        ctx.accounts.redeem_logic_config.dump();
 
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
@@ -135,6 +136,14 @@ impl RedeemLogicConfig {
     16 + // pub interest_split: [u8; 16],
     32 // pub owner: Pubkey,
     ;
+
+    fn dump(&self) {
+        msg!("redeem logic config:");
+        msg!(
+            "+ interest_split: {:?}",
+            Decimal::deserialize(self.interest_split)
+        )
+    }
 }
 
 fn execute_plugin(
