@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("9pPodGZL2EWjkj3c7yWjfWrVDfn8Jxss9tEXTEmKLTmM");
 
 // payoff for a Forward Impermanent Loss Agreement
 // for payoff derivation see: https://heremitas.notion.site/FILA-a-new-hedge-for-impermanent-loss-91531343bda7420c8082fc9a98202074
