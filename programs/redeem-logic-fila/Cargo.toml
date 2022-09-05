@@ -15,9 +15,6 @@ no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = []
 
-[profile.release]
-overflow-checks = true
-
 [dependencies]
 anchor-lang = "0.24.2"
 rust_decimal = { version = "1.24", features=["maths", "borsh"] }
