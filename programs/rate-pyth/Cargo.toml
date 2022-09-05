@@ -1,12 +1,12 @@
 [package]
-name = "redeem-logic-fila"
+name = "rate-pyth"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "redeem_logic_fila"
+name = "rate_pyth"
 
 [features]
 no-entrypoint = []
@@ -17,7 +17,6 @@ default = []
 
 [dependencies]
 anchor-lang = "0.24.2"
-rust_decimal = { version = "1.24", features=["maths", "borsh"] }
+pyth-sdk-solana = "0.6.1"
+rust_decimal = { version="1.24", features=["maths", "borsh"] }
 rust_decimal_macros = "1.24"
-vyper-utils = { path = "../../libs/vyper-utils" }
-vyper-macros = { path = "../../libs/vyper-macros" }
