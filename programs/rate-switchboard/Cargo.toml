@@ -18,6 +18,6 @@ default = []
 [dependencies]
 anchor-lang = "0.24.2"
 switchboard-v2 = "^0.1.11"
-rust_decimal = "1.24"
+rust_decimal = { version="1.24", features=["borsh"] }
 rust_decimal_macros = "1.24"
-vyper-math  = { path = "../../libs/vyper-math" }
+vyper-utils = { path = "../../libs/vyper-utils" }

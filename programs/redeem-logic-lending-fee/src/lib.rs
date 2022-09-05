@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
-use vyper_math::bps::{from_bps, BpsRangeValue};
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS");
@@ -12,41 +11,61 @@ pub mod redeem_logic_lending_fee {
 
     pub fn initialize(
         ctx: Context<InitializeContext>,
-        interest_split: u32,
-        mgmt_fee: u32,
-        perf_fee: u32,
+        interest_split: f64,
+        mgmt_fee: f64,
+        perf_fee: f64,
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split =
-            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
-        let mgmt_fee = BpsRangeValue::new(mgmt_fee).map_err(|_| RedeemLogicErrors::MathError)?;
-        let perf_fee = BpsRangeValue::new(perf_fee).map_err(|_| RedeemLogicErrors::MathError)?;
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
+
+        require!(mgmt_fee >= 0., RedeemLogicErrors::InvalidInput);
+        require!(mgmt_fee <= 1., RedeemLogicErrors::InvalidInput);
+
+        require!(perf_fee >= 0., RedeemLogicErrors::InvalidInput);
+        require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
 
         redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = interest_split.get();
-        redeem_logic_config.mgmt_fee = mgmt_fee.get();
-        redeem_logic_config.perf_fee = perf_fee.get();
+        redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.mgmt_fee = Decimal::from_f64(mgmt_fee)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.perf_fee = Decimal::from_f64(perf_fee)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
 
         Ok(())
     }
 
     pub fn update(
         ctx: Context<UpdateContext>,
-        interest_split: u32,
-        mgmt_fee: u32,
-        perf_fee: u32,
+        interest_split: f64,
+        mgmt_fee: f64,
+        perf_fee: f64,
     ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
-        let interest_split =
-            BpsRangeValue::new(interest_split).map_err(|_| RedeemLogicErrors::MathError)?;
-        let mgmt_fee = BpsRangeValue::new(mgmt_fee).map_err(|_| RedeemLogicErrors::MathError)?;
-        let perf_fee = BpsRangeValue::new(perf_fee).map_err(|_| RedeemLogicErrors::MathError)?;
+        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
+        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.interest_split = interest_split.get();
-        redeem_logic_config.mgmt_fee = mgmt_fee.get();
-        redeem_logic_config.perf_fee = perf_fee.get();
+        require!(mgmt_fee >= 0., RedeemLogicErrors::InvalidInput);
+        require!(mgmt_fee <= 1., RedeemLogicErrors::InvalidInput);
+
+        require!(perf_fee >= 0., RedeemLogicErrors::InvalidInput);
+        require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
+
+        redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.mgmt_fee = Decimal::from_f64(mgmt_fee)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.perf_fee = Decimal::from_f64(perf_fee)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
 
         Ok(())
     }
@@ -55,13 +74,14 @@ pub mod redeem_logic_lending_fee {
         ctx: Context<ExecuteContext>,
         input_data: RedeemLogicExecuteInput,
     ) -> Result<()> {
+        input_data.is_valid()?;
         let result: RedeemLogicExecuteResult = execute_plugin(
             input_data.old_quantity,
-            input_data.old_reserve_fair_value_bps[0],
-            input_data.new_reserve_fair_value_bps[0],
-            ctx.accounts.redeem_logic_config.interest_split,
-            ctx.accounts.redeem_logic_config.mgmt_fee,
-            ctx.accounts.redeem_logic_config.perf_fee,
+            Decimal::deserialize(input_data.old_reserve_fair_value[0]),
+            Decimal::deserialize(input_data.new_reserve_fair_value[0]),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.interest_split),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.mgmt_fee),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.perf_fee),
         )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -73,8 +93,28 @@ pub mod redeem_logic_lending_fee {
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct RedeemLogicExecuteInput {
     pub old_quantity: [u64; 2],
-    pub old_reserve_fair_value_bps: [u32; 10],
-    pub new_reserve_fair_value_bps: [u32; 10],
+    pub old_reserve_fair_value: [[u8; 16]; 10],
+    pub new_reserve_fair_value: [[u8; 16]; 10],
+}
+
+impl RedeemLogicExecuteInput {
+    fn is_valid(&self) -> Result<()> {
+        for r in self.old_reserve_fair_value {
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
+        }
+
+        for r in self.new_reserve_fair_value {
+            require!(
+                Decimal::deserialize(r) >= Decimal::ZERO,
+                RedeemLogicErrors::InvalidInput
+            );
+        }
+
+        return Result::Ok(());
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -117,55 +157,64 @@ pub struct ExecuteContext<'info> {
 
 #[account]
 pub struct RedeemLogicConfig {
-    pub interest_split: u32,
-    pub mgmt_fee: u32,
-    pub perf_fee: u32,
+    pub interest_split: [u8; 16],
+    pub mgmt_fee: [u8; 16],
+    pub perf_fee: [u8; 16],
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
-    4+4+4+32;
+    16 + // pub interest_split: DecimalWrapper,
+    16 + // pub mgmt_fee: DecimalWrapper,
+    16 + // pub perf_fee: DecimalWrapper,
+    32 // pub owner: Pubkey,
+    ;
 }
 
 fn execute_plugin(
     old_quantity: [u64; 2],
-    old_reserve_fair_value_bps: u32,
-    new_reserve_fair_value_bps: u32,
-    interest_split_bps: u32,
-    mgmt_fee_bps: u32,
-    perf_fee_bps: u32,
+    old_reserve_fair_value: Decimal,
+    new_reserve_fair_value: Decimal,
+    interest_split: Decimal,
+    mgmt_fee: Decimal,
+    perf_fee: Decimal,
 ) -> Result<RedeemLogicExecuteResult> {
     // ensure fees and split are between 0 and 100%
-    let interest_split =
-        BpsRangeValue::new(interest_split_bps).map_err(|_| RedeemLogicErrors::MathError)?;
-    let mgmt_fee = BpsRangeValue::new(mgmt_fee_bps).map_err(|_| RedeemLogicErrors::MathError)?;
-    let perf_fee = BpsRangeValue::new(perf_fee_bps).map_err(|_| RedeemLogicErrors::MathError)?;
+    require!(
+        interest_split >= Decimal::ZERO,
+        RedeemLogicErrors::InvalidInput
+    );
+    require!(
+        interest_split <= Decimal::ONE,
+        RedeemLogicErrors::InvalidInput
+    );
+
+    require!(mgmt_fee >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(mgmt_fee <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
+
+    require!(perf_fee >= Decimal::ZERO, RedeemLogicErrors::InvalidInput);
+    require!(perf_fee <= Decimal::ONE, RedeemLogicErrors::InvalidInput);
 
     let total_old_quantity = old_quantity.iter().sum::<u64>();
 
     // default
-    if (old_reserve_fair_value_bps == 0) || (new_reserve_fair_value_bps == 0) {
+    if (old_reserve_fair_value == Decimal::ZERO) || (new_reserve_fair_value == Decimal::ZERO) {
         let senior_new_quantity = (Decimal::from(old_quantity.iter().sum::<u64>())
-            * (Decimal::ONE - mgmt_fee.get_decimal().ok_or(RedeemLogicErrors::MathError)?))
-        .floor()
-        .to_u64()
-        .ok_or(RedeemLogicErrors::MathError)?;
+            * (Decimal::ONE - mgmt_fee))
+            .floor()
+            .to_u64()
+            .ok_or(RedeemLogicErrors::MathError)?;
         return Ok(RedeemLogicExecuteResult {
             new_quantity: [senior_new_quantity, 0u64],
             fee_quantity: total_old_quantity - senior_new_quantity,
         });
     }
 
-    let old_reserve_fair_value =
-        from_bps(old_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-    let new_reserve_fair_value =
-        from_bps(new_reserve_fair_value_bps).ok_or(RedeemLogicErrors::MathError)?;
-
     let old_quantity = old_quantity.map(|x| Decimal::from(x));
 
-    let old_value_mgmt = old_quantity
-        .map(|x| x * old_reserve_fair_value * (Decimal::ONE - mgmt_fee.get_decimal().unwrap()));
+    let old_value_mgmt =
+        old_quantity.map(|x| x * old_reserve_fair_value * (Decimal::ONE - mgmt_fee));
 
     let new_value_mgmt =
         old_value_mgmt.map(|x| x / old_reserve_fair_value * new_reserve_fair_value);
@@ -175,7 +224,7 @@ fn execute_plugin(
         .zip(new_value_mgmt.iter())
         .map(|(&old, &new)| {
             if new > old {
-                old + (new - old) * (Decimal::ONE - perf_fee.get_decimal().unwrap())
+                old + (new - old) * (Decimal::ONE - perf_fee)
             } else {
                 new
             }
@@ -184,11 +233,7 @@ fn execute_plugin(
 
     let senior_new_value = if new_value_perf[0] > old_value_mgmt[0] {
         old_value_mgmt[0]
-            + (new_value_perf[0] - old_value_mgmt[0])
-                * (Decimal::ONE
-                    - interest_split
-                        .get_decimal()
-                        .ok_or(RedeemLogicErrors::MathError)?)
+            + (new_value_perf[0] - old_value_mgmt[0]) * (Decimal::ONE - interest_split)
     } else {
         old_value_mgmt[0].min(new_value_perf.iter().sum())
     };
@@ -214,6 +259,8 @@ fn execute_plugin(
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal_macros::dec;
+
     use super::*;
 
     // TODO check errors
@@ -221,19 +268,19 @@ mod tests {
     #[test]
     fn test_flat_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 10_000; // 100%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = Decimal::ONE; // 100%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -249,19 +296,19 @@ mod tests {
     #[test]
     fn test_flat_returns_fee() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 10_000; // 100%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 100; // 1%
-        let perf_fee_bps = 10_000u32; // 100%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = Decimal::ONE; // 100%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.01); // 1%
+        let perf_fee = Decimal::ONE; // 100%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -277,19 +324,19 @@ mod tests {
     #[test]
     fn test_positive_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -305,11 +352,11 @@ mod tests {
     #[test]
     fn test_positive_returns_fee() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 250; // 2.5%
-        let perf_fee_bps = 700; // 7%
+        let old_reserve_bps = dec!(0.6); // 60%
+        let new_reserve_bps = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee_bps = dec!(0.025); // 2.5%
+        let perf_fee_bps = dec!(0.07); // 7%
 
         let res = execute_plugin(
             old_quantity,
@@ -333,19 +380,19 @@ mod tests {
     #[test]
     fn test_positive_returns_rounding() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 6_100; // 61%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.61); // 61%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -361,19 +408,19 @@ mod tests {
     #[test]
     fn test_positive_returns_rounding_fee() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 6_100; // 61%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 649; // 6.49%
-        let perf_fee_bps = 123; // 1.23%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.61); // 61%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.0649); // 6.49%
+        let perf_fee = dec!(0.0123); // 1.23%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -389,19 +436,19 @@ mod tests {
     #[test]
     fn test_positive_returns_senior_imbalance() {
         let old_quantity = [100_000, 1_000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -417,19 +464,19 @@ mod tests {
     #[test]
     fn test_positive_returns_senior_imbalance_fee() {
         let old_quantity = [100_000, 1_000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 7_500; // 75%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 800; // 8%
-        let perf_fee_bps = 1_600; // 16%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.75); // 75%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.08); // 8%
+        let perf_fee = dec!(0.16); // 16%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -445,19 +492,19 @@ mod tests {
     #[test]
     fn test_positive_returns_junior_imbalance() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 12_500; // 125%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(1.25); // 125%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -473,19 +520,19 @@ mod tests {
     #[test]
     fn test_positive_returns_junior_imbalance_fee() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 12_500; // 125%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 749; // 7.49%
-        let perf_fee_bps = 10; // 0.10%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(1.25); // 125%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.0749); // 7.49%
+        let perf_fee = dec!(0.001); // 0.1%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -501,19 +548,19 @@ mod tests {
     #[test]
     fn test_negative_returns() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 8_000; // 80%
-        let new_reserve_bps = 6_400; // 64%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.8); // 80%
+        let new_reserve = dec!(0.64); // 64%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -529,19 +576,19 @@ mod tests {
     #[test]
     fn test_negative_returns_fee() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 8_000; // 80%
-        let new_reserve_bps = 6_400; // 64%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 1_333; // 13.33%
-        let perf_fee_bps = 812; // 8.12%
+        let old_reserve = dec!(0.8); // 80%
+        let new_reserve = dec!(0.64); // 64%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.1333); // 13.33%
+        let perf_fee = dec!(0.812); // 8.12%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -557,19 +604,19 @@ mod tests {
     #[test]
     fn test_negative_returns_rounding() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 5_900; // 59%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.59); // 59%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -585,19 +632,19 @@ mod tests {
     #[test]
     fn test_negative_returns_rounding_fee() {
         let old_quantity = [100_000; 2];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 5_900; // 59%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 100; // 1%
-        let perf_fee_bps = 500; // 5%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.59); // 59%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.01); // 1%
+        let perf_fee = dec!(0.05); // 5%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -613,19 +660,19 @@ mod tests {
     #[test]
     fn test_negative_returns_senior_imbalance() {
         let old_quantity = [100_000, 1000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 4_800; // 48%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.48); // 48%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -641,19 +688,19 @@ mod tests {
     #[test]
     fn test_negative_returns_senior_imbalance_fee() {
         let old_quantity = [100_000, 1000];
-        let old_reserve_bps = 6_000; // 60%
-        let new_reserve_bps = 4_800; // 48%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 50; // 0.5%
-        let perf_fee_bps = 567; // 5.67%
+        let old_reserve = dec!(0.6); // 60%
+        let new_reserve = dec!(0.48); // 48%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.005); // 0.5%
+        let perf_fee = dec!(0.0567); // 5.67%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -669,19 +716,19 @@ mod tests {
     #[test]
     fn test_negative_returns_junior_imbalance() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 8_000; // 80%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.8); // 80%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -697,19 +744,19 @@ mod tests {
     #[test]
     fn test_negative_returns_junior_imbalance_fee() {
         let old_quantity = [1000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 8_000; // 80%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 999; // 9.99%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.8); // 80%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.0999); // 9.99%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -725,19 +772,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 5_000; // 50%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.5); // 50%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -753,19 +800,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout_fee() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 5_000; // 50%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 999; // 9.99%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.5); // 50%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.0999); // 9.99%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -781,19 +828,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_partial() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 2_500; // 25%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.25); // 25%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -809,19 +856,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_partial_fee() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 10_000; // 100%
-        let new_reserve_bps = 2_500; // 25%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 132; // 1.32%
-        let perf_fee_bps = 8_500; // 85%
+        let old_reserve = Decimal::ONE; // 100%
+        let new_reserve = dec!(0.25); // 25%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.0132); // 1.32%
+        let perf_fee = dec!(0.85); // 85%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -837,19 +884,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_wipeout() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 13_000; // 130%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(1.3); // 130%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -865,19 +912,19 @@ mod tests {
     #[test]
     fn test_junior_wipeout_senior_wipeout_fee() {
         let old_quantity = [100_000, 100_000];
-        let old_reserve_bps = 13_000; // 130%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 100; // 1%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = dec!(1.3); // 130%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.01); // 1%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -893,19 +940,19 @@ mod tests {
     #[test]
     fn test_past_wipeout() {
         let old_quantity = [1_000_000, 100_000];
-        let old_reserve_bps = 0; // 0%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 0u32; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ZERO; // 0%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = Decimal::ZERO; // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
@@ -921,19 +968,19 @@ mod tests {
     #[test]
     fn test_past_wipeout_fee() {
         let old_quantity = [1_000_000, 100_000];
-        let old_reserve_bps = 0; // 0%
-        let new_reserve_bps = 0; // 0%
-        let interest_split = 2_000; // 20%
-        let mgmt_fee_bps = 1_000; // 0%
-        let perf_fee_bps = 0u32; // 0%
+        let old_reserve = Decimal::ZERO; // 0%
+        let new_reserve = Decimal::ZERO; // 0%
+        let interest_split = dec!(0.2); // 20%
+        let mgmt_fee = dec!(0.1); // 0%
+        let perf_fee = Decimal::ZERO; // 0%
 
         let res = execute_plugin(
             old_quantity,
-            old_reserve_bps,
-            new_reserve_bps,
+            old_reserve,
+            new_reserve,
             interest_split,
-            mgmt_fee_bps,
-            perf_fee_bps,
+            mgmt_fee,
+            perf_fee,
         )
         .unwrap();
 
