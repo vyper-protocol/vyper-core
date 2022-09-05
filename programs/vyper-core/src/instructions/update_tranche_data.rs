@@ -7,6 +7,7 @@ bitflags::bitflags! {
         const OWNER_RESTRICTED_IXS = 1 << 1;
         const RESERVE_FAIR_VALUE_STALE_SLOT_THRESHOLD = 1 << 2;
         const TRANCHE_FAIR_VALUE_STALE_SLOT_THRESHOLD = 1 << 3;
+        const DEPOSIT_CAP = 1 << 4;
     }
 }
 
@@ -26,6 +27,7 @@ pub struct UpdateTrancheDataInput {
     pub owner_restricted_ixs: u16,
     pub reserve_fair_value_stale_slot_threshold: u64,
     pub tranche_fair_value_stale_slot_threshold: u64,
+    pub deposit_cap: [Option<u64>; 2],
 }
 
 impl UpdateTrancheDataInput {
@@ -136,6 +138,20 @@ pub fn handler(
                 .slot_tracking
                 .stale_slot_threshold
         );
+    }
+
+    // deposit cap
+
+    if update_bitmask.contains(UpdateTrancheConfigFlags::DEPOSIT_CAP) {
+        msg!("update tranche_data deposit_cap");
+
+        #[cfg(feature = "debug")]
+        msg!("+ old value: {:?}", tranche_data.deposit_cap);
+
+        tranche_data.deposit_cap = input_data.deposit_cap;
+
+        #[cfg(feature = "debug")]
+        msg!("+ old value: {:?}", tranche_data.deposit_cap);
     }
 
     Ok(())
