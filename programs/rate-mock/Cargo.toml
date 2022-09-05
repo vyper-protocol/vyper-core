@@ -20,3 +20,5 @@ default = []
 [dependencies]
 anchor-lang = "0.24.2"
 vyper-utils = { path = "../../libs/vyper-utils" }
+rust_decimal = { version="1.24", features=["borsh"] }
+rust_decimal_macros = "1.24"
