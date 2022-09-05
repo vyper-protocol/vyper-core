@@ -198,6 +198,7 @@ describe("vyper_core", () => {
                 ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(2),
                 trancheFairValueStaleSlotThreshold: bn(2),
+                depositCap: [null, null],
             })
             .accounts({
                 owner: provider.wallet.publicKey,
@@ -215,6 +216,7 @@ describe("vyper_core", () => {
                 ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(2),
                 trancheFairValueStaleSlotThreshold: bn(2),
+                depositCap: [null, null],
             })
             .accounts({
                 owner: provider.wallet.publicKey,
@@ -280,6 +282,7 @@ describe("vyper_core", () => {
                 ownerRestrictedIxs: 0,
                 reserveFairValueStaleSlotThreshold: bn(newStaleSlotThreshold),
                 trancheFairValueStaleSlotThreshold: bn(newStaleSlotThreshold),
+                depositCap: [null, null],
             })
             .accounts({
                 owner: provider.wallet.publicKey,
@@ -576,5 +579,81 @@ describe("vyper_core", () => {
         );
         expect(await getTokenAccountAmount(provider, seniorTrancheTokenAccount)).to.eq(0);
         expect(await getTokenAccountAmount(provider, juniorTrancheTokenAccount)).to.eq(0);
+    });
+
+    it("expect error on deposit cap exceed", async () => {
+        const trancheMintDecimals = 6;
+
+        const seniorDepositAmount = 11 * 10 ** trancheMintDecimals;
+        const juniorDepositAmount = 5 * 10 ** trancheMintDecimals;
+        const seniorDepositCap = 10 * 10 ** trancheMintDecimals;
+        const juniorDepositCap = 10 * 10 ** trancheMintDecimals;
+
+        const [reserveMint, userReserveToken] = await createMintAndVault(
+            provider,
+            seniorDepositAmount + juniorDepositAmount
+        );
+
+        let redeemLogic = RedeemLogicLendingPlugin.create(programRedeemLogicLending, provider);
+        let rateMock = RateMockPlugin.create(programRateMock, provider);
+        let vyper = Vyper.create(programVyperCore, provider);
+
+        await rateMock.initialize();
+        await redeemLogic.initialize(0.5);
+        await vyper.initialize(
+            { trancheMintDecimals, ownerRestrictedIxs: 0, haltFlags: 0 },
+            reserveMint,
+            rateMock.programID,
+            rateMock.state,
+            redeemLogic.programID,
+            redeemLogic.state
+        );
+
+        await rateMock.setFairValue(1);
+
+        const updateTrancheDataSig = await programVyperCore.methods
+            .updateTrancheData({
+                bitmask: UPDATE_TRANCHE_CONFIG_FLAGS.DEPOSIT_CAP,
+                haltFlags: TRANCHE_HALT_FLAGS.NONE,
+                ownerRestrictedIxs: 0,
+                reserveFairValueStaleSlotThreshold: bn(0),
+                trancheFairValueStaleSlotThreshold: bn(0),
+                depositCap: [bn(seniorDepositCap), bn(juniorDepositCap)],
+            })
+            .accounts({
+                owner: provider.wallet.publicKey,
+                trancheConfig: vyper.trancheConfig,
+            })
+            .rpc();
+
+        const seniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.seniorTrancheMint,
+            provider.wallet.publicKey
+        );
+        const juniorTrancheTokenAccount = await createTokenAccount(
+            provider,
+            vyper.juniorTrancheMint,
+            provider.wallet.publicKey
+        );
+
+        try {
+            const tx = new anchor.web3.Transaction();
+            tx.add(await rateMock.getRefreshIX());
+            tx.add(await vyper.getRefreshTrancheFairValueIX());
+            tx.add(
+                await vyper.getDepositIx(
+                    seniorDepositAmount,
+                    juniorDepositAmount,
+                    userReserveToken,
+                    seniorTrancheTokenAccount,
+                    juniorTrancheTokenAccount
+                )
+            );
+            await provider.sendAndConfirm(tx);
+            expect(false).to.be.true;
+        } catch (err) {
+            assert(true);
+        }
     });
 });

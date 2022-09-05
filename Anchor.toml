@@ -5,10 +5,13 @@ seeds = false
 vyper_core = "29HSW1bCUHF9Kz1U9894nc9ycFCWTTTLMmKZmZ5qLwgT"
 rate_mock = "FB7HErqohbgaVV21BRiiMTuiBpeUYT8Yw7Z6EdEL7FAG"
 rate_switchboard = "EMg9whXe9Yk1vdmEwBmEfnucRAaombxC4HW1LyRy1tWD"
-redeem_logic_lending = "Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA"
-redeem_logic_vanilla_option = "8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe"
-redeem_logic_lending_fee = "3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS"
+rate_pyth = "3mxtC2cGVhHucUg4p58MVzVqUKLyiy1zWqRkRQdgUBPT"
+redeem_logic_farming = "Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN"
+redeem_logic_fila = "9pPodGZL2EWjkj3c7yWjfWrVDfn8Jxss9tEXTEmKLTmM"
 redeem_logic_forward = "BrpV1re8MshA8qskKVxcEG8zXG3vf2uLX6myeTKAyhsK"
+redeem_logic_lending = "Gc2ZKNuCpdNKhAzEGS2G9rBSiz4z8MULuC3M3t8EqdWA"
+redeem_logic_lending_fee = "3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS"
+redeem_logic_vanilla_option = "Fz5JL6g8itRdw4nZtYjuScJZx2JATLE5SHNm1NwW87XV"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -34,3 +37,11 @@ address = "BjUgj6YCnFBZ49wF54ddBVA9qu8TeqkFtkbqmZcee8uW"
 # XTZ USD Switchboard: https://switchboard.xyz/explorer/3/F11LACseaLXuRaPSvnD6w15vSPHtx73YaGZv9293rQQm
 [[test.validator.clone]]
 address = "F11LACseaLXuRaPSvnD6w15vSPHtx73YaGZv9293rQQm"
+
+# BTC USD Pyth: https://pyth.network/price-feeds/crypto-btc-usd
+[[test.validator.clone]]
+address = "GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU"
+
+# SOL USD Pyth: https://pyth.network/price-feeds/crypto-sol-usd
+[[test.validator.clone]]
+address = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"

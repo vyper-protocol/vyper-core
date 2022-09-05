@@ -28,14 +28,15 @@ pub struct TrancheData {
     /// flags for owner-only instructions
     owner_restricted_ix: u16,
 
-    /// Reserved space for future upgrades
-    _padding: [u8; 256],
+    /// deposit cap for senior side and junior side, if the value is None the cap is disabled
+    pub deposit_cap: [Option<u64>; 2],
 }
 
 impl TrancheData {
     pub fn new(slot: u64) -> Self {
         Self {
             deposited_quantity: [0; 2],
+            deposit_cap: [None; 2],
             reserve_fair_value: ReserveFairValue {
                 value: [dec!(1).serialize(); 10],
                 slot_tracking: SlotTracking::new(slot),
@@ -47,7 +48,6 @@ impl TrancheData {
             halt_flags: 0,
             owner_restricted_ix: 0,
             fee_to_collect_quantity: 0,
-            _padding: [0u8; 256],
         }
     }
 
@@ -76,9 +76,10 @@ impl TrancheData {
 
     pub const LEN: usize = 2*8 + // pub deposited_quantity: [u64; 2],
     8 + // pub fee_to_collect_quantity: u64,
+    2 * (1 + 8) + // pub deposit_cap: [Option<u64>; 2],
     ReserveFairValue::LEN + // pub reserve_fair_value: ReserveFairValue,
     TrancheFairValue::LEN + // pub tranche_fair_value: TrancheFairValue,
     2 + // halt_flags: u16,
     2 + // owner_restricted_ix: u16,
-    256; // _padding: [u8; 256],,
+    64; // padding
 }
