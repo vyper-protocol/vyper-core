@@ -5,6 +5,7 @@
 - [Overview](overview.md)
 
 - [Architecture](architecture.md)
+- [Lifecycle](lifecycle.md)
 
 - [Vyper Core Program]()
   - [Accounts]()
