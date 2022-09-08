@@ -8,6 +8,7 @@
 - [Lifecycle](lifecycle.md)
 
 - [Vyper Core Program]()
+
   - [Accounts]()
     - [Tranche Configuration]()
   - [Methods]()
@@ -17,6 +18,7 @@
     - [refresh_tranche_fair_value]()
     - [update_tranche_data]()
     - [collect_fee]()
+
 - [Plugins]()
 
   - [Rate Plugins]()
