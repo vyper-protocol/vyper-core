@@ -19,19 +19,19 @@
     - [update_tranche_data]()
     - [collect_fee]()
 
-- [Plugins]()
+- [Plugins](plugins/overview.md)
 
-  - [Rate Plugins]()
-    - [Rate Switchboard]()
+  - [Rate Plugins](plugins/rate/overview.md)
+    - [Rate Switchboard](plugins/rate/switchboard.md)
     - [Rate Pyth]()
     - [Rate Mock]()
-  - [Redeem Logic Plugins]()
+  - [Redeem Logic Plugins](plugins/redeem_logic/overview.md)
     - [Redeem Logic Farming]()
     - [Redeem Logic Fila]()
     - [Redeem Logic Forward]()
     - [Redeem Logic Lending]()
     - [Redeem Logic Lending Fee]()
-    - [Redeem Logic Vanilla Option]()
+    - [Redeem Logic Vanilla Option](plugins/redeem_logic/vanilla_option.md)
 
 - [Applications]()
   - [Vyper Vaults]()
@@ -39,5 +39,6 @@
 
 ---
 
+[Appendix: Rust Decimal Representation](appendix/rust_decimal_representation.md)
 [Used Libraries](misc/libraries.md)
 [Contributors](misc/contributors.md)
