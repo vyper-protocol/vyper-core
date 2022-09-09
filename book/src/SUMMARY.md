@@ -7,10 +7,10 @@
 - [Architecture](architecture.md)
 - [Lifecycle](lifecycle.md)
 
-- [Vyper Core Program]()
+- [Vyper Core Program](vyper_core_program/overview.md)
 
-  - [Accounts]()
-    - [Tranche Configuration]()
+  - [Accounts](vyper_core_program/accounts/overview.md)
+    - [Tranche Configuration](vyper_core_program/accounts/tranche_configuration.md)
   - [Methods]()
     - [initialize]()
     - [deposit]()
