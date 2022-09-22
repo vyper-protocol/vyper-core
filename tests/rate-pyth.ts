@@ -12,7 +12,7 @@ const SOL_USD_PYTH_FEED = new PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4
 
 const PYTH_ORACLES = [BTC_USD_PYTH_FEED, SOL_USD_PYTH_FEED];
 
-describe.only("rate_pyth", () => {
+describe("rate_pyth", () => {
     const provider = anchor.AnchorProvider.env();
 
     // Configure the client to use the local cluster.
