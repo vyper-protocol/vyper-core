@@ -176,6 +176,7 @@ impl RedeemLogicConfig {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_plugin(
     old_quantity: [u64; 2],
     old_lp_fair_value: Decimal,

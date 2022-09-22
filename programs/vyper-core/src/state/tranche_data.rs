@@ -53,7 +53,7 @@ impl TrancheData {
 
     pub fn get_halt_flags(&self) -> Result<TrancheHaltFlags> {
         TrancheHaltFlags::from_bits(self.halt_flags)
-            .ok_or(VyperErrorCode::InvalidTrancheHaltFlags.into())
+            .ok_or_else(|| VyperErrorCode::InvalidTrancheHaltFlags.into())
     }
 
     pub fn set_halt_flags(&mut self, bits: u16) -> Result<()> {
@@ -64,7 +64,7 @@ impl TrancheData {
 
     pub fn get_owner_restricted_ixs(&self) -> Result<OwnerRestrictedIxFlags> {
         OwnerRestrictedIxFlags::from_bits(self.owner_restricted_ix)
-            .ok_or(VyperErrorCode::InvalidOwnerRestrictedIxFlags.into())
+            .ok_or_else(|| VyperErrorCode::InvalidOwnerRestrictedIxFlags.into())
     }
 
     pub fn set_owner_restricted_instructions(&mut self, bits: u16) -> Result<()> {

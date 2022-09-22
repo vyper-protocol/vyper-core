@@ -18,7 +18,7 @@ pub mod rate_pyth {
         let aggregators = ctx.remaining_accounts;
 
         // check the correct number of provided aggregators
-        if aggregators.len() == 0 || aggregators.len() > 10 {
+        if aggregators.is_empty() || aggregators.len() > 10 {
             return Err(error!(RatePythErrorCode::InvalidAggregatorsNumber));
         }
 
@@ -108,7 +108,7 @@ fn set_data_from_oracles(
             require_keys_eq!(serialized_oracle, oracle.key());
 
             // load and deserialize oracle
-            let price_feed: PriceFeed = load_price_feed_from_account_info(&oracle).unwrap();
+            let price_feed: PriceFeed = load_price_feed_from_account_info(oracle).unwrap();
             let current_price: Price = price_feed.get_current_price().unwrap();
 
             #[cfg(feature = "debug")]

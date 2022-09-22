@@ -95,7 +95,7 @@ impl RedeemLogicExecuteInput {
             );
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -214,10 +214,10 @@ fn execute_plugin(
         .ok_or(RedeemLogicErrors::MathError)?;
     let fee_quantity = old_quantity.iter().sum::<u64>() - senior_new_quantity - junior_new_quantity;
 
-    return Ok(RedeemLogicExecuteResult {
+    Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity,
-    });
+    })
 }
 
 #[cfg(test)]
