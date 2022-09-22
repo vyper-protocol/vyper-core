@@ -115,7 +115,7 @@ impl RedeemLogicExecuteInput {
             );
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -223,7 +223,7 @@ fn execute_plugin(
         });
     }
 
-    let old_quantity = old_quantity.map(|x| Decimal::from(x));
+    let old_quantity = old_quantity.map(Decimal::from);
 
     let old_value_mgmt =
         old_quantity.map(|x| x * old_reserve_fair_value * (Decimal::ONE - mgmt_fee));
@@ -263,10 +263,10 @@ fn execute_plugin(
 
     let fee_quantity = total_old_quantity - senior_new_quantity - junior_new_quantity;
 
-    return Ok(RedeemLogicExecuteResult {
+    Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
-        fee_quantity: fee_quantity,
-    });
+        fee_quantity,
+    })
 }
 
 #[cfg(test)]
