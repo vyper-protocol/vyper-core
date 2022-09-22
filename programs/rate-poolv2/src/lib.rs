@@ -244,4 +244,28 @@ mod tests {
         assert_eq!(res[0], dec!(0.02));
         assert_eq!(res[1], dec!(0.1));
     }
+
+    #[test]
+    fn test_error_on_zero_lp_supply() {
+        let sol_supply = 100u64;
+        let usdc_supply = 10u64;
+        let lp_supply = 0u64;
+
+        let res = get_prices(
+            SupplyWrapper {
+                supply: sol_supply,
+                decimals: 1,
+            },
+            SupplyWrapper {
+                supply: usdc_supply,
+                decimals: 1,
+            },
+            SupplyWrapper {
+                supply: lp_supply,
+                decimals: 1,
+            },
+        );
+
+        assert!(res.is_err())
+    }
 }

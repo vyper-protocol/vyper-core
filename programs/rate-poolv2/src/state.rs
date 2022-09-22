@@ -36,3 +36,18 @@ impl fmt::Display for SupplyWrapper {
         write!(f, "{} (decimals: {})", self.supply, self.decimals)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal_macros::dec;
+
+    #[test]
+    fn test() {
+        let sw = SupplyWrapper {
+            supply: 1_500_000,
+            decimals: 6,
+        };
+        assert_eq!(sw.to_dec().unwrap(), dec!(1.5));
+    }
+}
