@@ -23,7 +23,7 @@ impl LastUpdate {
     /// Return slots elapsed since given slot
     pub fn slots_elapsed(&self, slot: u64) -> Result<u64> {
         slot.checked_sub(self.slot)
-            .ok_or(VyperErrorCode::MathError.into())
+            .ok_or_else(|| VyperErrorCode::MathError.into())
     }
 
     /// Set last update slot
