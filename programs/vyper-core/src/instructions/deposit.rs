@@ -186,7 +186,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
         msg!("dep_qty: {}", dep_qty);
 
         mint_count[i] = (dep_qty / tranche_fv)
-            .round()
+            .floor()
             .to_u64()
             .ok_or(VyperErrorCode::MathError)?;
     }
