@@ -18,7 +18,7 @@ pub mod rate_pyth {
         let aggregators = ctx.remaining_accounts;
 
         // check the correct number of provided aggregators
-        if aggregators.len() <= 0 || aggregators.len() > 10 {
+        if aggregators.len() == 0 || aggregators.len() > 10 {
             return Err(error!(RatePythErrorCode::InvalidAggregatorsNumber));
         }
 
