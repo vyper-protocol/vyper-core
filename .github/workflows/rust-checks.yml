@@ -14,7 +14,7 @@ on:
       - "**.toml"
 jobs:
   cargo_check:
-    name: Cargo check
+    name: cargo check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
           command: test
 
   clippy_check:
-    name: Clippy check
+    name: clippy check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
