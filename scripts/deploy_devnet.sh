@@ -9,6 +9,9 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 # rate switchboard
 # anchor deploy -p rate-switchboard --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
+# rate poolv2
+# anchor deploy -p rate-poolv2 --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+
 # redeem logic fee plugin
 # anchor deploy -p redeem-logic-lending-fee --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
@@ -20,6 +23,7 @@ anchor deploy -p vyper-core --provider.cluster d --provider.wallet ~/Dev/VyperWa
 
 # redeem logic forward
 # anchor deploy -p redeem-logic-forward --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+
 
 # # # # # # # # # # # # # # # # # # 
 # RECOVERY
