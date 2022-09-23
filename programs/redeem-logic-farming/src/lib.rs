@@ -11,7 +11,12 @@ pub mod redeem_logic_farming {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeContext>, interest_split: f64) -> Result<()> {
+    pub fn initialize(
+        ctx: Context<InitializeContext>,
+        interest_split: f64,
+        cap_low: f64,
+        cap_high: f64,
+    ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
@@ -21,17 +26,34 @@ pub mod redeem_logic_farming {
         redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
             .ok_or(RedeemLogicErrors::MathError)?
             .serialize();
+        redeem_logic_config.cap_low = Decimal::from_f64(cap_low)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.cap_high = Decimal::from_f64(cap_high)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
 
         Ok(())
     }
 
-    pub fn update(ctx: Context<UpdateContext>, interest_split: f64) -> Result<()> {
+    pub fn update(
+        ctx: Context<UpdateContext>,
+        interest_split: f64,
+        cap_low: f64,
+        cap_high: f64,
+    ) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
 
         require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
         require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
 
         redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.cap_low = Decimal::from_f64(cap_low)
+            .ok_or(RedeemLogicErrors::MathError)?
+            .serialize();
+        redeem_logic_config.cap_high = Decimal::from_f64(cap_high)
             .ok_or(RedeemLogicErrors::MathError)?
             .serialize();
 
@@ -52,6 +74,8 @@ pub mod redeem_logic_farming {
             Decimal::deserialize(input_data.new_reserve_fair_value[0]),
             Decimal::deserialize(input_data.new_reserve_fair_value[1]),
             Decimal::deserialize(ctx.accounts.redeem_logic_config.interest_split),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.cap_low),
+            Decimal::deserialize(ctx.accounts.redeem_logic_config.cap_high),
         )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -83,7 +107,7 @@ impl RedeemLogicExecuteInput {
             );
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -128,12 +152,16 @@ pub struct ExecuteContext<'info> {
 #[account]
 pub struct RedeemLogicConfig {
     pub interest_split: [u8; 16],
+    pub cap_low: [u8; 16],
+    pub cap_high: [u8; 16],
     pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     16 + // pub interest_split: [u8; 16],
+    16 + // cap_low: [u8; 16],
+    16 + // pub cap_high: [u8; 16],
     32 // pub owner: Pubkey,
     ;
 
@@ -142,10 +170,13 @@ impl RedeemLogicConfig {
         msg!(
             "+ interest_split: {:?}",
             Decimal::deserialize(self.interest_split)
-        )
+        );
+        msg!("+ cap_low: {:?}", Decimal::deserialize(self.cap_low));
+        msg!("+ cap_high: {:?}", Decimal::deserialize(self.cap_high))
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_plugin(
     old_quantity: [u64; 2],
     old_lp_fair_value: Decimal,
@@ -153,16 +184,16 @@ fn execute_plugin(
     new_lp_fair_value: Decimal,
     new_ul_fair_value: Decimal,
     interest_split: Decimal,
+    cap_low: Decimal,
+    cap_high: Decimal,
 ) -> Result<RedeemLogicExecuteResult> {
-    // split is between 0 and 100%
-    require!(
-        interest_split >= Decimal::ZERO,
-        RedeemLogicErrors::InvalidInput
-    );
-    require!(
-        interest_split <= Decimal::ONE,
-        RedeemLogicErrors::InvalidInput
-    );
+    // one side only
+    if (old_quantity[0] == 0) || (old_quantity[1] == 0) {
+        return Ok(RedeemLogicExecuteResult {
+            new_quantity: old_quantity,
+            fee_quantity: 0,
+        });
+    }
 
     // default
     if (old_lp_fair_value == Decimal::ZERO)
@@ -179,6 +210,9 @@ fn execute_plugin(
 
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
 
+    let cap_new_ul_fair_value =
+        old_ul_fair_value * cap_low.max(cap_high.min(new_ul_fair_value / old_ul_fair_value));
+
     // half of LP token is quote ccy
     let base_in_lp = old_lp_fair_value / old_ul_fair_value
         * Decimal::from_f64(0.5f64).ok_or(RedeemLogicErrors::MathError)?;
@@ -190,12 +224,25 @@ fn execute_plugin(
                 .ok_or(RedeemLogicErrors::MathError)?
             - old_ul_fair_value
             - new_ul_fair_value);
+    let cap_lp_il = base_in_lp
+        * (Decimal::TWO
+            * (old_ul_fair_value * cap_new_ul_fair_value)
+                .sqrt()
+                .ok_or(RedeemLogicErrors::MathError)?
+            - old_ul_fair_value
+            - cap_new_ul_fair_value);
 
     let lp_no_accrued = old_lp_fair_value + lp_delta + lp_il;
 
-    let accrued = Decimal::ZERO.max(new_lp_fair_value - lp_no_accrued);
+    // this should never be negative unless the ul value is off vs implied price in the pool at the same block, or the pool lost liquidity in other ways
+    let accrued = new_lp_fair_value - lp_no_accrued;
 
-    let net_value = accrued * (Decimal::ONE - interest_split) + old_lp_fair_value + lp_delta;
+    let net_value = old_lp_fair_value + lp_delta + lp_il - cap_lp_il
+        + if accrued < Decimal::ZERO {
+            accrued
+        } else {
+            accrued * (Decimal::ONE - interest_split)
+        };
 
     let senior_new_quantity =
         total_old_quantity.min(Decimal::from(old_quantity[0]) * net_value / new_lp_fair_value);
@@ -211,10 +258,10 @@ fn execute_plugin(
         .ok_or(RedeemLogicErrors::MathError)?;
     let fee_quantity = old_quantity.iter().sum::<u64>() - senior_new_quantity - junior_new_quantity;
 
-    return Ok(RedeemLogicExecuteResult {
+    Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity,
-    });
+    })
 }
 
 #[cfg(test)]
@@ -231,6 +278,8 @@ mod tests {
         let new_lp_fair_value = Decimal::TWO;
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = Decimal::ZERO;
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -239,6 +288,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -259,6 +310,8 @@ mod tests {
         let new_lp_fair_value = dec!(3);
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -267,6 +320,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -287,6 +342,8 @@ mod tests {
         let new_lp_fair_value = dec!(3);
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = dec!(0.25);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -295,6 +352,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -315,6 +374,8 @@ mod tests {
         let new_lp_fair_value = dec!(2.1213);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -323,6 +384,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -343,6 +406,8 @@ mod tests {
         let new_lp_fair_value = dec!(2.1213);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -351,6 +416,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -371,6 +438,8 @@ mod tests {
         let new_lp_fair_value = dec!(2.1213);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -379,6 +448,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -399,6 +470,8 @@ mod tests {
         let new_lp_fair_value = dec!(1.4142);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -407,6 +480,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -427,6 +502,8 @@ mod tests {
         let new_lp_fair_value = dec!(1.7678);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -435,6 +512,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -455,6 +534,8 @@ mod tests {
         let new_lp_fair_value = dec!(0.2);
         let new_ul_fair_value = dec!(0.01);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -463,6 +544,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -483,6 +566,8 @@ mod tests {
         let new_lp_fair_value = Decimal::TWO;
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -491,6 +576,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -511,6 +598,8 @@ mod tests {
         let new_lp_fair_value = dec!(4);
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -519,6 +608,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -539,6 +630,8 @@ mod tests {
         let new_lp_fair_value = dec!(5.2);
         let new_ul_fair_value = Decimal::ONE;
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -547,6 +640,8 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
@@ -567,6 +662,8 @@ mod tests {
         let new_lp_fair_value = dec!(3.677);
         let new_ul_fair_value = dec!(0.5);
         let interest_split = dec!(0.3);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
 
         let res = execute_plugin(
             old_quantity,
@@ -575,11 +672,173 @@ mod tests {
             new_lp_fair_value,
             new_ul_fair_value,
             interest_split,
+            cap_low,
+            cap_high,
         )
         .unwrap();
 
         assert_eq!(res.new_quantity[0], 9_774);
         assert_eq!(res.new_quantity[1], 1_225);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_il_cap_low_no_interest() {
+        let old_quantity = [10_000, 10_000];
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(1.265);
+        let new_ul_fair_value = dec!(0.1);
+        let interest_split = dec!(0.5);
+        let cap_low = dec!(0.5);
+        let cap_high = Decimal::ONE_HUNDRED;
+
+        let res = execute_plugin(
+            old_quantity,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
+            cap_low,
+            cap_high,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 11_355);
+        assert_eq!(res.new_quantity[1], 8_644);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_il_cap_low_interest() {
+        let old_quantity = [10_000, 10_000];
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(1.581);
+        let new_ul_fair_value = dec!(0.1);
+        let interest_split = dec!(0.5);
+        let cap_low = dec!(0.5);
+        let cap_high = Decimal::ONE_HUNDRED;
+
+        let res = execute_plugin(
+            old_quantity,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
+            cap_low,
+            cap_high,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 10_085);
+        assert_eq!(res.new_quantity[1], 9_914);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_il_cap_high_no_interest() {
+        let old_quantity = [10_000, 10_000];
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(5.657);
+        let new_ul_fair_value = dec!(2);
+        let interest_split = dec!(0.5);
+        let cap_low = Decimal::ZERO;
+        let cap_high = dec!(1.5);
+
+        let res = execute_plugin(
+            old_quantity,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
+            cap_low,
+            cap_high,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 10_178);
+        assert_eq!(res.new_quantity[1], 9_821);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_il_cap_high_interest() {
+        let old_quantity = [10_000, 10_000];
+        let old_lp_fair_value = dec!(4);
+        let old_ul_fair_value = Decimal::ONE;
+        let new_lp_fair_value = dec!(7.071);
+        let new_ul_fair_value = dec!(2);
+        let interest_split = dec!(0.5);
+        let cap_low = Decimal::ZERO;
+        let cap_high = dec!(1.5);
+
+        let res = execute_plugin(
+            old_quantity,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
+            cap_low,
+            cap_high,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 9_142);
+        assert_eq!(res.new_quantity[1], 10_857);
+        assert_eq!(res.fee_quantity, 1);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        )
+    }
+
+    #[test]
+    fn test_real_values() {
+        let old_quantity = [29_995_133, 10_004_866];
+        let old_lp_fair_value = dec!(1.14306704624445);
+        let old_ul_fair_value = dec!(31.754346528125);
+        let new_lp_fair_value = dec!(1.13844621756989);
+        let new_ul_fair_value = dec!(31.506774725);
+        let interest_split = dec!(0.5);
+        let cap_low = Decimal::ZERO;
+        let cap_high = Decimal::ONE_HUNDRED;
+
+        let res = execute_plugin(
+            old_quantity,
+            old_lp_fair_value,
+            old_ul_fair_value,
+            new_lp_fair_value,
+            new_ul_fair_value,
+            interest_split,
+            cap_low,
+            cap_high,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 29_995_362);
+        assert_eq!(res.new_quantity[1], 10_004_636);
         assert_eq!(res.fee_quantity, 1);
         assert_eq!(
             old_quantity.iter().sum::<u64>(),

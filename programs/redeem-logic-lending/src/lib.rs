@@ -90,7 +90,7 @@ impl RedeemLogicExecuteInput {
             );
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -171,10 +171,7 @@ fn execute_plugin(
         });
     }
 
-    let total_old_quantity = old_quantity
-        .map(|u| Decimal::from(u))
-        .iter()
-        .sum::<Decimal>();
+    let total_old_quantity = old_quantity.map(Decimal::from).iter().sum::<Decimal>();
 
     // positive return, share proceeds
     let senior_new_quantity = if new_reserve_fair_value > old_reserve_fair_value {
@@ -228,10 +225,10 @@ fn execute_plugin(
             (junior_new_quantity_with_fee, 0)
         };
 
-    return Ok(RedeemLogicExecuteResult {
+    Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity: senior_tranche_fee + junior_tranche_fee,
-    });
+    })
 }
 
 #[cfg(test)]

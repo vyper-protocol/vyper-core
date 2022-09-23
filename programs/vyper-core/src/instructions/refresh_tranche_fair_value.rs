@@ -111,8 +111,8 @@ pub fn handler(ctx: Context<RefreshTrancheFairValue>) -> Result<()> {
         ctx.accounts.redeem_logic_program.key,
         ctx.accounts.redeem_logic_program_state.to_account_info(),
         RedeemLogicExecuteInput {
-            old_reserve_fair_value: old_reserve_fair_value,
-            new_reserve_fair_value: new_reserve_fair_value,
+            old_reserve_fair_value,
+            new_reserve_fair_value,
             old_quantity: tranche_data.deposited_quantity,
         },
     );

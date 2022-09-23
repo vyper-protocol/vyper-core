@@ -132,7 +132,7 @@ impl Input for RedeemInput {
             return err!(VyperErrorCode::InvalidInput);
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 

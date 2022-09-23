@@ -29,7 +29,7 @@ impl SlotTracking {
     pub fn slot_elapsed(&self, current_slot: u64) -> Result<u64> {
         current_slot
             .checked_sub(self.last_update.get_slot())
-            .ok_or(VyperErrorCode::MathError.into())
+            .ok_or_else(|| VyperErrorCode::MathError.into())
     }
 
     pub fn is_stale(&self, current_slot: u64) -> Result<bool> {
