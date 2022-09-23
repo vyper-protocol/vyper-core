@@ -4,3 +4,6 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Vyper Core Book"
+
+[output.html]
+mathjax-support = true

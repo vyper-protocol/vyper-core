@@ -11,7 +11,7 @@
 
   - [Accounts](vyper_core_program/accounts/overview.md)
     - [Tranche Configuration](vyper_core_program/accounts/tranche_configuration.md)
-  - [Methods]()
+  - [Instructions]()
     - [initialize]()
     - [deposit]()
     - [redeem]()
@@ -24,6 +24,7 @@
   - [Rate Plugins](plugins/rate/overview.md)
     - [Rate Switchboard](plugins/rate/switchboard.md)
     - [Rate Pyth]()
+    - [Rate PoolV2](plugins/rate/poolv2.md)
     - [Rate Mock]()
   - [Redeem Logic Plugins](plugins/redeem_logic/overview.md)
     - [Redeem Logic Farming]()
