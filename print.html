@@ -1,0 +1,727 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Vyper Core Book</title>
+        <meta name="robots" content="noindex" />
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="overview.html"><strong aria-hidden="true">2.</strong> Overview</a></li><li class="chapter-item expanded "><a href="architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li class="chapter-item expanded "><a href="lifecycle.html"><strong aria-hidden="true">4.</strong> Lifecycle</a></li><li class="chapter-item expanded "><a href="vyper_core_program/overview.html"><strong aria-hidden="true">5.</strong> Vyper Core Program</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="vyper_core_program/accounts/overview.html"><strong aria-hidden="true">5.1.</strong> Accounts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="vyper_core_program/accounts/tranche_configuration.html"><strong aria-hidden="true">5.1.1.</strong> Tranche Configuration</a></li></ol></li><li class="chapter-item expanded "><a href="vyper_core_program/instructions/overview.html"><strong aria-hidden="true">5.2.</strong> Instructions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="vyper_core_program/instructions/initialize.html"><strong aria-hidden="true">5.2.1.</strong> initialize</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.2.</strong> deposit</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.3.</strong> redeem</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.4.</strong> refresh_tranche_fair_value</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.5.</strong> update_tranche_data</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.2.6.</strong> collect_fee</div></li></ol></li></ol></li><li class="chapter-item expanded "><a href="plugins/overview.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="plugins/rate/overview.html"><strong aria-hidden="true">6.1.</strong> Rate Plugins</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="plugins/rate/switchboard.html"><strong aria-hidden="true">6.1.1.</strong> Rate Switchboard</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.1.2.</strong> Rate Pyth</div></li><li class="chapter-item expanded "><a href="plugins/rate/poolv2.html"><strong aria-hidden="true">6.1.3.</strong> Rate PoolV2</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.1.4.</strong> Rate Mock</div></li></ol></li><li class="chapter-item expanded "><a href="plugins/redeem_logic/overview.html"><strong aria-hidden="true">6.2.</strong> Redeem Logic Plugins</a></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.1.</strong> Redeem Logic Farming</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.2.</strong> Redeem Logic Fila</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.3.</strong> Redeem Logic Forward</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.4.</strong> Redeem Logic Lending</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.2.5.</strong> Redeem Logic Lending Fee</div></li><li class="chapter-item expanded "><a href="plugins/redeem_logic/vanilla_option.html"><strong aria-hidden="true">6.2.6.</strong> Redeem Logic Vanilla Option</a></li></ol></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> Applications</div></li><li><ol class="section"><li class="chapter-item expanded "><div><strong aria-hidden="true">7.1.</strong> Vyper Vaults</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.2.</strong> Vyper OTC</div></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="appendix/rust_decimal_representation.html">Appendix: Rust Decimal Representation</a></li><li class="chapter-item expanded affix "><a href="misc/libraries.html">Used Libraries</a></li><li class="chapter-item expanded affix "><a href="misc/contributors.html">Contributors</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Vyper Core Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Welcome to The Vyper Core Book! 🐍</p>
+<p>We'll try to collect all the informations, docs, guides and walkthroughs on vyper core in order offer user a better understanding of the program suite and easier integrations.</p>
+<p>Thi book covers only technicalities and dev oriented stuff. For financial specs please refer to the official <a href="https://docs.vyperprotocol.io/">Vyper Protocol docs</a>.</p>
+<p>If you find errors or something doesn't work, please create an issue <a href="https://github.com/vyper-protocol/vyper-core/issues">here</a></p>
+<h2 id="work-in-progress-disclaimer"><a class="header" href="#work-in-progress-disclaimer">Work in progress disclaimer</a></h2>
+<p>This book is still not complete, there's a lot still to cover. Please be patient and come back later for updates.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>Vyper is a protocol to create, trade and settle on-chain <strong>permissionless derivatives</strong>.</p>
+<p>Vyper's innovative approach creates a common infrastructure for on-chain derivatives, increasing scalability and greatly reducing costs.</p>
+<p>Vyper is unique in bringing scalability and modularity to DeFi derivatives, replicating many of the existing features of TradFi for a fraction of the cost.</p>
+<p>Vyper is built with <strong>composability</strong> at its core, enabling application layers to be built on top of a common infrastructure.</p>
+<h2 id="vyper-core"><a class="header" href="#vyper-core">Vyper Core</a></h2>
+<p>Vyper Core is the core engine for the machine.</p>
+<p>Vyper Core is</p>
+<ul>
+<li>a <a href="https://solana.com/">Solana</a> program</li>
+<li>written in rust</li>
+<li>developed by the Vyper Core team and <a href="misc/contributors.html">some other fellows</a></li>
+<li>built with <a href="https://www.anchor-lang.com/">Anchor framework</a> and some <a href="misc/libraries.html">other libraries</a></li>
+<li>completely <a href="https://github.com/vyper-protocol/vyper-core">open source</a></li>
+</ul>
+<h2 id="why-solana"><a class="header" href="#why-solana">Why Solana</a></h2>
+<p>Vyper is a Solana-native protocol. The core team choose Solana mainly for the DeFi friendly ecosystem and for great developer experience the environment can offer.</p>
+<p>As of now the core team has not made any statements regarding the willingness to go cross- chain, but in the future this is something technically possible.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
+<p>Vyper Core is an onchain primitive built keeping <strong>composability</strong> in mind. This took some effort but the final result is something flexible.</p>
+<p>Vyper Core as a primitive is mainly meant to be integrate with some 3rd party product.</p>
+<p>At an high level Vyper is composed by multiple Solana programs working together to provide user services. The main architecture can be synthetized as the following:</p>
+<p><img src="images/high_level_architecture.png" alt="Vyper High Level Architecture" /></p>
+<p>Where the application layer is the application integrating Vyper Core and the 3 other blocks are the vyper core components cooperating to provide derivatives infrastructure. Each component is a Solana Program and use one or more accounts to store data. The suite main entrypoint for integrating applications is provided by Vyper Core.</p>
+<p>Following a brief overview of each component.</p>
+<h3 id="vyper-core-1"><a class="header" href="#vyper-core-1">Vyper Core</a></h3>
+<p>Vyper Core is the main program incapsulating the derivatives logic and orchestrating the 2 plugins.</p>
+<h3 id="rate-plugin"><a class="header" href="#rate-plugin">Rate Plugin</a></h3>
+<p>The Rate Plugin provide the system values (ie: prices) read from 3rd party accounts, for example on chain oracles. As of the time of writing we support Switchboard rate plugin and Pyth rate plugin.</p>
+<h3 id="redeem-logic-plugin"><a class="header" href="#redeem-logic-plugin">Redeem Logic Plugin</a></h3>
+<p>The redeem logic plugin provides the payoff logic, used to redeem user positions (LP tokens minted during deposit).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="lifecycle"><a class="header" href="#lifecycle">Lifecycle</a></h1>
+<p>The lifecycle of a Vyper Core contract can be deconstructed with the following calls (please note that this is an high level overview, refer to the following chapters for an in depth walkthrough).</p>
+<h2 id="initialization"><a class="header" href="#initialization">Initialization</a></h2>
+<p>Initializing Vyper Core means creating a <code>tranche_configuration</code>: a Solana account containing all the parameters of a vyper &quot;session&quot;. All the following calls to the program are conditioned to this account state and will change it eventually.</p>
+<h2 id="deposit"><a class="header" href="#deposit">Deposit</a></h2>
+<p>During the deposit the caller (a user or another Solana program) deposits some reserve tokens inside vyper. During the deposit the caller can decide to deposit acting as <code>Side A</code> or as <code>Side B</code>, those two sides can express different meanings accordingly to the application logic. For example in some applications positions can rappresent different risk profiles (Profile A = risk adverse and Profile B = yield lover), in others can be just the two bet sides.</p>
+<p>During the deposit instruction Vyper Core mint back to the user some new tokens rappresenting his position. Side A tokens are different from Side B tokens. Vyper Core uses the two plugins, rate and redeem logic, in order to decide how many tokens the program needs to mint.</p>
+<h2 id="redeem"><a class="header" href="#redeem">Redeem</a></h2>
+<p>The redeem instruction contains the reverse logic of the deposit. The user deposits his position tokens and the original reserve tokens are withdrawn back to the original owner.</p>
+<p>Again, in order to decide how many tokens needs to be withdrawn the two plugins take place.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="vyper-core-program"><a class="header" href="#vyper-core-program">Vyper Core Program</a></h1>
+<p>Following an overview on the <code>vyper_core</code> solana program accounts and instructions.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="accounts"><a class="header" href="#accounts">Accounts</a></h1>
+<p>Vyper Core program only needs a single account to store its own data, the <code>tranche_configuration</code> account. Remember that all the plugins used by Vyper have their own state.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="tranche-configuration"><a class="header" href="#tranche-configuration">Tranche Configuration</a></h1>
+<p>The core data of Vyper resides in the tranche configuration account.</p>
+<p>Following the Rust struct</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[account]
+pub struct TrancheConfig {
+    pub reserve_mint: Pubkey,
+    pub reserve: Pubkey,
+
+    pub tranche_data: TrancheData,
+
+    pub senior_tranche_mint: Pubkey,
+    pub junior_tranche_mint: Pubkey,
+
+    pub tranche_authority: Pubkey,
+
+    pub authority_seed: Pubkey,
+    pub authority_bump: [u8; 1],
+
+    pub owner: Pubkey,
+
+    pub rate_program: Pubkey,
+    pub rate_program_state: Pubkey,
+
+    pub redeem_logic_program: Pubkey,
+    pub redeem_logic_program_state: Pubkey,
+
+    pub version: [u8; 3],
+
+    pub created_at: i64,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where fields have the following meaning:</p>
+<ul>
+<li><code>reserve_mint</code>: the mint of the tokens accepted during the deposits</li>
+<li><code>reserve</code>: the token account storing the reserve tokens</li>
+<li><code>tranche_data</code>: the parameters of the current tranche configuration, see below</li>
+<li><code>senior_tranche_mint</code> and <code>junior_tranche_mint</code>: the mint addressed of the two positions, please note that senior and junior are just casual names, some other programs name similar concept as sideA and sideB</li>
+<li><code>authority_seed</code> and <code>authority_bump</code>: seed and bump of the PDA authority account, used to let Vyper sign CPIs</li>
+<li><code>owner</code>: wallet with super privileges, only the <code>tranche_configuration</code> owner can change some parameters of the state</li>
+<li><code>rate_program</code> and <code>rate_program_state</code>: rate plugin and its state</li>
+<li><code>redeem_logic_program</code> and <code>redeem_logic_program_state</code>: redeem logic plugin and its state</li>
+<li><code>version</code>: version of the program, with semver</li>
+<li><code>created_at</code>: creation timestamp</li>
+</ul>
+<h2 id="tranche-data"><a class="header" href="#tranche-data">Tranche Data</a></h2>
+<p>One important field of the tranche configuration is the tranche_data, following the rust struct:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TrancheData {
+    pub deposited_quantity: [u64; 2],
+    pub fee_to_collect_quantity: u64,
+    pub reserve_fair_value: ReserveFairValue,
+    pub tranche_fair_value: TrancheFairValue,
+    halt_flags: u16,
+    owner_restricted_ix: u16,
+    pub deposit_cap: [Option&lt;u64&gt;; 2],
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where fields have the following meaning:</p>
+<ul>
+<li><code>deposited_quantity</code>: the total quantity of reserve tokens deposited on vyper</li>
+<li><code>fee_to_collect_quantity</code>: the amount of fees available to accrue from vyper</li>
+<li><code>reserve_fair_value</code>: the fair value of the reserve token</li>
+<li><code>tranche_fair_value</code>: the fair value of the tranches token, senior and junior</li>
+<li><code>halt_flags</code>: a bitmask representing the halted operations, only the owner calling the <code>update_tranche_data</code> instruction can change this value</li>
+<li><code>owner_restricted_ix</code>: a bitmask representing the instructions reserved to the owner</li>
+<li><code>deposit cap</code>: a cap to the deposits, both per senior and junior side</li>
+</ul>
+<h2 id="tranche-fair-value"><a class="header" href="#tranche-fair-value">Tranche Fair Value</a></h2>
+<p>The tranche fair value and reserve fair value have a very similar shape, following the rust structs for the tranche_fair_value:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TrancheFairValue {
+    pub value: [[u8; 16]; 2],
+    pub slot_tracking: SlotTracking,
+}
+
+pub struct SlotTracking {
+    last_update: LastUpdate,
+    pub stale_slot_threshold: u64,
+}
+
+pub struct LastUpdate {
+    slot: u64,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where the fields express:</p>
+<ul>
+<li><code>TrancheFairValue::value</code>: the current 2 Decimal values saved</li>
+<li><code>SlotTracking::stale_slot_threshold</code>: the threshold used to declare a value stale, please note that to prevent using stale values Vyper checks the <code>LastUpdate::slot</code> against this threshold. In order to update the <code>LastUpdate::slot</code> users can use the <code>update_tranche_fair_value</code> instruction.</li>
+<li><code>LastUpdate::slot</code>: the slot where the update occurred</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="instructions"><a class="header" href="#instructions">Instructions</a></h1>
+<p>In the following chapters we'll cover all the available intructions of vyper core, in order to give a high understanding of what is done in each one.</p>
+<p>The main lifecycle of the instructions has been disclosed in <a href="vyper_core_program/instructions//lifecycle.html">this chapter</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="initialize"><a class="header" href="#initialize">initialize</a></h1>
+<p>During the initialization we ned to define all the parameters that we're going to use in a vyper tranche configuration and the accounts involved. Vyper during this instruction will crate also the two mints for the senior side tokens and the junior side tokens, for both of them the mint authority is the program itself.</p>
+<h2 id="input-data"><a class="header" href="#input-data">Input data</a></h2>
+<p>The inputs provided by the caller for the initialization are define with the following struct:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy, Debug)]
+pub struct InitializeInput {
+    pub tranche_mint_decimals: u8,
+    pub halt_flags: u16,
+    pub owner_restricted_ixs: u16,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where:</p>
+<ul>
+<li><code>tranche_mint_decimals</code>: the decimals places used for both senior and junior tranches</li>
+<li><code>halt_flags</code>: bitmask with the halted operations, once initialized only the owner of the tranche configuration will be capable of changing it</li>
+<li><code>owner_restricted_ixs</code>: bitmask with the ixs restricted to the owner, for these instructions the owner will need to be the tx signer</li>
+</ul>
+<p>At the time of writing the two bitmasks have the following values:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>bitflags::bitflags! {
+    pub struct TrancheHaltFlags: u16 {
+        /// Disable deposits
+        const HALT_DEPOSITS = 1 &lt;&lt; 0;
+
+        /// Disable refreshes
+        const HALT_REFRESHES = 1 &lt;&lt; 1;
+
+        /// Disable redeems
+        const HALT_REDEEMS = 1 &lt;&lt; 2;
+
+        /// Disable all operations
+        const HALT_ALL = Self::HALT_DEPOSITS.bits
+                       | Self::HALT_REFRESHES.bits
+                       | Self::HALT_REDEEMS.bits;
+
+    }
+}
+
+bitflags::bitflags! {
+    pub struct OwnerRestrictedIxFlags: u16 {
+        /// Owner restricted: Deposits
+        const DEPOSITS = 1 &lt;&lt; 0;
+
+        /// Owner restricted: Refreshes
+        const REFRESHES = 1 &lt;&lt; 1;
+
+        /// Owner restricted: Redeems
+        const REDEEMS = 1 &lt;&lt; 2;
+
+        /// Disable all operations
+        const ALL = Self::DEPOSITS.bits
+                       | Self::REFRESHES.bits
+                       | Self::REDEEMS.bits;
+
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="accounts-1"><a class="header" href="#accounts-1">Accounts</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Accounts)]
+#[instruction(input_data: InitializeInput)]
+pub struct InitializeContext&lt;'info&gt; {
+    /// Signer account
+    #[account(mut)]
+    pub payer: Signer&lt;'info&gt;,
+
+    /// CHECK: Owner of the tranche config
+    #[account()]
+    pub owner: AccountInfo&lt;'info&gt;,
+
+    /// Tranche config account, where all the parameters are saved
+    #[account(init, payer = payer, space = TrancheConfig::LEN)]
+    pub tranche_config: Box&lt;Account&lt;'info, TrancheConfig&gt;&gt;,
+
+    /// CHECK:
+    #[account(seeds = [tranche_config.key().as_ref(), b&quot;authority&quot;.as_ref()], bump)]
+    pub tranche_authority: AccountInfo&lt;'info&gt;,
+
+    /// CHECK:
+    #[account()]
+    pub rate_program: AccountInfo&lt;'info&gt;,
+
+    /// CHECK:
+    #[account()]
+    pub rate_program_state: AccountInfo&lt;'info&gt;,
+
+    /// CHECK:
+    #[account()]
+    pub redeem_logic_program: AccountInfo&lt;'info&gt;,
+
+    /// CHECK:
+    #[account()]
+    pub redeem_logic_program_state: AccountInfo&lt;'info&gt;,
+
+    /// LP mint token to deposit
+    #[account()]
+    pub reserve_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    /// Token account for vault reserve tokens
+    #[account(init, payer = payer, seeds = [tranche_config.key().as_ref(), reserve_mint.key().as_ref()], bump, token::authority = tranche_authority, token::mint = reserve_mint)]
+    pub reserve: Box&lt;Account&lt;'info, TokenAccount&gt;&gt;,
+
+    /// Senior tranche mint
+    #[account(init, payer = payer, mint::decimals = input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
+    pub senior_tranche_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    /// Junior tranche mint
+    #[account(init, payer = payer, mint::decimals = input_data.tranche_mint_decimals, mint::authority = tranche_authority)]
+    pub junior_tranche_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    pub system_program: Program&lt;'info, System&gt;,
+    pub token_program: Program&lt;'info, Token&gt;,
+    pub rent: Sysvar&lt;'info, Rent&gt;,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Noteworthy accounts are:</p>
+<ul>
+<li><code>tranche_config</code>: the account created to store the state of the tranche configuration</li>
+<li><code>tranche_authority</code>: the PDA account used to sign instructions</li>
+<li><code>rate_program</code> and <code>rate_program_state</code>: the rate plugin and the its state, those accounts are saved in the tranche configuration in order avoid hack involving different plugins</li>
+<li><code>redeem_logic_program</code> and <code>redeem_logic_program_state</code>: same as before for the redeem logic plugin</li>
+<li><code>reserve_mint</code> and <code>reserve</code>: the underlying asset swapped for tranche positions and its token account, the latter owned by the program</li>
+<li><code>senior_tranche_mint</code> and <code>junior_tranche_mint</code>: the two mints created for senior and junior positions</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="plugins"><a class="header" href="#plugins">Plugins</a></h1>
+<p>The real value and flexibility of Vyper is its underlyng plugin system. At its core <code>vyper_core</code> program is quite simple, the real power comes from the plugin attached and used.</p>
+<p>The vyper plugin system is the most and foremost attempt of Vyper Labs to provide real composability to the Solana ecosystem.</p>
+<h2 id="plugin-families"><a class="header" href="#plugin-families">Plugin Families</a></h2>
+<p>A vyper configuration except from vyper parameters is composed by</p>
+<ul>
+<li>1x rate plugin</li>
+<li>1x redeem logic plugin</li>
+</ul>
+<p>Together those plugins are used in the <code>update_tranche_fair_value</code> instruction in order to calculate the fair value between reserve tokens and tranches tokens.</p>
+<p>Keeping track of the slot where the tranche fair value is updated vyper can decide if the value is stale and needs a new update or not. Usually application refresh the fair value everytime a <code>deposit</code> or <code>redeem</code> instruction is needed.</p>
+<h2 id="plugin-interfaces"><a class="header" href="#plugin-interfaces">Plugin interfaces</a></h2>
+<p>In order to work correctly the plugin developers needs to stick to some rules in order give a new plugin the correct interface, this way Vyper knows how to call them and how to deserialize values.</p>
+<p>In the following chapters we'll cover both the interfaces and some real market plugin currently used in production.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rate-plugins"><a class="header" href="#rate-plugins">Rate Plugins</a></h1>
+<p>Rate plugins are used to fetch data from 3rd party feeds. They store their state in a plugin account that will be deserialized from vyper core to read the serialized data.</p>
+<p>The minimum account information needed are:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[account]
+pub struct RateState {
+    pub fair_value: [[u8; 16]; 10],
+    pub refreshed_slot: u64,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where the first field represent the fair value in Decimal format and the refreshed_slot the slot where the information have been read.</p>
+<p>Despite the fact that rate plugins can have whatever instruction set they want (with whatever naming), is a best practice to have something like the following:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize(ctx: Context&lt;InitializeContext&gt;) -&gt; Result&lt;()&gt; {
+    // rate state initialization
+}
+
+pub fn refresh(ctx: Context&lt;InitializeContext&gt;) -&gt; Result&lt;()&gt; {
+    // information read from 3rd party feed
+    // serialization in the rate state
+    // refreshed_slot update
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>In the following chapter we'll cover some rate_plugin both from a tech and a use case point of view.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rate-switchboard"><a class="header" href="#rate-switchboard">Rate Switchboard</a></h1>
+<p>The <a href="https://switchboard.xyz/">switchboard</a> rate plugin reads data from a switchboard aggregator. Some example aggregator can be found <a href="https://switchboard.xyz/explorer">here</a>.</p>
+<p>A switchboard aggregator is a tool super flexible, it can give informations reagarding both financial and non, for example:</p>
+<ul>
+<li><a href="https://switchboard.xyz/explorer/3/GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR">SOL_USD aggregator</a></li>
+<li><a href="https://switchboard.xyz/explorer/2/DQ2v1xuxTampfvKK5kp8oJDoZBRyHZUfYwUVUX32eBBd">London temperature</a></li>
+</ul>
+<p>Composing multiple aggregators together and using them in a Vyper RateSwitchboard Plugin can open possibilities to thousands opportunities.</p>
+<p>Following an overview of the plugin instructions.</p>
+<h2 id="initialize-1"><a class="header" href="#initialize-1">Initialize</a></h2>
+<p>During inizialization we declare which aggregator we're going to use in our application, those aggregators are serialized in the rate state, that has a struct similar to the following:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[account]
+pub struct RateState {
+    pub fair_value: [[u8; 16]; 10],
+    pub refreshed_slot: u64,
+    pub switchboard_aggregators: [Option&lt;Pubkey&gt;; 10],
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>The rate_state account can store up to 10 switchboard aggregators.</p>
+<h2 id="refresh"><a class="header" href="#refresh">Refresh</a></h2>
+<p>During the refresh instruction the plugin read the values inside the aggregator and serialize it in the <code>rate_state::fair_value</code> taking care of update the <code>refreshed_slot</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rate-poolv2"><a class="header" href="#rate-poolv2">Rate PoolV2</a></h1>
+<p>The PoolV2 rate plugin read data from a standard farming pool v2 accounts, following the Uniswap v2 architecture.</p>
+<h2 id="initialize-2"><a class="header" href="#initialize-2">Initialize</a></h2>
+<p>The accounts used during initialization are:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Accounts)]
+pub struct InitializeContext&lt;'info&gt; {
+    /// Signer account
+    #[account(mut)]
+    pub signer: Signer&lt;'info&gt;,
+
+    #[account(init, payer = signer, space = RateState::LEN)]
+    pub rate_data: Box&lt;Account&lt;'info, RateState&gt;&gt;,
+
+    /// CHECK: the pool id
+    #[account()]
+    pub pool: AccountInfo&lt;'info&gt;,
+
+    /// Mint of the lp tokens
+    #[account(mint::authority = pool)]
+    pub lp_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    /// CHECK: Base mint, for a SOL/USDC pool this is SOL
+    #[account()]
+    pub base_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    /// CHECK: Quote mint, for a SOL/USDC pool this is USDC
+    #[account()]
+    pub quote_mint: Box&lt;Account&lt;'info, Mint&gt;&gt;,
+
+    /// Base token account, for a SOL/USDC pool this is the SOL token account
+    #[account(token::mint = base_mint, token::authority = pool)]
+    pub base_token_account: Box&lt;Account&lt;'info, TokenAccount&gt;&gt;,
+
+    /// Quote token account, for a SOL/USDC pool this is the USDC token account
+    #[account(token::mint = quote_mint, token::authority = pool)]
+    pub quote_token_account: Box&lt;Account&lt;'info, TokenAccount&gt;&gt;,
+
+    pub system_program: Program&lt;'info, System&gt;,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>In a standard SOL/USDC pool the meaningful accounts above are:</p>
+<ul>
+<li><code>pool</code>: the account storing the pool data, it's the owner of the token accounts and the mint authority for lp tokens</li>
+<li><code>lp_mint</code>: mint for LP tokens</li>
+<li><code>base_mint</code>: for a SOL/USDC pool thats the SOL mint</li>
+<li><code>quote_mint</code>: for a SOL/USDC pool thats the USDC mint</li>
+<li><code>base_token_account</code>: for a SOL/USDC pool thats the SOL token account owned by the pool</li>
+<li><code>quote_token_account</code>: for a SOL/USDC pool thats the USDC token account owned by the pool</li>
+</ul>
+<h2 id="refresh-1"><a class="header" href="#refresh-1">Refresh</a></h2>
+<p>During the refresh instruction the plugin calculate the used prices and serialize it in the <code>rate_state::fair_value</code> taking care of update the <code>refreshed_slot</code>.</p>
+<h2 id="price-calculation"><a class="header" href="#price-calculation">Price calculation</a></h2>
+<p>Considering the pool v2 architecture the prices are calculated as:</p>
+<p>\[ LP = \frac{supplyUSDC * 2}{supplyLP} \]</p>
+<p>and</p>
+<p>\[ SOL/USDC = \frac{supplyUSDC }{supplySOL} \]</p>
+<p>the output of the plugin will respect the above order, LP price first, base price then.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="redeem-logic-plugins"><a class="header" href="#redeem-logic-plugins">Redeem Logic Plugins</a></h1>
+<p>Redeem Logic plugins are used to calculate the payoff between the senior and junior sides. Given the old senior and junior deposits sides and the reserve_fair_value fetched from the rate_plugin the redeem_logic execute the logic inside and give back the new quantities owned by the senior and the junior side. Additionally in cases where the redeem_logic support it also a fee componened is added.</p>
+<p>Differently from the rate_plugin for redeem_logics the plugin is called directly from vyper via CPI, with some input. Then the output returned from the plugin is used for further calculations on vyper. Because of that is important that the redeem logics stick to a precise interface declaration, a minimal redeem_logic plugin is at least as follow:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span>
+<span class="boring">fn main() {
+</span>pub struct RedeemLogicExecuteInput {
+    pub old_quantity: [u64; 2],
+    pub old_reserve_fair_value: [[u8; 16]; 10],
+    pub new_reserve_fair_value: [[u8; 16]; 10],
+}
+
+pub struct RedeemLogicExecuteResult {
+    pub new_quantity: [u64; 2],
+    pub fee_quantity: u64,
+}
+
+pub fn execute(
+        ctx: Context&lt;ExecuteContext&gt;,
+        input_data: RedeemLogicExecuteInput,
+    ) -&gt; Result&lt;()&gt; {
+        input_data.is_valid()?;
+
+        let result: RedeemLogicExecuteResult = execute_plugin(
+            // ...
+        )?;
+
+        anchor_lang::solana_program::program::set_return_data(&amp;result.try_to_vec()?);
+
+        Ok(())
+    }
+
+<span class="boring">}
+</span></code></pre></pre>
+<p>Additionally plugins could have a state that can condition the <code>execute</code> result. Check the following plugins for deeper insights and examples.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="redeem-logic-vanilla-option"><a class="header" href="#redeem-logic-vanilla-option">Redeem Logic Vanilla Option</a></h1>
+<p>The redeem logic vanilla option can simulate options on chain, where the senior tranches owners and junior tranches owners are the two sides of the option.</p>
+<p>During initialization some parameters can be decided and serialized in the redeem logic state account</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[account]
+pub struct RedeemLogicConfig {
+    pub is_call: bool,
+    pub is_linear: bool,
+
+    pub strike: [u8; 16],
+    pub owner: Pubkey,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Where the fields express:</p>
+<ul>
+<li><code>is_call</code>: true if call, false if put</li>
+<li><code>is_linear</code>: true if linear, false if inverse</li>
+<li><code>strike</code>: strike value in Decimal format</li>
+<li><code>owner</code>: owner of the configuration with the capability to update internal state</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="appendix-rust-decimal-representation"><a class="header" href="#appendix-rust-decimal-representation">Appendix: Rust Decimal Representation</a></h1>
+<p>In Vyper Core all the decimal values are represented using <a href="https://docs.rs/rust_decimal/latest/">rust_decimal</a> library. This helped a lot with the precision and float calculations.</p>
+<p>Unfortunately the problem occurred on account serialization. At the time of writing anchor doesn't support 3rd party lib structs in serializing accounts during IDL generation. Thats why something like the following will result in a corrupted idl.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rust_decimal::Decimal;
+
+#[account]
+pub struct RedeemLogicConfig {
+    pub is_call: bool,
+    pub is_linear: bool,
+    pub strike: Decimal, // &lt;- this will cause the corrupted idl
+    pub owner: Pubkey,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>That's why we were forced to keep the decimal values serialized as bytes array, so the above struct resulted in:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[account]
+pub struct RedeemLogicConfig {
+    pub is_call: bool,
+    pub is_linear: bool,
+    pub strike: [u8; 16], // &lt;- this is the result of Decimal::serialize()
+    pub owner: Pubkey,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Of course all the times we need to read the value and use them we have to deserialize the values:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let strike_dec: Decimal = Decimal::deserialize(ctx.accounts.redeem_logic_config.strike);
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="javascript-support"><a class="header" href="#javascript-support">Javascript support</a></h2>
+<p>The above solution helped a lot and soved all the rust-related stuff. The auto generated idl is now fine, but all the Decimal values are still represented as byte array, that's resulted in a challenge when we needed to show those values in some frontend application.</p>
+<p>We decided so to develop a js library to help doing the above. The library is available open source <a href="https://github.com/vyper-protocol/rust-decimal-wrapper">here</a>.</p>
+<p>And with the library help the challenge was solved:</p>
+<pre><code class="language-ts">import { RustDecimalWrapper } from &quot;@vyper-protocol/rust-decimal-wrapper&quot;;
+
+// receive from an external application the bytes serialized with rust_decimal
+const bytes = new Uint8Array([0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+// create a RustDecimalWrapper around the bytes
+const wrapper = new RustDecimalWrapper(bytes);
+
+// get the original value
+const value = wrapper.toNumber();
+
+// value is 0.1
+</code></pre>
+<p>More on this in <a href="https://twitter.com/vanderlinde____/status/1564308344759656448?s=20&amp;t=On0XpLKNN4vaz7e7MoVCOQ">this twitter thread</a>,</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="used-libraries"><a class="header" href="#used-libraries">Used Libraries</a></h1>
+<p>While Vyper Core has been completely developer <em>in house</em> it uses a lot of 3rd party libraries.</p>
+<ul>
+<li><a href="https://docs.rs/anchor-lang/latest/anchor_lang/">Anchor Framework</a>: used to improved security, serialization and <strong>a lot</strong> more</li>
+<li><a href="https://docs.rs/rust_decimal/latest/">rust_decimal</a>: used for Decimal calculation</li>
+<li><a href="https://docs.rs/bitflags/latest/">bitflags</a>: for bit flags</li>
+<li><a href="https://docs.rs/boolinator/latest/">boolinator</a>: because the <code>ok_or_else</code> is fun</li>
+<li><a href="https://docs.rs/solana-security-txt/latest/">solana-security-txt</a>: to include in the chain deployment a security disclaimeer</li>
+</ul>
+<p>For a compete list refer to the programs Cargo.toml dependencies.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contributors"><a class="header" href="#contributors">Contributors</a></h1>
+<p>The Vyper Core infrastructure have been developed by the Vyper Protocol team starting from summer '22 but in the following months a lot of fellows joined and helped shaping the protocol.</p>
+<h2 id="mlh-program-summer-22"><a class="header" href="#mlh-program-summer-22">MLH Program Summer '22</a></h2>
+<p>During the summer '22 Vyper joined the MLH Solana program and a couple of great guys helped creating the vyper core sdk. Despite this is not ready yet to be published the work is meaningful.</p>
+<ul>
+<li><a href="https://github.com/iamakshat01">iamakshat01</a></li>
+<li><a href="https://github.com/masayafunakoshi1">masayafunakoshi1</a></li>
+</ul>
+<hr />
+<p>For a complete list please refer to <a href="https://github.com/vyper-protocol/vyper-core/graphs/contributors">GitHub Contributors</a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            MathJax.Hub.Register.StartupHook('End', function() {
+                window.setTimeout(window.print, 100);
+            });
+        });
+        </script>
+    </body>
+</html>
