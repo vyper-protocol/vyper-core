@@ -11,8 +11,8 @@
 
   - [Accounts](vyper_core_program/accounts/overview.md)
     - [Tranche Configuration](vyper_core_program/accounts/tranche_configuration.md)
-  - [Instructions]()
-    - [initialize]()
+  - [Instructions](vyper_core_program/instructions/overview.md)
+    - [initialize](vyper_core_program/instructions/initialize.md)
     - [deposit]()
     - [redeem]()
     - [refresh_tranche_fair_value]()
