@@ -98,7 +98,7 @@ impl RedeemLogicExecuteInput {
             );
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -168,6 +168,7 @@ impl RedeemLogicConfig {
     }
 }
 
+#[allow(clippy::collapsible_else_if)]
 fn execute_plugin(
     old_quantity: [u64; 2],
     old_spot: Decimal,
@@ -242,10 +243,10 @@ fn execute_plugin(
         .ok_or(RedeemLogicErrors::MathError)?;
     let fee_quantity = old_quantity.iter().sum::<u64>() - senior_new_quantity - junior_new_quantity;
 
-    return Ok(RedeemLogicExecuteResult {
+    Ok(RedeemLogicExecuteResult {
         new_quantity: [senior_new_quantity, junior_new_quantity],
         fee_quantity,
-    });
+    })
 }
 
 #[cfg(test)]

@@ -133,7 +133,7 @@ impl Input for DepositInput {
             return err!(VyperErrorCode::InvalidInput);
         }
 
-        return Result::Ok(());
+        Result::Ok(())
     }
 }
 
@@ -174,7 +174,7 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
     // mint tranches
 
     let mut mint_count: [u64; 2] = [0; 2];
-    for i in 0..mint_count.len() {
+    for (i, mc) in mint_count.iter_mut().enumerate() {
         let tranche_fv = Decimal::deserialize(ctx.accounts
                 .tranche_config
                 .tranche_data
@@ -185,8 +185,8 @@ pub fn handler(ctx: Context<DepositContext>, input_data: DepositInput) -> Result
         msg!("tranche_fv: {}", tranche_fv);
         msg!("dep_qty: {}", dep_qty);
 
-        mint_count[i] = (dep_qty / tranche_fv)
-            .round()
+        *mc = (dep_qty / tranche_fv)
+            .floor()
             .to_u64()
             .ok_or(VyperErrorCode::MathError)?;
     }
