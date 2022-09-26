@@ -6,19 +6,14 @@ import { IDL } from "../../target/types/redeem_logic_farming";
 const PLUGIN_PROGRAM_ID = new PublicKey("Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN");
 
 const main = async () => {
-    const connection = new Connection("https://api.devnet.solana.com");
-
-    const wallet = Wallet.local();
-    const provider = new anchor.AnchorProvider(connection, wallet, {
-        commitment: "confirmed",
-    });
+    const provider = anchor.AnchorProvider.env();
 
     const program = new Program(IDL, PLUGIN_PROGRAM_ID, provider);
 
     const stateAccount = anchor.web3.Keypair.generate();
     const interestSplit = 0.5;
-    const capLow = 0.3;
-    const capHigh = 0.3;
+    const capLow = 0.8;
+    const capHigh = 1.2;
 
     const tx = await program.methods
         .initialize(interestSplit, capLow, capHigh)
