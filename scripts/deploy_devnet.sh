@@ -20,7 +20,8 @@ anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-
 
 # redeem logic farming
 # anchor deploy -p redeem-logic-farming --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
-anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/rate_poolv2.json Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN
+anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_farming.json Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN
+anchor idl upgrade --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_farming.json Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN
 
 # redeem logic vanilla option
 # anchor deploy -p redeem-logic-vanilla-option --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
