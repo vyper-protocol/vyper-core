@@ -1017,6 +1017,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rate-twap"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "rust_decimal_macros",
+]
+
+[[package]]
 name = "redeem-logic-farming"
 version = "1.0.0"
 dependencies = [
