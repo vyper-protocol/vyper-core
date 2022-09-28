@@ -47,6 +47,7 @@ pub fn handler(ctx: Context<InitializeContext>, input_data: InitializeInput) -> 
 
     rate_state.compute_twap()?;
 
+    #[cfg(feature = "debug")]
     msg!("sampling_data: {:?}", rate_state.sampling_data);
 
     Ok(())

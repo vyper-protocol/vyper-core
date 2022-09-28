@@ -32,15 +32,18 @@ pub fn handler(ctx: Context<RefreshRateContext>) -> Result<()> {
 
     rate_state.compute_twap()?;
 
-    msg!("sampling_data: {:?}", rate_state.sampling_data);
-    msg!(
-        "rate_state fair_value: {:?}",
-        rate_state.fair_value.map(Decimal::deserialize)
-    );
-    msg!(
-        "rate_state refreshed_slot: {:#?}",
-        rate_state.refreshed_slot
-    );
+    #[cfg(feature = "debug")]
+    {
+        msg!("sampling_data: {:?}", rate_state.sampling_data);
+        msg!(
+            "rate_state fair_value: {:?}",
+            rate_state.fair_value.map(Decimal::deserialize)
+        );
+        msg!(
+            "rate_state refreshed_slot: {:#?}",
+            rate_state.refreshed_slot
+        );
+    }
 
     Ok(())
 }
