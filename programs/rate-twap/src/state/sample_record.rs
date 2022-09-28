@@ -23,7 +23,7 @@ impl SampleRecord {
     }
 
     pub fn get_value(&self) -> [Decimal; 10] {
-        self.value.map(|f| Decimal::deserialize(f))
+        self.value.map(Decimal::deserialize)
     }
 
     pub fn get_slot(&self) -> u64 {

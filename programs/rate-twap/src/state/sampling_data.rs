@@ -15,14 +15,13 @@ pub struct SamplingData {
 impl fmt::Debug for SamplingData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SamplingData")
-         .field("min_slot_delta", &self.min_slot_delta)
-         .field("max_samples_size", &self.max_samples_size)
-         .field("samples len", &self.samples.len())
-         .field("samples", &self.samples)
-         .finish()
+            .field("min_slot_delta", &self.min_slot_delta)
+            .field("max_samples_size", &self.max_samples_size)
+            .field("samples len", &self.samples.len())
+            .field("samples", &self.samples)
+            .finish()
     }
 }
-
 
 impl SamplingData {
     pub fn new(min_slot_delta: u64, samples_size: u32) -> Result<SamplingData> {
@@ -76,8 +75,8 @@ impl SamplingData {
         for sample_record in &self.samples {
             for (idx, val) in sample_record.get_value().iter().enumerate() {
                 agg[idx] = agg[idx]
-                    .checked_add(val.clone())
-                    .ok_or_else(|| RateTwapErrorCode::GenericError)?;
+                    .checked_add(*val)
+                    .ok_or(RateTwapErrorCode::GenericError)?;
             }
         }
 
@@ -111,11 +110,9 @@ impl SamplingData {
     }
 
     pub fn len(sampling_size: usize) -> usize {
-        return 
-            8 + // min_slot_delta: u64,
+        8 + // min_slot_delta: u64,
             4 + // max_samples_size: u32,
-            4 + (SampleRecord::LEN * sampling_size)  // samples: Vec<SampleRecord>,
-            ;
+            4 + (SampleRecord::LEN * sampling_size) // samples: Vec<SampleRecord>,
     }
 }
 
@@ -134,7 +131,7 @@ mod tests {
         sampling.try_add([Decimal::ZERO; 10], 2).unwrap();
         sampling.try_add([Decimal::ZERO; 10], 3).unwrap();
         assert_eq!(sampling.twap().unwrap(), ([Decimal::ZERO; 10], 3));
-        
+
         sampling.try_add([Decimal::ZERO; 10], 4).unwrap();
         assert_eq!(sampling.twap().unwrap(), ([Decimal::ZERO; 10], 4));
     }
@@ -166,17 +163,17 @@ mod tests {
     #[test]
     fn test_get_most_recent_sample_idx() {
         let mut sampling = SamplingData::new(2, 4).unwrap();
-        
+
         sampling.try_add([Decimal::ZERO; 10], 0).unwrap();
         sampling.try_add([Decimal::ZERO; 10], 2).unwrap();
         sampling.try_add([Decimal::ZERO; 10], 4).unwrap();
         assert_eq!(sampling.get_most_recent_sample_idx(), 2);
     }
-    
+
     #[test]
     fn test_get_oldest_sample_idx() {
         let mut sampling = SamplingData::new(2, 4).unwrap();
-        
+
         sampling.try_add([Decimal::ZERO; 10], 0).unwrap();
         sampling.try_add([Decimal::ZERO; 10], 2).unwrap();
         sampling.try_add([Decimal::ZERO; 10], 4).unwrap();

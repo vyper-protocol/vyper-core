@@ -26,9 +26,7 @@ pub fn handler(ctx: Context<RefreshRateContext>) -> Result<()> {
     let rate_state_source = CommonRateState::try_deserialize_unchecked(&mut account_data_slice)?;
 
     rate_state.sampling_data.try_add(
-        rate_state_source
-            .fair_value
-            .map(|c| Decimal::deserialize(c)),
+        rate_state_source.fair_value.map(Decimal::deserialize),
         rate_state_source.refreshed_slot,
     )?;
 
@@ -37,7 +35,7 @@ pub fn handler(ctx: Context<RefreshRateContext>) -> Result<()> {
     msg!("sampling_data: {:?}", rate_state.sampling_data);
     msg!(
         "rate_state fair_value: {:?}",
-        rate_state.fair_value.map(|c| Decimal::deserialize(c))
+        rate_state.fair_value.map(Decimal::deserialize)
     );
     msg!(
         "rate_state refreshed_slot: {:#?}",

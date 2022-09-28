@@ -41,9 +41,7 @@ pub fn handler(ctx: Context<InitializeContext>, input_data: InitializeInput) -> 
     let rate_state_source = CommonRateState::try_deserialize_unchecked(&mut account_data_slice)?;
 
     rate_state.sampling_data.try_add(
-        rate_state_source
-            .fair_value
-            .map(|c| Decimal::deserialize(c)),
+        rate_state_source.fair_value.map(Decimal::deserialize),
         rate_state_source.refreshed_slot,
     )?;
 

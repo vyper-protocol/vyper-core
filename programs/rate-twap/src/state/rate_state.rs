@@ -11,7 +11,6 @@ pub struct RateState {
 }
 
 impl RateState {
-
     pub fn compute_twap(&mut self) -> Result<()> {
         let (twap_value, twap_refreshed_slot) = self.sampling_data.twap()?;
 
@@ -22,13 +21,10 @@ impl RateState {
     }
 
     pub fn len(sampling_size: usize) -> usize {
-        return 
-            8 + // discriminator
+        8 + // discriminator
             10*16 + // pub fair_value: [[u8; 16]; 10],
             8 + // pub refreshed_slot: u64,
             32 + // pub rate_state_source: Pubkey,
             SamplingData::len(sampling_size) // pub sampling_data: SamplingData
-            ;
     }
-
 }
