@@ -1,0 +1,21 @@
+[package]
+name = "rate-twap"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "rate_twap"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.24.2"
+rust_decimal = { version="1.24", features=["borsh"] }
+rust_decimal_macros = "1.24"
