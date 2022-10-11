@@ -10,6 +10,7 @@
 | RateSwitchboard Plugin          | Mainnet          | `2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RateSwitchboard Plugin          | Devnet           | `2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RateSwitchboard Plugin          | Devnet Hackathon | `EMg9whXe9Yk1vdmEwBmEfnucRAaombxC4HW1LyRy1tWD` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
+| RatePyth Plugin                 | Devnet           | `3mxtC2cGVhHucUg4p58MVzVqUKLyiy1zWqRkRQdgUBPT` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RatePoolv2 Plugin               | Mainnet          | `5Vm2YZK3SeGbXbtQpKVByP9EvYy78ahnjFXKkf9B3yzW` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RatePoolv2 Plugin               | Devnet           | `5Vm2YZK3SeGbXbtQpKVByP9EvYy78ahnjFXKkf9B3yzW` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicLendingFee Plugin    | Devnet           | `3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
