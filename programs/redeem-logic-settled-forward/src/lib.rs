@@ -10,7 +10,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU");
 
 #[program]
 pub mod redeem_logic_settled_forward {
