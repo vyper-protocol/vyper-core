@@ -11,10 +11,12 @@ use solana_security_txt::security_txt;
 
 security_txt! {
     // Required fields
-    name: "vyper core",
-    project_url: "https://github.com/vyper-protocol/vyper-core",
-    contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/security,discord:uKHfg58j",
-    policy: "https://github.com/vyper-protocol/blob/master/SECURITY.md"
+    name: "Vyper Core",
+    project_url: "https://vyperprotocol.io",
+    contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/",
+    policy: "https://github.com/vyper-protocol/vyper-core/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/vyper-protocol/vyper-core/tree/main/programs/vyper-core"
 }
 
 declare_id!("vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp");
