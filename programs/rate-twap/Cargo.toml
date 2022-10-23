@@ -19,3 +19,4 @@ default = []
 anchor-lang = "0.24.2"
 rust_decimal = { version="1.24", features=["borsh"] }
 rust_decimal_macros = "1.24"
+solana-security-txt = "1.0.1"

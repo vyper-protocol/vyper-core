@@ -22,7 +22,7 @@ import {
     UPDATE_TRANCHE_CONFIG_FLAGS,
 } from "./utils";
 
-describe("vyper_core", () => {
+describe.only("vyper_core", () => {
     const provider = anchor.AnchorProvider.env();
     // Configure the client to use the local cluster.
     anchor.setProvider(provider);
@@ -31,7 +31,7 @@ describe("vyper_core", () => {
     const programRedeemLogicLending = anchor.workspace.RedeemLogicLending as Program<RedeemLogicLending>;
     const programRateMock = anchor.workspace.RateMock as Program<RateMock>;
 
-    it("initialize", async () => {
+    it.only("initialize", async () => {
         const trancheMintDecimals = 6;
         const reserveMint = await createMint(provider);
 
@@ -49,6 +49,8 @@ describe("vyper_core", () => {
             redeemLogic.programID,
             redeemLogic.state
         );
+
+        console.log("vyper: " + vyper.program.programId);
 
         const trancheConfigAccount = await programVyperCore.account.trancheConfig.fetch(vyper.trancheConfig);
         expect(trancheConfigAccount.trancheData.haltFlags).to.eql(0);

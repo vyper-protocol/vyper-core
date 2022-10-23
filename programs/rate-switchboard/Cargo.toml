@@ -21,3 +21,4 @@ switchboard-v2 = "^0.1.11"
 rust_decimal = { version="1.24", features=["borsh"] }
 rust_decimal_macros = "1.24"
 vyper-utils = { path = "../../libs/vyper-utils" }
+solana-security-txt = "1.0.1"

@@ -5,6 +5,16 @@ use crate::errors::RateSwitchboardErrorCode;
 use anchor_lang::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
+
+solana_security_txt::security_txt! {
+    name: "Rate Switchboard | Vyper Core",
+    project_url: "https://vyperprotocol.io",
+    contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/",
+    policy: "https://github.com/vyper-protocol/vyper-core/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/vyper-protocol/vyper-core/tree/main/programs/rate-switchboard"
+}
+
 declare_id!("2hGXiH1oEQwjCXRx8bNdHTi49ScZp7Mj2bxcjxtULKe1");
 
 #[program]

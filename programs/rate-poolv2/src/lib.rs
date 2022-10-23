@@ -8,6 +8,15 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
 use rust_decimal::Decimal;
 
+solana_security_txt::security_txt! {
+    name: "Rate Poolv2 | Vyper Core",
+    project_url: "https://vyperprotocol.io",
+    contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/",
+    policy: "https://github.com/vyper-protocol/vyper-core/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/vyper-protocol/vyper-core/tree/main/programs/rate-poolv2"
+}
+
 declare_id!("5Vm2YZK3SeGbXbtQpKVByP9EvYy78ahnjFXKkf9B3yzW");
 
 #[program]

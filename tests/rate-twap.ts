@@ -6,7 +6,7 @@ import { RateMock } from "../target/types/rate_mock";
 import { RateTwap } from "../target/types/rate_twap";
 import { bn } from "./utils";
 
-describe.only("rate_twap", () => {
+describe("rate_twap", () => {
     const provider = anchor.AnchorProvider.env();
 
     // Configure the client to use the local cluster.

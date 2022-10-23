@@ -7,10 +7,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 use vyper_macros::*;
 
-use solana_security_txt::security_txt;
-
-security_txt! {
-    // Required fields
+solana_security_txt::security_txt! {
     name: "Vyper Core",
     project_url: "https://vyperprotocol.io",
     contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/",

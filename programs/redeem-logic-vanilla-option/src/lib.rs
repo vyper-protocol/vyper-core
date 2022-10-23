@@ -2,6 +2,15 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
+solana_security_txt::security_txt! {
+    name: "Redeem Logic Vanilla Option | Vyper Core",
+    project_url: "https://vyperprotocol.io",
+    contacts: "email:info@vyperprotocol.io,link:https://docs.vyperprotocol.io/",
+    policy: "https://github.com/vyper-protocol/vyper-core/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/vyper-protocol/vyper-core/tree/main/programs/redeem-logic-vanilla-option"
+}
+
 declare_id!("8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe");
 
 // showcasing Vyper reedem logic for vanilla options

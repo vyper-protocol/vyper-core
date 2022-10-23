@@ -982,6 +982,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-utils",
 ]
 
@@ -993,6 +994,7 @@ dependencies = [
  "anchor-spl",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
 ]
 
 [[package]]
@@ -1003,6 +1005,7 @@ dependencies = [
  "pyth-sdk-solana",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
 ]
 
 [[package]]
@@ -1012,6 +1015,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "switchboard-v2",
  "vyper-utils",
 ]
@@ -1023,6 +1027,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
 ]
 
 [[package]]
@@ -1032,6 +1037,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1043,6 +1049,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1054,6 +1061,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1065,6 +1073,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1076,6 +1085,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1087,6 +1097,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
@@ -1098,6 +1109,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
