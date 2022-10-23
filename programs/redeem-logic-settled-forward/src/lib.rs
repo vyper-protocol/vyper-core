@@ -1,10 +1,12 @@
-// Vyper reedem logic for forward contracts settled in a third currency
-// For example an ABC/XYZ forward settled in USD at the prevailing XYZ/USD or ABC/USD exchange rate
-// Collateral is in the quote currency of the settlement pair, e.g. USD for ABC/XYZ settled in XYZ/USD
-// The contract is fully collateralized, which amounts to the counterparties writing each other calls/puts at bankruptcy level
-// Senior ([0]) is long, junior ([1]) is short
-// The notional of the contract is in base asset (e.g. ABC in an ABC/XYZ contract)
-// Supports both linear and inverse settlement. For example for an ABC/XYZ contract, if is_linear provide XYZ/USD else provide ABC/USD
+// Vyper Redeem Logic: Settled Forward Contract
+// Example: ETH/BTC forward settled in USD, at the prevailing ETH/USD or BTC/USD rate
+// Collateral is in the quote currency of the settlement pair, e.g. USD for ETH/BTC settled USD, using ETH/USD or BTC/USD
+// The notional of the contract is in base asset (e.g. ETH in an ETH/BTC contract)
+// Supports both linear and inverse settlement. For example for an ETH/BTC contract:
+// - if is_linear provide BTC/USD as settlement rate
+// - else provide ETH/USD
+// Senior [0] is long, junior [1] is short
+// Learn more here: https://vyperprotocol.notion.site/Contract-Payoff-Settled-Forward-aa0f295f291545c281be6fa6363ca79a
 
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;

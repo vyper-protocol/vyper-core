@@ -1,14 +1,17 @@
+// Vyper Redeem Logic: Forward Contract
+// Example: SOL/USD forward
+// The notional of the contract is in base asset (e.g. SOL in a SOL/USD contract)
+// Supports both linear and inverse settlement. For example for an SOL/USD contract:
+// - if is_linear provide USD as collateral
+// - else provide SOL
+// Senior [0] is long, junior [1] is short
+// Learn more here: https://vyperprotocol.notion.site/Contract-Payoff-Forward-0475d7640cd946f5be4a03d5e6bcad76
+
 use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
 declare_id!("BrpV1re8MshA8qskKVxcEG8zXG3vf2uLX6myeTKAyhsK");
-
-// Vyper reedem logic for forward contracts
-// supports both linear and inverse settlement (=self quanto) e.g. SOL/USDC forward settled in USDC (linear) vs SOL (inverse)
-// the contract is fully collateralized, which amounts to the counterparties writing each other calls/puts at bankruptcy level
-// senior ([0]) is long, junior ([1]) is short
-// the notional of the contract is in base asset (e.g. SOL)
 
 #[program]
 pub mod redeem_logic_forward {
