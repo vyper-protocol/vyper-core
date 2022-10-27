@@ -29,7 +29,7 @@ Following the Vyper suite
 | **Redeem Logic Farming**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-farming`        |
 | **Redeem Logic Vanilla Option**   | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-vanilla-option` |
 | **Redeem Logic Forward**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-settled-forward`|
-| **Redeem Logic Settled Forward**  | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-fila`           |
+| **Redeem Logic Settled Forward**  | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-fila`           |
 | **Redeem Logic Fila**             | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-fila`           |
 
 ## Rust Libraries
