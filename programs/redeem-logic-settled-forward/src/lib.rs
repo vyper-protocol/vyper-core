@@ -5,7 +5,7 @@
 // Supports both linear and inverse settlement. For example for an ETH/BTC contract:
 // - if is_linear provide BTC/USD as settlement rate
 // - else provide ETH/USD
-// Support both standard quotes e.g. BTC/USD and the inverse e.g. USD/BTC
+// Supports both standard quotes e.g. BTC/USD and inverse e.g. USD/BTC
 // Senior [0] is long, junior [1] is short
 // Useful for improved oracle listing efficiency
 // Learn more here: https://vyperprotocol.notion.site/Contract-Payoff-Settled-Forward-aa0f295f291545c281be6fa6363ca79a
