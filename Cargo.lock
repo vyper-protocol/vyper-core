@@ -1082,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-settled-forward"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
