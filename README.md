@@ -24,13 +24,14 @@ Following the Vyper suite
 | **Rate Switchboard**              | Rate Plugin         | `0.1.0` | `programs/rate-switchboard`            |
 | **Rate Pyth**                     | Rate Plugin         | `0.1.0` | `programs/rate-pyth`                   |
 | **Rate Mock**                     | Rate Plugin         | `0.1.0` | `programs/rate-mock`                   |
-| **Redeem Logic Lending**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending`        |
-| **Redeem Logic Lending Fee**      | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-lending-fee`    |
-| **Redeem Logic Farming**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-farming`        |
-| **Redeem Logic Vanilla Option**   | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-vanilla-option` |
-| **Redeem Logic Forward**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-settled-forward`|
-| **Redeem Logic Settled Forward**  | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-fila`           |
-| **Redeem Logic Fila**             | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-fila`           |
+| **Redeem Logic Lending**          | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-lending`        |
+| **Redeem Logic Lending Fee**      | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-lending-fee`    |
+| **Redeem Logic Farming**          | Redeem Logic Plugin | `1.0.0` | `programs/redeem-logic-farming`        |
+| **Redeem Logic Vanilla Option**   | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-vanilla-option` |
+| **Redeem Logic Forward**          | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-forward`        |
+| **Redeem Logic Settled Forward**  | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-settled-forward`|
+| **Redeem Logic Fila**             | Redeem Logic Plugin | `0.1.1` | `programs/redeem-logic-fila`           |
+| **Redeem Logic Digital**          | Redeem Logic Plugin | `0.1.0` | `programs/redeem-logic-digital`        |
 
 ## Rust Libraries
 
