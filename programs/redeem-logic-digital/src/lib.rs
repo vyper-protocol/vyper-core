@@ -13,7 +13,7 @@ use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
-pub mod redeem_logic_settled_forward {
+pub mod redeem_logic_digital {
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeContext>, strike: f64, is_call: bool) -> Result<()> {
