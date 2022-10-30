@@ -1031,6 +1031,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redeem-logic-digital"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "vyper-macros",
+ "vyper-utils",
+]
+
+[[package]]
 name = "redeem-logic-farming"
 version = "1.0.0"
 dependencies = [
