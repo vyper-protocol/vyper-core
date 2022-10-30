@@ -22,3 +22,5 @@
 | RedeemLogicForward Plugin        | Devnet Hackathon | `BrpV1re8MshA8qskKVxcEG8zXG3vf2uLX6myeTKAyhsK` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicSettledForward Plugin | Mainnet          | `6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicSettledForward Plugin | Devnet           | `6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
+| RedeemLogicDigital Plugin        | Mainnet          | `5Dq9PjUJUG5dM9DzYFqKA4YZYeKJfGaM5Gy7NjpY3p5r` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
+| RedeemLogicDigital Plugin        | Devnet           | `5Dq9PjUJUG5dM9DzYFqKA4YZYeKJfGaM5Gy7NjpY3p5r` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
