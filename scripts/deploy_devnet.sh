@@ -33,9 +33,15 @@ anchor idl upgrade --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyp
 # redeem logic forward
 # anchor deploy -p redeem-logic-forward --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 
-# redeem logic forward
-anchor deploy -p redeem-logic-settled-forward --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+# redeem logic settled-forward
+anchor deploy -p redeem-logic-settled-forward --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
 anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_settled_forward.json 6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU
+anchor idl upgrade --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_settled_forward.json 6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU
+
+# redeem logic digital
+anchor deploy -p redeem-logic-digital --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+anchor idl init --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_digital.json 5Dq9PjUJUG5dM9DzYFqKA4YZYeKJfGaM5Gy7NjpY3p5r
+anchor idl upgrade --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_digital.json 5Dq9PjUJUG5dM9DzYFqKA4YZYeKJfGaM5Gy7NjpY3p5r
 
 # # # # # # # # # # # # # # # # # # 
 # RECOVERY
