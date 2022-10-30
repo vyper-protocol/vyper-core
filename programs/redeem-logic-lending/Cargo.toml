@@ -24,3 +24,4 @@ rust_decimal = { version = "1.24", features = ["borsh"] }
 rust_decimal_macros = "1.24"
 vyper-utils = { path = "../../libs/vyper-utils" }
 vyper-macros = { path = "../../libs/vyper-macros" }
+solana-security-txt = "1.0.1"
