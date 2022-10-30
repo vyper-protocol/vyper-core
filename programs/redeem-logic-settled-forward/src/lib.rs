@@ -5,7 +5,9 @@
 // Supports both linear and inverse settlement. For example for an ETH/BTC contract:
 // - if is_linear provide BTC/USD as settlement rate
 // - else provide ETH/USD
+// Supports both standard quotes e.g. BTC/USD and inverse e.g. USD/BTC
 // Senior [0] is long, junior [1] is short
+// Useful for improved oracle listing efficiency
 // Learn more here: https://vyperprotocol.notion.site/Contract-Payoff-Settled-Forward-aa0f295f291545c281be6fa6363ca79a
 
 use anchor_lang::prelude::*;
@@ -32,6 +34,7 @@ pub mod redeem_logic_settled_forward {
         strike: f64,
         notional: u64,
         is_linear: bool,
+        is_standard: bool,
     ) -> Result<()> {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
@@ -42,6 +45,7 @@ pub mod redeem_logic_settled_forward {
             .serialize();
         redeem_logic_config.notional = notional;
         redeem_logic_config.is_linear = is_linear;
+        redeem_logic_config.is_standard = is_standard;
 
         Ok(())
     }
@@ -51,6 +55,7 @@ pub mod redeem_logic_settled_forward {
         strike: f64,
         notional: u64,
         is_linear: bool,
+        is_standard: bool,
     ) -> Result<()> {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
@@ -60,6 +65,7 @@ pub mod redeem_logic_settled_forward {
             .serialize();
         redeem_logic_config.notional = notional;
         redeem_logic_config.is_linear = is_linear;
+        redeem_logic_config.is_standard = is_standard;
 
         Ok(())
     }
@@ -78,6 +84,7 @@ pub mod redeem_logic_settled_forward {
             Decimal::deserialize(ctx.accounts.redeem_logic_config.strike),
             ctx.accounts.redeem_logic_config.notional,
             ctx.accounts.redeem_logic_config.is_linear,
+            ctx.accounts.redeem_logic_config.is_standard,
         )?;
 
         anchor_lang::solana_program::program::set_return_data(&result.try_to_vec()?);
@@ -158,6 +165,9 @@ pub struct RedeemLogicConfig {
     /// true if linear, false if inverse
     pub is_linear: bool,
 
+    /// true if standard, false if inverse
+    pub is_standard: bool,
+
     pub strike: [u8; 16],
     pub owner: Pubkey,
 }
@@ -166,6 +176,7 @@ impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     8 + // pub notional: u64,
     1 + // pub is_linear: bool,
+    1 + // pub is_standard: bool,
     16 + // pub strike: [u8; 16],
     32 // pub owner: Pubkey,
     ;
@@ -174,6 +185,7 @@ impl RedeemLogicConfig {
         msg!("redeem logic config:");
         msg!("+ notional: {:?}", self.notional);
         msg!("+ is_linear: {:?}", self.is_linear);
+        msg!("+ is_standard: {:?}", self.is_standard);
         msg!("+ strike: {:?}", Decimal::deserialize(self.strike))
     }
 }
@@ -185,6 +197,7 @@ fn execute_plugin(
     strike: Decimal,
     notional: u64,
     is_linear: bool,
+    is_standard: bool,
 ) -> Result<RedeemLogicExecuteResult> {
     require!(
         new_ul_spot >= Decimal::ZERO,
@@ -203,6 +216,14 @@ fn execute_plugin(
     // let junior_old_quantity = Decimal::from(old_quantity[1]);
     let total_old_quantity = Decimal::from(old_quantity.iter().sum::<u64>());
     let notional = Decimal::from(notional);
+
+    let new_settle_spot = {
+        if is_standard || new_settle_spot == Decimal::ZERO {
+            new_settle_spot
+        } else {
+            new_settle_spot.powi(-1)
+        }
+    };
 
     let payoff = new_settle_spot * {
         if new_ul_spot == Decimal::ZERO && !is_linear && strike == Decimal::ZERO {
@@ -252,6 +273,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -260,6 +282,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -280,6 +303,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -288,6 +312,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -308,6 +333,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -316,6 +342,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -336,6 +363,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -344,6 +372,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -364,6 +393,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -372,6 +402,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -392,6 +423,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -400,6 +432,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -420,6 +453,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 2_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -428,6 +462,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -448,6 +483,7 @@ mod tests {
         let strike = Decimal::ONE_HUNDRED;
         let notional = 2_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -456,6 +492,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -476,6 +513,7 @@ mod tests {
         let strike = Decimal::ONE;
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -484,6 +522,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -504,6 +543,7 @@ mod tests {
         let strike = Decimal::ONE;
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -512,6 +552,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -532,6 +573,7 @@ mod tests {
         let strike = Decimal::ZERO;
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -540,6 +582,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -560,6 +603,7 @@ mod tests {
         let strike = Decimal::ZERO;
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -568,6 +612,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -588,6 +633,7 @@ mod tests {
         let strike = Decimal::ZERO;
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -596,6 +642,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -616,6 +663,7 @@ mod tests {
         let strike = Decimal::ZERO;
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -624,6 +672,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -644,6 +693,7 @@ mod tests {
         let strike = dec!(50);
         let notional = 1_000;
         let is_linear = true;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -652,6 +702,7 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
@@ -672,6 +723,7 @@ mod tests {
         let strike = dec!(50);
         let notional = 1_000;
         let is_linear = false;
+        let is_standard = true;
 
         let res = execute_plugin(
             old_quantity,
@@ -680,11 +732,102 @@ mod tests {
             strike,
             notional,
             is_linear,
+            is_standard,
         )
         .unwrap();
 
         assert_eq!(res.new_quantity[0], 100_250);
         assert_eq!(res.new_quantity[1], 99_750);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        );
+    }
+
+    #[test]
+    fn test_settled_linear_non_standard() {
+        let old_quantity = [100_000; 2];
+        let new_ul_spot = Decimal::ONE_HUNDRED;
+        let new_settled_spot = dec!(2);
+        let strike = dec!(50);
+        let notional = 1_000;
+        let is_linear = true;
+        let is_standard = false;
+
+        let res = execute_plugin(
+            old_quantity,
+            new_ul_spot,
+            new_settled_spot,
+            strike,
+            notional,
+            is_linear,
+            is_standard,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 125_000);
+        assert_eq!(res.new_quantity[1], 75_000);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        );
+    }
+
+    #[test]
+    fn test_settled_inverse_non_standard() {
+        let old_quantity = [100_000; 2];
+        let new_ul_spot = Decimal::ONE_HUNDRED;
+        let new_settled_spot = dec!(2);
+        let strike = dec!(50);
+        let notional = 1_000;
+        let is_linear = false;
+        let is_standard = false;
+
+        let res = execute_plugin(
+            old_quantity,
+            new_ul_spot,
+            new_settled_spot,
+            strike,
+            notional,
+            is_linear,
+            is_standard,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 100_250);
+        assert_eq!(res.new_quantity[1], 99_750);
+        assert_eq!(res.fee_quantity, 0);
+        assert_eq!(
+            old_quantity.iter().sum::<u64>(),
+            res.new_quantity.iter().sum::<u64>() + res.fee_quantity
+        );
+    }
+
+    #[test]
+    fn test_settled_zero_non_standard() {
+        let old_quantity = [100_000; 2];
+        let new_ul_spot = Decimal::ONE_HUNDRED;
+        let new_settled_spot = dec!(0);
+        let strike = dec!(50);
+        let notional = 1_000;
+        let is_linear = true;
+        let is_standard = false;
+
+        let res = execute_plugin(
+            old_quantity,
+            new_ul_spot,
+            new_settled_spot,
+            strike,
+            notional,
+            is_linear,
+            is_standard,
+        )
+        .unwrap();
+
+        assert_eq!(res.new_quantity[0], 100_000);
+        assert_eq!(res.new_quantity[1], 100_000);
         assert_eq!(res.fee_quantity, 0);
         assert_eq!(
             old_quantity.iter().sum::<u64>(),
