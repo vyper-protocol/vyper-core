@@ -1037,6 +1037,7 @@ dependencies = [
  "anchor-lang",
  "rust_decimal",
  "rust_decimal_macros",
+ "solana-security-txt",
  "vyper-macros",
  "vyper-utils",
 ]
