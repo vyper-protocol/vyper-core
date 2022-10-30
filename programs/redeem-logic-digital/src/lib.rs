@@ -19,7 +19,7 @@ solana_security_txt::security_txt! {
     source_code: "https://github.com/vyper-protocol/vyper-core/tree/main/programs/redeem-logic-digital"
 }
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("5Dq9PjUJUG5dM9DzYFqKA4YZYeKJfGaM5Gy7NjpY3p5r");
 
 #[program]
 pub mod redeem_logic_digital {
