@@ -151,6 +151,7 @@ impl RedeemLogicConfig {
 }
 
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::nonminimal_bool)]
 fn execute_plugin(
     old_quantity: [u64; 2],
     new_spot: Decimal,
