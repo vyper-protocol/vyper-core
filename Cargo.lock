@@ -1116,7 +1116,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-vanilla-option"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
