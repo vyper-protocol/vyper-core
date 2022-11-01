@@ -17,8 +17,8 @@
 | RedeemLogicLendingFee Plugin     | Devnet           | `3mq416it8YJsd5DKNuWeoCCAH8GYJfpuefHSNkSP6LyS` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicFarming Plugin        | Mainnet          | `Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicFarming Plugin        | Devnet           | `Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
+| RedeemLogicVanillaOption Plugin  | Mainnet          | `8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicVanillaOption Plugin  | Devnet           | `8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
-| RedeemLogicVanillaOption Plugin  | Devnet Hackathon | `Fz5JL6g8itRdw4nZtYjuScJZx2JATLE5SHNm1NwW87XV` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicForward Plugin        | Devnet Hackathon | `BrpV1re8MshA8qskKVxcEG8zXG3vf2uLX6myeTKAyhsK` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicSettledForward Plugin | Mainnet          | `6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |
 | RedeemLogicSettledForward Plugin | Devnet           | `6vBg1GMtKj7EYDLWWt6tkHoDWLAAksNPbKWiXMic99qU` | `DpfQodEMtBjx7X8Y8VhC9THo18YVZmUtvm6ASCVFThxh` |

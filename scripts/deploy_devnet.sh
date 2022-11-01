@@ -28,7 +28,9 @@ anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-
 anchor idl upgrade --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_farming.json Fd87TGcYmWs1Gfa7XXZycJwt9kXjRs8axMtxCWtCmowN
 
 # redeem logic vanilla option
-# anchor deploy -p redeem-logic-vanilla-option --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+anchor deploy -p redeem-logic-vanilla-option --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
+anchor idl init --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_vanilla_option.json 8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe
+anchor idl upgrade --provider.cluster m --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json -f ./target/idl/redeem_logic_vanilla_option.json 8fSeRtFseNrjdf8quE2YELhuzLkHV7WEGRPA9Jz8xEVe
 
 # redeem logic forward
 # anchor deploy -p redeem-logic-forward --provider.cluster d --provider.wallet ~/Dev/VyperWallets/vyper-program-authority/authority.json
