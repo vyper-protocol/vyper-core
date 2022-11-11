@@ -150,8 +150,6 @@ impl RedeemLogicConfig {
     }
 }
 
-#[allow(clippy::collapsible_else_if)]
-#[allow(clippy::nonminimal_bool)]
 fn execute_plugin(
     old_quantity: [u64; 2],
     new_spot: Decimal,
@@ -166,7 +164,7 @@ fn execute_plugin(
 
     let payoff = notional * {
         if new_spot == Decimal::ZERO && !is_linear {
-            if !is_call || (is_call && strike > Decimal::ZERO) {
+            if !is_call || strike > Decimal::ZERO {
                 Decimal::ZERO
             } else {
                 Decimal::ONE

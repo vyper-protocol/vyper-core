@@ -27,17 +27,6 @@ pub mod redeem_logic_digital {
 
     pub fn initialize(ctx: Context<InitializeContext>, strike: f64, is_call: bool) -> Result<()> {
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
-        redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike = Decimal::from_f64(strike)
-            .ok_or(RedeemLogicErrors::MathError)?
-            .serialize();
-        redeem_logic_config.is_call = is_call;
-
-        Ok(())
-    }
-
-    pub fn update(ctx: Context<UpdateContext>, strike: f64, is_call: bool) -> Result<()> {
-        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
         redeem_logic_config.strike = Decimal::from_f64(strike)
             .ok_or(RedeemLogicErrors::MathError)?
             .serialize();
@@ -91,24 +80,10 @@ pub struct InitializeContext<'info> {
     #[account(init, payer = payer, space = RedeemLogicConfig::LEN)]
     pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
 
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: AccountInfo<'info>,
-
     /// Signer account
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct UpdateContext<'info> {
-    #[account(mut, has_one = owner)]
-    pub redeem_logic_config: Account<'info, RedeemLogicConfig>,
-
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -123,14 +98,12 @@ pub struct RedeemLogicConfig {
     pub is_call: bool,
 
     pub strike: [u8; 16],
-    pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     1 + // pub is_call: bool,
-    16 + // pub strike: [u8; 16],
-    32 // pub owner: Pubkey,
+    16  // pub strike: [u8; 16],
     ;
 
     fn dump(&self) {

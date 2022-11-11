@@ -1032,7 +1032,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-digital"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1044,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-farming"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-fila"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1068,7 +1068,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-forward"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-lending"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-lending-fee"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-settled-forward"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
@@ -1116,7 +1116,7 @@ dependencies = [
 
 [[package]]
 name = "redeem-logic-vanilla-option"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "anchor-lang",
  "rust_decimal",
