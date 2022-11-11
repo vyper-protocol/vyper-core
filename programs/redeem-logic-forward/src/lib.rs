@@ -35,25 +35,6 @@ pub mod redeem_logic_forward {
         require!(strike >= 0., RedeemLogicErrors::InvalidInput);
 
         let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
-        redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.strike = Decimal::from_f64(strike)
-            .ok_or(RedeemLogicErrors::MathError)?
-            .serialize();
-        redeem_logic_config.notional = notional;
-        redeem_logic_config.is_linear = is_linear;
-
-        Ok(())
-    }
-
-    pub fn update(
-        ctx: Context<UpdateContext>,
-        strike: f64,
-        notional: u64,
-        is_linear: bool,
-    ) -> Result<()> {
-        require!(strike >= 0., RedeemLogicErrors::InvalidInput);
-
-        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
         redeem_logic_config.strike = Decimal::from_f64(strike)
             .ok_or(RedeemLogicErrors::MathError)?
             .serialize();
@@ -123,24 +104,10 @@ pub struct InitializeContext<'info> {
     #[account(init, payer = payer, space = RedeemLogicConfig::LEN)]
     pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
 
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: AccountInfo<'info>,
-
     /// Signer account
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct UpdateContext<'info> {
-    #[account(mut, has_one = owner)]
-    pub redeem_logic_config: Account<'info, RedeemLogicConfig>,
-
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -157,15 +124,13 @@ pub struct RedeemLogicConfig {
     pub is_linear: bool,
 
     pub strike: [u8; 16],
-    pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     8 + // pub notional: u64,
     1 + // pub is_linear: bool,
-    16 + // pub strike: [u8; 16],
-    32 // pub owner: Pubkey,
+    16  // pub strike: [u8; 16],
     ;
 
     fn dump(&self) {

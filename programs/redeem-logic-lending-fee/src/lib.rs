@@ -35,37 +35,6 @@ pub mod redeem_logic_lending_fee {
         require!(perf_fee >= 0., RedeemLogicErrors::InvalidInput);
         require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
 
-        redeem_logic_config.owner = ctx.accounts.owner.key();
-        redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
-            .ok_or(RedeemLogicErrors::MathError)?
-            .serialize();
-        redeem_logic_config.mgmt_fee = Decimal::from_f64(mgmt_fee)
-            .ok_or(RedeemLogicErrors::MathError)?
-            .serialize();
-        redeem_logic_config.perf_fee = Decimal::from_f64(perf_fee)
-            .ok_or(RedeemLogicErrors::MathError)?
-            .serialize();
-
-        Ok(())
-    }
-
-    pub fn update(
-        ctx: Context<UpdateContext>,
-        interest_split: f64,
-        mgmt_fee: f64,
-        perf_fee: f64,
-    ) -> Result<()> {
-        let redeem_logic_config = &mut ctx.accounts.redeem_logic_config;
-
-        require!(interest_split >= 0., RedeemLogicErrors::InvalidInput);
-        require!(interest_split <= 1., RedeemLogicErrors::InvalidInput);
-
-        require!(mgmt_fee >= 0., RedeemLogicErrors::InvalidInput);
-        require!(mgmt_fee <= 1., RedeemLogicErrors::InvalidInput);
-
-        require!(perf_fee >= 0., RedeemLogicErrors::InvalidInput);
-        require!(perf_fee <= 1., RedeemLogicErrors::InvalidInput);
-
         redeem_logic_config.interest_split = Decimal::from_f64(interest_split)
             .ok_or(RedeemLogicErrors::MathError)?
             .serialize();
@@ -140,24 +109,10 @@ pub struct InitializeContext<'info> {
     #[account(init, payer = payer, space = RedeemLogicConfig::LEN)]
     pub redeem_logic_config: Box<Account<'info, RedeemLogicConfig>>,
 
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: AccountInfo<'info>,
-
     /// Signer account
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct UpdateContext<'info> {
-    #[account(mut, has_one = owner)]
-    pub redeem_logic_config: Account<'info, RedeemLogicConfig>,
-
-    /// CHECK: Owner of the tranche config
-    #[account()]
-    pub owner: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -171,15 +126,13 @@ pub struct RedeemLogicConfig {
     pub interest_split: [u8; 16],
     pub mgmt_fee: [u8; 16],
     pub perf_fee: [u8; 16],
-    pub owner: Pubkey,
 }
 
 impl RedeemLogicConfig {
     pub const LEN: usize = 8 + // discriminator
     16 + // pub interest_split: DecimalWrapper,
     16 + // pub mgmt_fee: DecimalWrapper,
-    16 + // pub perf_fee: DecimalWrapper,
-    32 // pub owner: Pubkey,
+    16   // pub perf_fee: DecimalWrapper,
     ;
 
     fn dump(&self) {
