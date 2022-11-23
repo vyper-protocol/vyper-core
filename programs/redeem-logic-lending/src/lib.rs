@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::prelude::*;
 use vyper_utils::redeem_logic_common::RedeemLogicErrors;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Redeem Logic Lending | Vyper Core",
     project_url: "https://vyperprotocol.io",

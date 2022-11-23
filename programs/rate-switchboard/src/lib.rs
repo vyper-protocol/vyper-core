@@ -6,6 +6,7 @@ use anchor_lang::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use switchboard_v2::{AggregatorAccountData, SWITCHBOARD_V2_DEVNET, SWITCHBOARD_V2_MAINNET};
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Rate Switchboard | Vyper Core",
     project_url: "https://vyperprotocol.io",

@@ -7,6 +7,7 @@ use pyth_sdk_solana::{load_price_feed_from_account_info, Price, PriceFeed};
 use rust_decimal::{Decimal, MathematicalOps};
 use rust_decimal_macros::dec;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Rate Pyth | Vyper Core",
     project_url: "https://vyperprotocol.io",

@@ -7,6 +7,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 use vyper_macros::*;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Vyper Core",
     project_url: "https://vyperprotocol.io",
