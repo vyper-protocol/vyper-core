@@ -7,6 +7,7 @@ use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Rate Mock | Vyper Core",
     project_url: "https://vyperprotocol.io",

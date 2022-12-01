@@ -8,6 +8,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
 use rust_decimal::Decimal;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Rate Poolv2 | Vyper Core",
     project_url: "https://vyperprotocol.io",

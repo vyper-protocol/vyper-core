@@ -5,6 +5,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 use instructions::*;
 
+#[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
     name: "Rate TWAP | Vyper Core",
     project_url: "https://vyperprotocol.io",
