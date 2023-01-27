@@ -21,13 +21,12 @@ export class RedeemLogicVanillaOptionPlugin {
         return client;
     }
 
-    async initialize(strike: number, isCall: boolean, isLinear: boolean) {
+    async initialize(strike: number, notional: number, isCall: boolean, isLinear: boolean) {
         const redeemLogicProgramState = anchor.web3.Keypair.generate();
         await this.program.methods
-            .initialize(strike, isCall, isLinear)
+            .initialize(strike, new anchor.BN(notional), isCall, isLinear)
             .accounts({
                 redeemLogicConfig: redeemLogicProgramState.publicKey,
-                owner: this.provider.wallet.publicKey,
                 payer: this.provider.wallet.publicKey,
             })
             .signers([redeemLogicProgramState])

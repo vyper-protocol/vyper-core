@@ -27,7 +27,6 @@ export class RedeemLogicLendingPlugin {
             .initialize(interestSplit, new anchor.BN(fixedFeePerTranche))
             .accounts({
                 redeemLogicConfig: redeemLogicProgramState.publicKey,
-                owner: this.provider.wallet.publicKey,
                 payer: this.provider.wallet.publicKey,
             })
             .signers([redeemLogicProgramState])
