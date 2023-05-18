@@ -61,11 +61,6 @@ pub fn handler(ctx: Context<CloseContext>) -> Result<()> {
         &[&ctx.accounts.tranche_config.authority_seeds()]
     ))?;
    
-
-    // close mint account now
-    ctx.accounts.senior_tranche_mint.close(ctx.accounts.fee_receiver.to_account_info())?;
-    ctx.accounts.junior_tranche_mint.close(ctx.accounts.fee_receiver.to_account_info())?;
-    
     // close tranche configuration
     ctx.accounts.tranche_config.close(ctx.accounts.fee_receiver.to_account_info())?;
 
