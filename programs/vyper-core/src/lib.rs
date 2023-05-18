@@ -54,4 +54,9 @@ pub mod vyper_core {
     pub fn collect_fee(ctx: Context<CollectFeeContext>) -> Result<()> {
         instructions::collect_fee::handler(ctx)
     }
+
+    #[log_wrap_ix()]
+    pub fn close(ctx: Context<CloseContext>) -> Result<()> {
+        instructions::close::handler(ctx)
+    }
 }
