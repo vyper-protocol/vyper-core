@@ -8,7 +8,7 @@ use anchor_spl::{token::{Mint, Token, TokenAccount, CloseAccount, self}};
 #[derive(Accounts)]
 pub struct CloseContext<'info> {
     /// Signer account
-    #[account(mut)]
+    #[account()]
     pub owner: Signer<'info>,
     
     /// CHECK:   
